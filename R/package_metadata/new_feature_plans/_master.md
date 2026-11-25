@@ -191,13 +191,13 @@ spliced into one step and marked **[spliced]**.
 >   optimization (item #30, into
 >   `modern_covariate_balancing_designs.md` as
 >   `DesignSeqOneByOneOnlineMIO`).
-> **v1.0.6 maintenance items and native C++ tests (2026-11-10/11, owner).**
+> **v1.0.7 maintenance items and native C++ tests (moved 2026-11-25, owner).**
 > Plans are now filed in per-release subfolders (`vX_Y_Z/`).
-> v1.0.6 (`../future_release_plans/release_v1_0_6.md`) carries two owner exceptions to
+> v1.0.7 (`../future_release_plans/release_v1_0_7.md`) carries two owner exceptions to
 > its fixes-only entry rule:
-> - TODO-14, `v1_0_6/repository_layout_cleanup.md`: root `metadata/` plus `R/metadata/`;
+> - TODO-11, `v1_0_7/repository_layout_cleanup.md`: root `metadata/` plus `R/metadata/`;
 >   rename `R/package_tests/`; header-comment paths.
-> - TODO-15, `v1_0_6/native_cpp_test_suite.md`: a Catch2 suite in `cpp_tests/` for the
+> - TODO-12, `v1_0_7/native_cpp_test_suite.md`: a Catch2 suite in `cpp_tests/` for the
 >   `EDI_CORE_ONLY` core; agent builds whitelisted in `CLAUDE.md` per target only.
 >
 > Each later release that adds core C++ has a follow-on plan, and its tests land with the code:

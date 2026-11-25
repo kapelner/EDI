@@ -316,7 +316,7 @@ item beyond the shared-machinery core that gates nothing else there.
   `define_inference_class(components = "MarginalEstimand")` conversion
   the Poisson concretes already used. Independent of other items;
   schedule alongside TODO-16 if convenient.
-  Added 2026-11-19 (owner, from v1.0.6-TODO-208 item (4)): plain
+  Added 2026-11-19 (owner, from v1.0.6-TODO-149 item (4)): plain
   `InferenceCountNegBin` has no `set_estimand` either; extend the same
   marginal estimands to it (its marginal mean is the ordinary log-link
   mean, so it can follow the Poisson g-computation helper once the NegBin
@@ -340,7 +340,7 @@ other default reproduces 1.3.0 under the numerical-equivalence rule
 equivalence`).
 
 - [ ] TODO-19 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
-  - Plan: `../new_feature_plans/v1_4_0/native_cpp_tests_v1_4_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Plan: `../new_feature_plans/v1_4_0/native_cpp_tests_v1_4_0.md`, the follow-on to `release_v1_0_7.md` TODO-12.
   - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).

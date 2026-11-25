@@ -1,6 +1,6 @@
 # Repository Layout Cleanup: Project-Wide `metadata/` at the Root, R-Only Material Under `R/`
 
-> **Release:** v1.0.6 TODO-14 (`../../future_release_plans/release_v1_0_6.md`). Owner decision 2026-11-10,
+> **Release:** v1.0.7 TODO-11 (`../../future_release_plans/release_v1_0_7.md`). Owner decision 2026-11-10,
 > taken as an exception to that file's entry rule (refactors normally stay in v1.1.0): this changes repository
 > layout only, no package code, API or results.
 >

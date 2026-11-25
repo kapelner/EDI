@@ -19,7 +19,9 @@ CAL = ('"response_type","design","prob_T","inf_class","inf_procedure","formula",
        '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","lr","~.",50,"size",0.09,"v1.1 TODO-999: missing, goes"\n'
        '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidGone","lr","~.",50,"size",0.09,"v1.1 TODO-173: class gone"\n'
        '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","score","~.",50,"size",0.09,"v1.1 TODO-74: moved"\n'
-       '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","rand","~.",50,"size",0.09,"no citation at all"\n')
+       '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","rand","~.",50,"size",0.09,"no citation at all"\n'
+       '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","gradient","~.",50,"size",0.09,"v1.1.0-TODO-216: ruled inherent, stays"\n'
+       '"incidence","DesignFixedBernoulli",0.5,"InferenceIncidFoo","gradient","~.",50,"coverage",0.9,"v1.1.0-TODO-217: pointer to no section, goes"\n')
 FAST = ('"response_type","design","prob_T","inference_class","method","formula","n","metric","accepted_level","reason"\n'
         '"count","DesignFixedBernoulli",0.5,"InferenceIncidFoo","wald","~1",200,"size",0.08,"v1.0.6 TODO-2: open; also TODO-168"\n')
 PATHS = ('id,source,class_regex,row_regex,column_regex,kinds,tracked_in,reason,counting_rule_change\n'
@@ -38,7 +40,13 @@ HELPER = ('# Tracked as v1.0.5 TODO-168 (release_v1_0_5.md).\n'
 V105 = "> **Status: CLOSED to new TODOs (owner, 2026-11-12): soon to be released.**\n\n- [x] TODO-168: fixed.\n"
 V106 = "- [ ] TODO-2: open.\n"
 V110 = ("- [ ] TODO-173: open.\n"
+        "- [x] TODO-216: inherent.\n"
+        "  - Decided 2026-11-19 (owner): inherent; see [DECISION-v1.1.0-TODO-216](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-216).\n"
+        "- [x] TODO-217: ruled.\n"
+        "  - Decided 2026-11-19 (owner): inherent; see [DECISION-v1.1.0-TODO-217](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-217).\n"
         "- [ ] ~~TODO-74~~ **→ moved 2026-11-10 to `release_v1_0_6.md → TODO-1`** (owner): moved.\n")
+
+DECISIONS = '<a id="DECISION-v1.1.0-TODO-216"></a>\n### DECISION-v1.1.0-TODO-216: inherent?\n'
 
 
 class Hygiene(unittest.TestCase):
@@ -50,6 +58,7 @@ class Hygiene(unittest.TestCase):
             "R/EDI/R/inference_incid_foo.R": 'InferenceIncidFoo = define_inference_class(\n\tclassname = "InferenceIncidFoo")\n',
             "R/EDI/R/design_bern.R": 'DesignFixedBernoulli = R6::R6Class("DesignFixedBernoulli")\n',
             "R/EDI/tests/testthat/helper-workers.R": HELPER,
+            f"{REL}/COMPLETED_DECISIONS.md": DECISIONS,
             f"{REL}/release_v1_0_5.md": V105, f"{REL}/release_v1_0_6.md": V106, f"{REL}/release_v1_1_0.md": V110,
             f"{PT}/calibration/calibration_study_accepted.csv": CAL,
             f"{PT}/calibration/calibration_fast_tier_accepted.csv": FAST,
@@ -80,6 +89,10 @@ class Hygiene(unittest.TestCase):
         self.assertIn(("no-longer-triggers", cal + "InferenceIncidGone / lr / ~. / 50 / size"), k)
         self.assertIn(("todo-moved", cal + "InferenceIncidFoo / score / ~. / 50 / size"), k)
         self.assertIn(("no-citation", cal + "InferenceIncidFoo / rand / ~. / 50 / size"), k)
+        # Ticked by an owner ruling that exists in COMPLETED_DECISIONS.md: kept and reported; a pointer to a
+        # missing section counts as plain ticked.
+        self.assertIn(("todo-decided", cal + "InferenceIncidFoo / gradient / ~. / 50 / size"), k)
+        self.assertIn(("todo-ticked", cal + "InferenceIncidFoo / gradient / ~. / 50 / coverage"), k)
         self.assertIn(("todo-ticked", "b_ticked"), k)
         self.assertIn(("no-longer-triggers", "d_nomatch"), k)
         self.assertIn(("todo-ticked", "count / IncidFoo / compute_x / 2026-09-18"), k)
@@ -98,9 +111,11 @@ class Hygiene(unittest.TestCase):
         self.assertNotIn("TODO-168: ticked, goes", cal)
         self.assertNotIn("TODO-999", cal)
         self.assertIn("TODO-173: open, stays", cal)
+        self.assertIn("TODO-216: ruled inherent, stays", cal)
+        self.assertNotIn("TODO-217: pointer to no section", cal)
         self.assertIn("class gone", cal)                        # reported, not removed
         self.assertTrue(cal.startswith('"response_type","design"'))   # header and quoting untouched
-        self.assertEqual(cal.count("\n"), CAL.count("\n") - 2)
+        self.assertEqual(cal.count("\n"), CAL.count("\n") - 3)
         paths = (self.repo / PT / "path_audits_regression_allowlist.csv").read_text()
         self.assertNotIn("b_ticked", paths)
         self.assertIn("d_nomatch", paths)
@@ -109,7 +124,7 @@ class Hygiene(unittest.TestCase):
         unt = (self.repo / "R/package_metadata/audits/untested_code_allowlist.csv").read_text()
         self.assertNotIn("unt-0123456789ab", unt)
         self.assertIn("foo_win", unt)
-        self.assertEqual(len(parts["applied"]), 4)
+        self.assertEqual(len(parts["applied"]), 5)
         self.assertTrue(all(p["applied_file"] and p["applied_text"] == "" for p in parts["proposed"]))
         self.assertTrue(any("reclassify" in m for m in parts["mechanical"]))
 

@@ -71,7 +71,7 @@ run). It compiles one small standalone file against the installed EDI, not
 section is relaxed.
 
 **Whitelisted (owner, 2026-11-10):** the native C++ test suite in `cpp_tests/`
-(plan `new_feature_plans/v1_0_6/native_cpp_test_suite.md`). Agents may
+(plan `new_feature_plans/v1_0_7/native_cpp_test_suite.md`). Agents may
 configure and build it without asking, under all of these limits:
 - Build only the test target(s) being worked on (`cmake --build <dir> --target
   <test>`), never `all`. Each target lists only the `EDI_CORE_ONLY` sources it
@@ -127,15 +127,15 @@ one were renamed on 2026-11-07. Cite the TODO in a comment at the top of the
 file instead (e.g. `# v1.0.5 TODO-110: ...`). A descriptive "todo" that is not
 a plan reference (e.g. `...-todo-stub-guards-reference.R`) is fine.
 
-## Always cite a TODO with its release: `v1.0.6-TODO-30`
+## Always cite a TODO with its release: `v1.0.6-TODO-6`
 
 TODO numbers restart in every release file, so `TODO-30` alone is ambiguous: v1.0.6, v1.1.0 and v1.2.0 each have
 their own TODO-30. Whenever you reference a roadmap TODO, put the release first, in the form `v<version>-TODO-<n>`
-(`v1.0.6-TODO-30`, `v1.2.0-TODO-203`), so references sort by release. This applies to replies to the user, plan
+(`v1.0.6-TODO-6`, `v1.2.0-TODO-203`), so references sort by release. This applies to replies to the user, plan
 files, release files, NEWS, code comments, commit messages and learnings. When a TODO is in a plan's own internal
 list rather than a release file, name the plan instead (`multistart_nonconcave_likelihoods.md TODO-3`).
 
-Existing references in the older styles (`release_v1_0_6.md → TODO-30`, `v1.0.5 TODO-110`) can stay as they are.
+Existing references in the older styles (`release_v1_0_6.md → TODO-6`, `v1.0.5 TODO-110`) can stay as they are.
 Use the new form for anything you write or edit.
 
 ## Ignore the four stuck "queued" Actions runs from 2026-11-11

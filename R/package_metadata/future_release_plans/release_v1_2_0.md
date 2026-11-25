@@ -346,7 +346,7 @@ Ticked in owning plans; this list is the index.
     could be pulled into v1.1.0 next to `release_v1_1_0.md → TODO-17s` if
     the owner wants them sooner.
   - The 2026-11-16 ZIP randomization finding turned out to be a warm-start
-    bug, not an optimizer failure; it is `release_v1_0_6.md → TODO-30`.
+    bug, not an optimizer failure; it is `release_v1_0_6.md → TODO-6`.
   - Concave classes stay bit-for-bit.
 
 - [ ] TODO-203 (added 2026-11-16, owner request): **Two new optimizer
@@ -832,7 +832,7 @@ item is opt-in by construction (`ci_search_algorithm` argument,
 default `"bisection"`) until its own A/B report clears a wider default. TODO-22's draw-kernel item (`algorithm_choice_audit.md → TODO-21`) changes seed-pinned draws once, as a documented default change; every TODO-23 item ships opt-in or as a documented default change only after its harness report is read.
 
 - [ ] TODO-37 (added 2026-11-10, owner): **Native C++ tests for this release's core additions.**
-  - Plan: `../new_feature_plans/v1_2_0/native_cpp_tests_v1_2_0.md`, the follow-on to `release_v1_0_6.md` TODO-15.
+  - Plan: `../new_feature_plans/v1_2_0/native_cpp_tests_v1_2_0.md`, the follow-on to `release_v1_0_7.md` TODO-12.
   - Every C++ addition to the `EDI_CORE_ONLY` core in this release lands with its `cpp_tests/` target in the same
     change.
   - Each target builds from a minimal source subset (the CLAUDE.md whitelist).
@@ -1107,7 +1107,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
   per-unit scores/information as an opt-in (deferred)**
   - Why deferred: Estimator change (first-order approximation; BCa a-hat and jackknife SE move), low confidence, and it
     needs per-unit score and information contributions that most EDI specs do not expose (the same obstacle the catalog
-    records for the infinitesimal jackknife, line ~1676). The 'v1.0.6-TODO-7' the finding cites is unrelated
+    records for the infinitesimal jackknife, line ~1676). The 'v1.0.7-TODO-6' the finding cites is unrelated
     (ModifiedPoisson ~1 at large n). Revisit after the exact LS jackknife lands and if per-unit hooks are added.
   - Revisit on or after 2027-05-01.
   - Done when: a benchmark or check at EDI sizes shows a worthwhile gain with unchanged results (identical() or within
@@ -1309,7 +1309,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     non-estimable, consistent with EDI's separation warnings.
   - First read the paper's LP formulation and check on a separated KK ordinal dataset whether it flags the cases where
     the CLMM/GLMM fits diverge. If it does, consider it as a shared pre-check alongside the separation handling in
-    v1.0.6-TODO-122.
+    v1.0.6-TODO-76.
   - Done when: the check is reported (flags vs divergent fits) and the pre-check is merged with unchanged results on
     non-separated inputs, or the item closes with the numbers.
 - [ ] TODO-250 (added 2026-11-19, owner; from docs-claims audit finding `docs-claims-d218ace01`): **Joint weighted ZOIB
@@ -1326,11 +1326,11 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
 - [ ] TODO-251 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
   `binary-glm-mle#44618445718.1`): **C++ logistic fits in the KK conditional-logit IVWC
   Bayesian-bootstrap replicate.** `compute_weighted_estimate_ivwc` (`R/EDI/R/inference_incidence_KK_cond_logit.R`, added in
-  v1.0.6-TODO-217) runs two `stats::glm.fit(family = quasibinomial())` fits per draw (discordant-pair differences and
+  v1.0.6-TODO-158) runs two `stats::glm.fit(family = quasibinomial())` fits per draw (discordant-pair differences and
   reservoir). Swap both for `fast_logistic_regression_weighted_cpp`, taking ssq from the inverse of the returned
   `fisher_information`, with `glm.fit` kept as the non-convergence fallback and an explicit rank check that keeps the
   current NULL when rank < p. Low priority: IVWC classes are legacy. Related to the deferred v1.2.0-TODO-213.
-  - Done when: replicates agree with the current ones on the v1.0.6-TODO-217 fixture (log-OR 2.66) and B = 500 draws
+  - Done when: replicates agree with the current ones on the v1.0.6-TODO-158 fixture (log-OR 2.66) and B = 500 draws
     are timed before and after, or the item closes with the numbers.
 - [ ] TODO-252 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
   `atkinson-optimal-biased-coin#44618445718.1`): **Atkinson biased coin in imbalance-vector form.** Atkinson's
@@ -1364,13 +1364,13 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     refit counts are profiled on the benchmark designs, or the item closes with the numbers.
 - [ ] TODO-255 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44618445718, finding
   `monte-carlo-test-inversion-ci#44618445718.1`; rescoped 2026-11-20): **Zhang exact CI: find the inside point (or prove the
-  set empty) from the breakpoints, replacing `zhang_ci_inside_point_grid`.** Already done, not part of this item: v1.0.6-TODO-233 (owner decision) made
+  set empty) from the breakpoints, replacing `zhang_ci_inside_point_grid`.** Already done, not part of this item: v1.0.6-TODO-167 (owner decision) made
   `InferenceIncidExactZhang`'s exact CI the convex hull of the accepted set (Blaker 2000; Fay 2010; documented in the
   class roxygen, NEWS and `REFERENCES.md` [Blaker2000]/[Fay2010]), using the closed-form breakpoints of both
   minimum-likelihood components (`zhang_exact_pval_breakpoints`, `zhang_ci_hull_endpoint` in
   `R/EDI/R/inference_helpers_zhang.R`), so the endpoints no longer miss an outer piece of a gapped set. Still open: the
   start point the endpoint searches begin from (`zhang_ci_inside_point`) comes from 3 candidates, `optimize()`, then a
-  2001-point grid plus 5 local refinements (`zhang_ci_inside_point_grid`, v1.0.6-TODO-216). A grid can miss a very
+  2001-point grid plus 5 local refinements (`zhang_ci_inside_point_grid`, v1.0.6-TODO-157). A grid can miss a very
   narrow accepted window (TODO-233 found one around delta = 0 at p0 = 0.5) and then report the confidence set as empty
   (`exact_ci_empty_acceptance_set`) when it is not.
   - Replace the grid with an exact search: the combined p-value at each breakpoint (ties counted, so at least its limit
@@ -1449,7 +1449,7 @@ default `"bisection"`) until its own A/B report clears a wider default. TODO-22'
     numbers.
 - [ ] TODO-262 (added 2026-11-20, agent, owner request; from the algorithm-research triage of run 44683751221, finding
   `survival-frailty-copula-mle#44683751221.1`): **Cheaper Hessians for the frailty and Clayton
-  replicate variances.** Since v1.0.6-TODO-132 every IVWC resampling and randomization replicate of the frailty and
+  replicate variances.** Since v1.0.6-TODO-86 every IVWC resampling and randomization replicate of the frailty and
   copula classes computes its own variance by finite differences over all parameters, even when `fixed_idx` pins the
   two variance-component parameters and only the free block is inverted (`fast_weibull_frailty.cpp` ~L398-408).
   (1) Difference only the free coordinates in `WeibullFrailtyNormalLikelihood::hessian`,

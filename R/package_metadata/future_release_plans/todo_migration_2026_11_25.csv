@@ -1,0 +1,417 @@
+old_release,old_todo,new_release,new_todo,checkbox,disposition,reason
+1.0.6,1,1.0.7,1,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,2,1.0.7,2,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,3,1.0.7,3,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,4,1.0.6,1,checked,retained,Completion history retained
+1.0.6,5,1.0.7,4,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,6,1.0.7,5,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,7,1.0.7,6,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,9,1.0.7,7,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,10,1.0.7,8,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,11,1.0.7,9,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,12,1.0.6,2,checked,retained,Completion history retained
+1.0.6,13,1.0.7,10,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,14,1.0.7,11,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,15,1.0.7,12,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,16,1.0.7,13,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,17,1.0.7,14,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,18,1.0.7,15,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,19,1.0.7,16,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,20,1.0.7,17,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,21,1.0.6,3,open,retained,Campaign ordering implemented; rollout/review remains
+1.0.6,22,1.0.6,4,open,retained,Worker-count fix implemented; nightly confirmation remains
+1.0.6,23,1.0.7,18,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,24,1.0.7,19,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,25,1.0.7,20,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,26,1.0.6,5,open,retained,Zhang inversion fix implemented; campaign confirmation remains
+1.0.6,27,1.0.7,21,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,28,1.0.7,22,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,29,1.0.7,23,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,30,1.0.6,6,checked,retained,Completion history retained
+1.0.6,31,1.0.7,24,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,32,1.0.7,25,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,33,1.0.7,26,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,34,1.0.7,27,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,35,1.0.6,7,checked,retained,Completion history retained
+1.0.6,36,1.0.7,28,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,37,1.0.7,29,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,38,1.0.7,30,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,39,1.0.7,31,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,40,1.0.7,32,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,41,1.0.7,33,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,42,1.0.6,8,checked,retained,Completion history retained
+1.0.6,43,1.0.7,34,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,44,1.0.6,9,checked,retained,Completion history retained
+1.0.6,45,1.0.6,10,checked,retained,Completion history retained
+1.0.6,46,1.0.6,11,open,retained,Doc/API corrections implemented; optional Morrison feature is later work
+1.0.6,47,1.0.6,12,checked,retained,Completion history retained
+1.0.6,48,1.0.6,13,checked,retained,Completion history retained
+1.0.6,49,1.0.6,14,checked,retained,Completion history retained
+1.0.6,50,1.0.6,15,checked,retained,Completion history retained
+1.0.6,51,1.0.6,16,checked,retained,Completion history retained
+1.0.6,52,1.0.7,35,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,53,1.0.6,17,checked,retained,Completion history retained
+1.0.6,54,1.0.6,18,checked,retained,Completion history retained
+1.0.6,55,1.0.6,19,checked,retained,Completion history retained
+1.0.6,56,1.0.6,20,checked,retained,Completion history retained
+1.0.6,57,1.0.6,21,checked,retained,Completion history retained
+1.0.6,58,1.0.6,22,checked,retained,Completion history retained
+1.0.6,59,1.0.6,23,checked,retained,Completion history retained
+1.0.6,60,1.0.6,24,checked,retained,Completion history retained
+1.0.6,61,1.0.6,25,checked,retained,Completion history retained
+1.0.6,62,1.0.6,26,checked,retained,Completion history retained
+1.0.6,63,1.0.6,27,open,retained,Zero-weight fix implemented and locally verified; release cleanup remains
+1.0.6,64,1.0.6,28,checked,retained,Completion history retained
+1.0.6,65,1.0.6,29,open,retained,Action upgrades and self-check fix implemented; workflow confirmation remains
+1.0.6,66,1.0.6,30,open,retained,Roxygen SHA pin fixed; generated-drift confirmation remains
+1.0.6,67,1.0.6,31,open,retained,Results regeneration/freshness confirmation only
+1.0.6,68,1.0.7,36,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,69,1.0.6,32,checked,retained,Completion history retained
+1.0.6,70,1.0.6,33,checked,retained,Completion history retained
+1.0.6,71,1.0.6,34,checked,retained,Completion history retained
+1.0.6,72,1.0.6,35,checked,retained,Completion history retained
+1.0.6,73,1.0.6,36,checked,retained,Completion history retained
+1.0.6,74,1.0.7,37,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,75,1.0.6,37,open,retained,BCa fix implemented; NEWS/allowlist cleanup remains
+1.0.6,76,1.0.6,38,checked,retained,Completion history retained
+1.0.6,77,1.0.6,39,checked,retained,Completion history retained
+1.0.6,78,1.0.6,40,checked,retained,Completion history retained
+1.0.6,79,1.0.6,41,open,retained,Docs fixed; separate sequential RNG implementation is recorded in old 177
+1.0.6,80,1.0.7,38,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,81,1.0.6,42,open,retained,Incidence guard implemented; harness/result cleanup remains
+1.0.6,82,1.0.6,43,open,retained,Owner-selected documentation fix implemented and roxygenized
+1.0.6,83,1.0.6,44,open,retained,Statistic length check implemented and locally verified
+1.0.6,84,1.0.6,45,open,retained,Refusal message fixed and capabilities verified; distinct survival issue is old 80
+1.0.6,85,1.0.6,46,checked,retained,Completion history retained
+1.0.6,86,1.0.6,47,open,retained,Treatment-vector validation implemented; closes with old 101
+1.0.6,87,1.0.6,48,checked,retained,Completion history retained
+1.0.6,88,1.0.7,39,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,89,1.0.7,40,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,90,1.0.6,49,open,retained,KMDiff fix and article demo implemented and verified
+1.0.6,91,1.0.6,50,open,retained,RMST interval-censoring fix implemented; release cleanup remains
+1.0.6,92,1.0.6,51,open,retained,BCa warning fix implemented with old 75
+1.0.6,93,1.0.6,52,open,retained,Response error message fixed with old 100
+1.0.6,94,1.0.6,53,open,retained,Missing response guard fixed with old 100
+1.0.6,95,1.0.6,54,open,retained,NA audit implemented; result refresh and policy verification remain
+1.0.6,96,1.0.6,55,open,retained,Message audit implemented; optional stretch coverage is not required for closure
+1.0.6,97,1.0.7,41,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,98,1.0.6,56,open,retained,Docs-scenario workflow implemented; dispatch/rollout verification remains
+1.0.6,99,1.0.6,57,open,retained,Strict articles gate implemented; first CI confirmation remains
+1.0.6,100,1.0.6,58,checked,retained,Completion history retained
+1.0.6,101,1.0.6,59,open,retained,Python validation implemented; wheel/parity/stub verification remains
+1.0.6,102,1.0.7,42,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,103,1.0.7,43,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,104,1.0.7,44,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,105,1.0.7,45,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,106,1.0.6,60,checked,retained,Completion history retained
+1.0.6,107,1.0.6,61,checked,retained,Completion history retained
+1.0.6,108,1.0.6,62,checked,retained,Completion history retained
+1.0.6,109,1.0.6,63,checked,retained,Completion history retained
+1.0.6,110,1.0.6,64,checked,retained,Completion history retained
+1.0.6,111,1.0.6,65,checked,retained,Completion history retained
+1.0.6,112,1.0.6,66,checked,retained,Completion history retained
+1.0.6,113,1.0.6,67,checked,retained,Completion history retained
+1.0.6,114,1.0.6,68,checked,retained,Completion history retained
+1.0.6,115,1.0.6,69,checked,retained,Completion history retained
+1.0.6,116,1.0.6,70,checked,retained,Completion history retained
+1.0.6,117,1.0.6,71,checked,retained,Completion history retained
+1.0.6,118,1.0.6,72,checked,retained,Completion history retained
+1.0.6,119,1.0.6,73,checked,retained,Completion history retained
+1.0.6,120,1.0.6,74,checked,retained,Completion history retained
+1.0.6,121,1.0.6,75,checked,retained,Completion history retained
+1.0.6,122,1.0.6,76,checked,retained,Completion history retained
+1.0.6,123,1.0.6,77,checked,retained,Completion history retained
+1.0.6,124,1.0.6,78,checked,retained,Completion history retained
+1.0.6,125,1.0.6,79,checked,retained,Completion history retained
+1.0.6,126,1.0.6,80,checked,retained,Completion history retained
+1.0.6,127,1.0.6,81,checked,retained,Completion history retained
+1.0.6,128,1.0.6,82,checked,retained,Completion history retained
+1.0.6,129,1.0.6,83,checked,retained,Completion history retained
+1.0.6,130,1.0.6,84,checked,retained,Completion history retained
+1.0.6,131,1.0.6,85,open,retained,Subset-cache fix implemented; follow-ups tracked separately
+1.0.6,132,1.0.6,86,checked,retained,Completion history retained
+1.0.6,133,1.0.6,87,checked,retained,Completion history retained
+1.0.6,134,1.0.6,88,checked,retained,Completion history retained
+1.0.6,135,1.0.6,89,checked,retained,Completion history retained
+1.0.6,136,1.0.6,90,checked,retained,Completion history retained
+1.0.6,137,1.0.6,91,checked,retained,Completion history retained
+1.0.6,138,1.0.6,92,checked,retained,Completion history retained
+1.0.6,139,1.0.7,46,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,140,1.0.6,93,checked,retained,Completion history retained
+1.0.6,141,1.0.6,94,checked,retained,Completion history retained
+1.0.6,142,1.0.7,47,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,143,1.0.6,95,checked,retained,Completion history retained
+1.0.6,144,1.0.6,96,checked,retained,Completion history retained
+1.0.6,145,1.0.6,97,checked,retained,Completion history retained
+1.0.6,146,1.0.6,98,checked,retained,Completion history retained
+1.0.6,147,1.0.6,99,checked,retained,Completion history retained
+1.0.6,148,1.0.7,48,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,149,1.0.6,100,checked,retained,Completion history retained
+1.0.6,150,1.0.6,101,checked,retained,Completion history retained
+1.0.6,151,1.0.6,102,checked,retained,Completion history retained
+1.0.6,152,1.0.6,103,checked,retained,Completion history retained
+1.0.6,153,1.0.6,105,checked,retained,Completion history retained
+1.0.6,154,1.0.6,106,checked,retained,Completion history retained
+1.0.6,155,1.0.7,49,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,156,1.0.6,107,checked,retained,Completion history retained
+1.0.6,157,1.0.6,104,checked,retained,Completion history retained
+1.0.6,158,1.0.6,108,checked,retained,Completion history retained
+1.0.6,159,1.0.7,50,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,160,1.0.6,109,checked,retained,Completion history retained
+1.0.6,161,1.0.6,110,checked,retained,Completion history retained
+1.0.6,162,1.0.6,111,checked,retained,Completion history retained
+1.0.6,163,1.0.6,112,checked,retained,Completion history retained
+1.0.6,164,1.0.7,51,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,165,1.0.6,113,checked,retained,Completion history retained
+1.0.6,166,1.0.6,114,checked,retained,Completion history retained
+1.0.6,167,1.0.6,115,checked,retained,Completion history retained
+1.0.6,168,1.0.6,116,checked,retained,Completion history retained
+1.0.6,169,1.0.6,117,open,retained,Shared convergence fix patched; build verification remains; defects tracked in old 322/419/420
+1.0.6,170,1.0.6,118,open,retained,IRLS/Newton fixes patched; build verification remains; rank bug is old 171
+1.0.6,171,1.0.7,52,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,172,1.0.6,119,checked,retained,Completion history retained
+1.0.6,173,1.0.6,120,open,retained,Probit convergence flag fixed by the old 170 implementation; verify after build
+1.0.6,174,1.0.7,53,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,175,1.0.6,121,checked,retained,Completion history retained
+1.0.6,176,1.0.6,122,checked,retained,Completion history retained
+1.0.6,177,1.0.6,123,open,retained,Sequential RNG implemented; generated docs/results refresh remains
+1.0.6,178,1.0.6,124,open,retained,Untested-code audit implemented; first CI rollout remains
+1.0.6,179,1.0.6,125,checked,retained,Completion history retained
+1.0.6,180,1.0.6,126,checked,retained,Completion history retained
+1.0.6,181,1.0.6,127,checked,retained,Completion history retained
+1.0.6,182,1.0.6,128,checked,retained,Completion history retained
+1.0.6,183,1.0.6,129,checked,retained,Completion history retained
+1.0.6,184,1.0.6,130,checked,retained,Completion history retained
+1.0.6,185,1.0.6,131,checked,retained,Completion history retained
+1.0.6,186,1.0.6,132,checked,retained,Completion history retained
+1.0.6,187,1.0.6,133,checked,retained,Completion history retained
+1.0.6,188,1.0.6,134,checked,retained,Completion history retained
+1.0.6,189,1.0.6,135,checked,retained,Completion history retained
+1.0.6,190,1.0.6,136,checked,retained,Completion history retained
+1.0.6,191,1.0.6,137,checked,retained,Completion history retained
+1.0.6,192,1.0.6,138,checked,retained,Completion history retained
+1.0.6,193,1.0.7,54,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,194,1.0.6,139,checked,retained,Completion history retained
+1.0.6,195,1.0.6,140,checked,retained,Completion history retained
+1.0.6,196,1.0.6,141,checked,retained,Completion history retained
+1.0.6,197,1.0.7,55,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,198,1.0.7,56,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,199,1.0.7,57,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,200,1.0.7,58,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,201,1.0.6,142,checked,retained,Completion history retained
+1.0.6,202,1.0.6,143,checked,retained,Completion history retained
+1.0.6,203,1.0.6,144,checked,retained,Completion history retained
+1.0.6,204,1.0.6,145,checked,retained,Completion history retained
+1.0.6,205,1.0.6,146,checked,retained,Completion history retained
+1.0.6,206,1.0.6,147,checked,retained,Completion history retained
+1.0.6,207,1.0.6,148,checked,retained,Completion history retained
+1.0.6,208,1.0.6,149,checked,retained,Completion history retained
+1.0.6,209,1.0.6,150,open,retained,Required binomial fixes patched; build and result regeneration remain
+1.0.6,210,1.0.6,151,checked,retained,Completion history retained
+1.0.6,211,1.0.6,152,checked,retained,Completion history retained
+1.0.6,212,1.0.6,153,checked,retained,Completion history retained
+1.0.6,213,1.0.6,154,checked,retained,Completion history retained
+1.0.6,214,1.0.6,155,checked,retained,Completion history retained
+1.0.6,215,1.0.6,156,checked,retained,Completion history retained
+1.0.6,216,1.0.6,157,open,retained,Zhang empty-set fix implemented; baseline cleanup remains
+1.0.6,217,1.0.6,158,checked,retained,Completion history retained
+1.0.6,218,1.0.6,159,checked,retained,Completion history retained
+1.0.6,219,1.0.6,160,checked,retained,Completion history retained
+1.0.6,220,1.0.6,161,checked,retained,Completion history retained
+1.0.6,221,1.0.6,162,checked,retained,Completion history retained
+1.0.6,222,1.0.6,163,open,retained,Owner-selected ZINB R guard implemented; campaign confirmation remains
+1.0.6,223,1.0.7,59,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,224,1.0.7,60,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,225,1.0.7,61,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,226,1.0.7,62,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,227,1.0.7,63,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,228,1.0.7,64,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,229,1.0.7,65,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,230,1.0.6,164,checked,retained,Completion history retained
+1.0.6,231,1.0.6,165,checked,retained,Completion history retained
+1.0.6,232,1.0.6,166,checked,retained,Completion history retained
+1.0.6,233,1.0.6,167,checked,retained,Completion history retained
+1.0.6,234,1.0.6,168,checked,retained,Completion history retained
+1.0.6,235,1.0.6,169,checked,retained,Completion history retained
+1.0.6,236,1.0.7,66,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,250,1.0.7,104,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,251,1.0.7,105,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,252,1.0.7,106,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,253,1.0.7,107,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,254,1.0.7,108,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,255,1.0.7,109,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,256,1.0.7,110,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,257,1.0.7,111,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,258,1.0.7,112,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,259,1.0.7,113,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,260,1.0.7,114,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,261,1.0.7,115,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,262,1.0.7,116,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,263,1.0.7,117,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,264,1.0.7,118,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,265,1.0.7,119,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,266,1.0.7,120,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,267,1.0.6,203,checked,retained,Completion history retained
+1.0.6,268,1.0.7,121,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,269,1.0.6,204,checked,retained,Completion history retained
+1.0.6,270,1.0.7,122,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,271,1.0.6,170,checked,retained,Completion history retained
+1.0.6,272,1.0.6,171,checked,retained,Completion history retained
+1.0.6,273,1.0.6,172,checked,retained,Completion history retained
+1.0.6,274,1.0.6,173,checked,retained,Completion history retained
+1.0.6,275,1.0.6,174,checked,retained,Completion history retained
+1.0.6,276,1.0.6,175,checked,retained,Completion history retained
+1.0.6,277,1.0.7,70,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,278,1.0.7,71,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,279,1.0.7,72,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,280,1.0.7,73,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,281,1.0.7,74,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,282,1.0.7,75,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,283,1.0.7,123,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,284,1.0.6,205,checked,retained,Completion history retained
+1.0.6,285,1.0.6,206,checked,retained,Completion history retained
+1.0.6,286,1.0.6,207,checked,retained,Completion history retained
+1.0.6,290,1.0.6,177,checked,retained,Completion history retained
+1.0.6,291,1.0.6,178,checked,retained,Completion history retained
+1.0.6,292,1.0.6,179,checked,retained,Completion history retained
+1.0.6,293,1.0.6,180,checked,retained,Completion history retained
+1.0.6,294,1.0.6,181,checked,retained,Completion history retained
+1.0.6,295,1.0.6,182,checked,retained,Completion history retained
+1.0.6,296,1.0.6,183,checked,retained,Completion history retained
+1.0.6,297,1.0.6,184,checked,retained,Completion history retained
+1.0.6,298,1.0.6,185,checked,retained,Completion history retained
+1.0.6,299,1.0.6,186,checked,retained,Completion history retained
+1.0.6,300,1.0.6,187,checked,retained,Completion history retained
+1.0.6,301,1.0.6,188,checked,retained,Completion history retained
+1.0.6,302,1.0.6,189,checked,retained,Completion history retained
+1.0.6,303,1.0.7,76,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,304,1.0.7,77,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,305,1.0.6,190,checked,retained,Completion history retained
+1.0.6,306,1.0.6,191,checked,retained,Completion history retained
+1.0.6,307,1.0.6,192,checked,retained,Completion history retained
+1.0.6,308,1.0.7,78,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,309,1.0.6,193,checked,retained,Completion history retained
+1.0.6,310,1.0.7,79,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,311,1.0.7,80,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,312,1.0.6,194,checked,retained,Completion history retained
+1.0.6,313,1.0.6,195,checked,retained,Completion history retained
+1.0.6,314,1.0.7,81,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,315,1.0.7,82,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,316,1.0.6,196,checked,retained,Completion history retained
+1.0.6,317,1.0.7,83,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,318,1.0.7,84,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,319,1.0.7,85,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,320,1.0.7,86,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,321,1.0.7,124,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,322,1.0.7,125,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,323,1.0.7,67,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,324,1.0.7,68,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,325,1.0.7,126,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,326,1.0.6,176,checked,retained,Completion history retained
+1.0.6,327,1.0.6,208,checked,retained,Completion history retained
+1.0.6,328,1.0.6,209,checked,retained,Completion history retained
+1.0.6,329,1.0.7,127,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,330,1.0.7,128,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,331,1.0.6,210,checked,retained,Completion history retained
+1.0.6,332,1.0.6,211,checked,retained,Completion history retained
+1.0.6,333,1.0.6,212,checked,retained,Completion history retained
+1.0.6,334,1.0.7,129,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,335,1.0.6,213,checked,retained,Completion history retained
+1.0.6,336,1.0.6,214,checked,retained,Completion history retained
+1.0.6,337,1.0.6,215,checked,retained,Completion history retained
+1.0.6,338,1.0.7,130,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,339,1.0.7,131,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,340,1.0.7,132,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,341,1.0.7,133,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,342,1.0.7,134,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,343,1.0.7,135,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,344,1.0.7,136,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,345,1.0.6,216,checked,retained,Completion history retained
+1.0.6,346,1.0.7,137,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,347,1.0.6,217,checked,retained,Completion history retained
+1.0.6,348,1.0.7,138,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,349,1.0.7,139,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,350,1.0.6,218,checked,retained,Completion history retained
+1.0.6,351,1.0.6,219,checked,retained,Completion history retained
+1.0.6,352,1.0.6,220,checked,retained,Completion history retained
+1.0.6,353,1.0.7,140,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,354,1.0.6,221,checked,retained,Completion history retained
+1.0.6,355,1.0.7,141,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,356,1.0.6,222,checked,retained,Completion history retained
+1.0.6,357,1.0.6,223,checked,retained,Completion history retained
+1.0.6,358,1.0.7,142,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,359,1.0.7,143,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,360,1.0.7,144,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,361,1.0.7,145,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,362,1.0.7,146,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,363,1.0.7,147,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,364,1.0.7,148,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,365,1.0.7,149,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,366,1.0.7,150,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,367,1.0.7,151,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,368,1.0.7,152,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,369,1.0.7,153,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,370,1.0.7,154,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,371,1.0.7,155,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,372,1.0.7,156,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,373,1.0.7,157,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,374,1.0.7,158,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,375,1.0.7,159,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,376,1.0.7,160,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,377,1.0.7,161,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,378,1.0.7,162,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,379,1.0.7,163,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,380,1.0.6,225,checked,retained,Completion history retained
+1.0.6,381,1.0.7,164,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,382,1.0.7,165,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,383,1.0.7,166,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,384,1.0.7,167,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,385,1.0.7,87,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,386,1.0.7,88,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,387,1.0.7,89,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,388,1.0.7,90,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,389,1.0.6,197,checked,retained,Completion history retained
+1.0.6,390,1.0.7,91,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,391,1.0.7,92,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,392,1.0.7,93,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,393,1.0.6,198,checked,retained,Completion history retained
+1.0.6,394,1.0.6,199,checked,retained,Completion history retained
+1.0.6,395,1.0.6,200,checked,retained,Completion history retained
+1.0.6,396,1.0.6,201,checked,retained,Completion history retained
+1.0.6,397,1.0.7,94,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,398,1.0.7,95,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,399,1.0.7,96,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,400,1.0.7,97,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,401,1.0.7,98,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,402,1.0.7,99,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,403,1.0.7,100,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,404,1.0.6,224,checked,retained,Completion history retained
+1.0.6,405,1.0.6,202,checked,retained,Completion history retained
+1.0.6,406,1.0.7,101,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,407,1.0.6,226,checked,retained,Completion history retained
+1.0.6,408,1.0.7,168,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,409,1.0.6,227,open,retained,Shard resizing/timeouts implemented; campaign confirmation and policy review remain
+1.0.6,410,1.0.6,228,checked,retained,Completion history retained
+1.0.6,411,1.0.6,229,open,retained,Reproducibility hang fixes patched; rebuild/nightly confirmation remains
+1.0.6,412,1.0.7,169,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,413,1.0.6,230,checked,retained,Completion history retained
+1.0.6,414,1.0.7,170,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,415,1.0.7,171,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,416,1.0.7,172,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,417,1.0.6,231,checked,retained,Completion history retained
+1.0.6,418,1.0.7,173,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,419,1.0.7,174,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,420,1.0.7,175,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,421,1.0.7,176,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,422,1.0.7,177,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,423,1.0.7,178,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,424,1.0.7,69,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,425,1.0.6,232,checked,retained,Completion history retained
+1.0.6,426,1.0.6,233,open,retained,CRAN-extra fixes implemented; build/CI confirmation remains
+1.0.6,427,1.0.6,234,checked,retained,Completion history retained
+1.0.6,428,1.0.6,235,checked,retained,Completion history retained
+1.0.6,429,1.0.7,179,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,430,1.0.7,180,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,431,1.0.7,102,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,432,1.0.7,103,open,moved,Unfinished implementation or investigation; progress notes preserved
+1.0.6,8,1.1.0,170,historical pointer,previously moved,Already moved back on 2026-11-11; not an active v1.0.6 checkbox

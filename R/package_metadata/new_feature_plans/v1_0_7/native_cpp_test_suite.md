@@ -1,10 +1,10 @@
 # Native C++ Test Suite for the R-Free Core
 
-> **Release:** v1.0.6 TODO-15 (`../../future_release_plans/release_v1_0_6.md`). Owner decision 2026-11-10,
+> **Release:** v1.0.7 TODO-12 (`../../future_release_plans/release_v1_0_7.md`). Owner decision 2026-11-10,
 > taken as an exception to that file's entry rule (new test infrastructure normally waits for v1.1.0). Phase 1
 > adds tests and a CI job only. No package code, API or result changes.
 >
-> **Depends on:** none for Phase 1. Phase 2 needs a refactor of the design kernels, so it is **not** v1.0.6
+> **Depends on:** none for Phase 1. Phase 2 needs a refactor of the design kernels, so it is **not** v1.0.7
 > scope; it is recorded here so it is not lost.
 >
 > **Related:**
@@ -78,7 +78,7 @@ Why Catch2 over GoogleTest:
 - The vendored pair is small.
 - GoogleTest's extras (death tests, GMock) aren't needed for testing pure functions.
 
-## Phase 1 (v1.0.6)
+## Phase 1 (v1.0.7)
 
 ### Target A: optimizer edge cases (`_helper_functions_core.h`)
 
@@ -143,7 +143,7 @@ files each test needs. Agents:
 So each CMake test target must list **only the `EDI_CORE_ONLY` sources it needs**, not the full shared core list.
 TODO-2's shared source list is for the Python build and for CI's full run; per-target lists are subsets of it.
 
-## Phase 2 (not v1.0.6; needs a refactor first)
+## Phase 2 (not v1.0.7; needs a refactor first)
 
 Thread-count determinism of design draws: run the same seed at 1, 2 and 8 OpenMP threads in the same binary and
 compare the allocations bit for bit (allowed under D3: same binary).

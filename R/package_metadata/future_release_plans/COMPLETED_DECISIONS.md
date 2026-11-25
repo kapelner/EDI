@@ -45,83 +45,83 @@ Last updated 2026-11-25.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
-| [DECISION-v1.0.6-TODO-429](#DECISION-v1.0.6-TODO-429) | [v1.0.6-TODO-429](release_v1_0_6.md) | StereotypeLogit asymp_ci / asymp_pval become known failures of the worker-count sweep (reported, not asserted); cause still open | 2026-11-25 |
-| [DECISION-v1.0.6-TODO-427](#DECISION-v1.0.6-TODO-427) | [v1.0.6-TODO-427](release_v1_0_6.md) | accept both benchmark slowdowns (OrderedProbit fit, OLS rand p-value) and allowlist the rows | 2026-11-24 |
-| [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-410](release_v1_0_6.md) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-409](release_v1_0_6.md) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-380](release_v1_0_6.md) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-380](release_v1_0_6.md) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-380d](#DECISION-v1.0.6-TODO-380d) | [v1.0.6-TODO-380](release_v1_0_6.md) | rank tests drop the bootstrap fallback (NA + reason); Poisson best-available Bartlett pair stays model-only | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-380](release_v1_0_6.md) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-352](release_v1_0_6.md) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-327](release_v1_0_6.md) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-380) | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-326](#DECISION-v1.0.6-TODO-326) | [v1.0.6-TODO-326](release_v1_0_6.md) | DepCens Bayesian bootstrap unsupported (warn, NA) | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-298](#DECISION-v1.0.6-TODO-298) | [v1.0.6-TODO-298](release_v1_0_6.md) | (a) n = NULL takes n from nrow(X_all); a disagreeing n keeps the error; assigning before subjects with n unknown errors | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-294](#DECISION-v1.0.6-TODO-294) | [v1.0.6-TODO-294](release_v1_0_6.md) | best-of-k reference draws (realized allocations unchanged) | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-285](#DECISION-v1.0.6-TODO-285) | [v1.0.6-TODO-285](release_v1_0_6.md) | 1.2-1.3x is close enough; no further speedups; allowlist row stays until the v1.0.6 release | 2026-11-21 |
-| [DECISION-v1.0.6-TODO-270a](#DECISION-v1.0.6-TODO-270a) | [v1.0.6-TODO-270](release_v1_0_6.md) | few permuted blocks per stratum: auto unit switches to observation_within_block | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-235](#DECISION-v1.0.6-TODO-235) | [v1.0.6-TODO-235](release_v1_0_6.md) | refuse the surrogate Bayesian bootstrap of the loggamma Weibull frailty IVWC class | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-234](#DECISION-v1.0.6-TODO-234) | [v1.0.6-TODO-234](release_v1_0_6.md) | align both treated-count roundings (changes realized allocations at ties / n = 3 mod 4) | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-233](#DECISION-v1.0.6-TODO-233) | [v1.0.6-TODO-233](release_v1_0_6.md) | report the convex hull of the accepted set | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-232](#DECISION-v1.0.6-TODO-232) | [v1.0.6-TODO-232](release_v1_0_6.md) | document now, no more start candidates; ridge detector in v1.1.0-TODO-258 | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-231a](#DECISION-v1.0.6-TODO-231a) | [v1.0.6-TODO-231](release_v1_0_6.md) | stratified jackknife variance: keep the rescaled replicates | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-231b](#DECISION-v1.0.6-TODO-231b) | [v1.0.6-TODO-231](release_v1_0_6.md) | keep the stratified jackknife bias formula, documented | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-231c](#DECISION-v1.0.6-TODO-231c) | [v1.0.6-TODO-231](release_v1_0_6.md) | ObservationalDesignBlocks with < 5 blocks: delete one observation within a block | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-231d](#DECISION-v1.0.6-TODO-231d) | [v1.0.6-TODO-231](release_v1_0_6.md) | stratified jackknife-Wald uses t with df = sum_h(n_h - 1) | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-230a](#DECISION-v1.0.6-TODO-230a) | [v1.0.6-TODO-230](release_v1_0_6.md) | g-comp RR subsampling cap default 0.8 (was 0.95) | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-230b](#DECISION-v1.0.6-TODO-230b) | [v1.0.6-TODO-230](release_v1_0_6.md) | symmetric centered p-value for every ratio pivot | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-230c](#DECISION-v1.0.6-TODO-230c) | [v1.0.6-TODO-230](release_v1_0_6.md) | user-settable generic cap: yes, later (v1.0.6-TODO-269) | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-222](#DECISION-v1.0.6-TODO-222) | [v1.0.6-TODO-222](release_v1_0_6.md) | the R guard is the fix; the C++ root fix is optional later | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-220](#DECISION-v1.0.6-TODO-220) | [v1.0.6-TODO-220](release_v1_0_6.md) | keep glm's expected-information Wald SE for probit / identity / log binomial (documented exception) | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-218a](#DECISION-v1.0.6-TODO-218a) | [v1.0.6-TODO-218](release_v1_0_6.md) | softer "no evidence of zero inflation" message instead of the warning | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-218b](#DECISION-v1.0.6-TODO-218b) | [v1.0.6-TODO-218](release_v1_0_6.md) | 5% cutoff for the no-inflation message confirmed | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-215a](#DECISION-v1.0.6-TODO-215a) | [v1.0.6-TODO-215](release_v1_0_6.md) | Wald always uses observed information; "fisher" stays the score-test default | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-215b](#DECISION-v1.0.6-TODO-215b) | [v1.0.6-TODO-215](release_v1_0_6.md) | partial PO on VGAM: publish the observed SE at the VGAM MLE | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-213](#DECISION-v1.0.6-TODO-213) | [v1.0.6-TODO-213](release_v1_0_6.md) | pass the realized treated count to the kernel; only redraws change | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-212](#DECISION-v1.0.6-TODO-212) | [v1.0.6-TODO-212](release_v1_0_6.md) | bump `EDI_TUNING_SCHEMA_VERSION` 1 -> 2; users re-tune once | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-211](#DECISION-v1.0.6-TODO-211) | [v1.0.6-TODO-211](release_v1_0_6.md) | delete the orphan scripts `heavy_paths.R` / `heavy_only.R` | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-210a](#DECISION-v1.0.6-TODO-210a) | [v1.0.6-TODO-210](release_v1_0_6.md) | record the three LR-bootstrap CI reasons in `procedure_failure_reason` | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-210b](#DECISION-v1.0.6-TODO-210b) | [v1.0.6-TODO-210](release_v1_0_6.md) | error up front when B < 2/alpha - 1 (breaking) | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-209](#DECISION-v1.0.6-TODO-209) | [v1.0.6-TODO-209](release_v1_0_6.md) | leave the default tolerance | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-208a](#DECISION-v1.0.6-TODO-208a) | [v1.0.6-TODO-208](release_v1_0_6.md) | guard via v1.0.6-TODO-30 candidate 1; BRT reusable worker added to its scope | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-208b](#DECISION-v1.0.6-TODO-208b) | [v1.0.6-TODO-208](release_v1_0_6.md) | clear "estimand not supported" error now; `InferenceCountNegBin` added to v1.4.0-TODO-17 | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-206](#DECISION-v1.0.6-TODO-206) | [v1.0.6-TODO-206](release_v1_0_6.md) | document that the estimate need not lie in the exact CI; regenerate the matching-design rows | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-204](#DECISION-v1.0.6-TODO-204) | [v1.0.6-TODO-204](release_v1_0_6.md) | add a little noise to both tuning fixtures | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-203](#DECISION-v1.0.6-TODO-203) | [v1.0.6-TODO-203](release_v1_0_6.md) | probit on a one-level response returns NA; the old zeros were a bug | 2026-11-20 |
-| [DECISION-v1.0.6-TODO-201](#DECISION-v1.0.6-TODO-201) | [v1.0.6-TODO-201](release_v1_0_6.md) | add `supports_fisher_information()` to PropOdds; check cauchit / cloglog; verify the information per link | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-195](#DECISION-v1.0.6-TODO-195) | [v1.0.6-TODO-195](release_v1_0_6.md) | item (2): drop aliased count-part covariates on the positive rows, as `glm` does | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-191](#DECISION-v1.0.6-TODO-191) | [v1.0.6-TODO-191](release_v1_0_6.md) | drop degenerate subsamples, NA above a 5% cap (later 0.8 under v1.0.6-TODO-230); Firth deferred | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-187](#DECISION-v1.0.6-TODO-187) | [v1.0.6-TODO-187](release_v1_0_6.md) | disallow `n = NULL` for `DesignSeqOneByOneiBCRD` (breaking) | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-177](#DECISION-v1.0.6-TODO-177) | [v1.0.6-TODO-177](release_v1_0_6.md) | sequential designs seed each assignment from (seed, subject index); session RNG untouched | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-175](#DECISION-v1.0.6-TODO-175) | [v1.0.6-TODO-175](release_v1_0_6.md) | keep the log-scale width cap of 5 for theta-free RR intervals | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-168](#DECISION-v1.0.6-TODO-168) | [v1.0.6-TODO-168](release_v1_0_6.md) | both: add a symmetric studentized log-RR interval and document the undercoverage | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-160](#DECISION-v1.0.6-TODO-160) | [v1.0.6-TODO-160](release_v1_0_6.md) | both: +/-10 link-scale bound always; check RR on log(RR) | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-158a](#DECISION-v1.0.6-TODO-158a) | [v1.0.6-TODO-158](release_v1_0_6.md) | perfect predictors: detect in the constructor, drop the columns with a warning | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-156](#DECISION-v1.0.6-TODO-156) | [v1.0.6-TODO-156](release_v1_0_6.md) | keep the generic reason; no class-specific risk-diff reason | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-152](#DECISION-v1.0.6-TODO-152) | [v1.0.6-TODO-152](release_v1_0_6.md) | (c) both: LBFGS candidate from pscl's start and zero-part separation detection | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-149](#DECISION-v1.0.6-TODO-149) | [v1.0.6-TODO-149](release_v1_0_6.md) | keep `InferenceOrdinalGCompMeanDiff$get_standard_error()` private | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-147](#DECISION-v1.0.6-TODO-147) | [v1.0.6-TODO-147](release_v1_0_6.md) | Zhang estimate uses all subjects, as documented | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-143](#DECISION-v1.0.6-TODO-143) | [v1.0.6-TODO-143](release_v1_0_6.md) | allow the plain rand test/CI at nonzero delta under general censoring | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-138](#DECISION-v1.0.6-TODO-138) | [v1.0.6-TODO-138](release_v1_0_6.md) | warn when a hardened refit drops a covariate, in every such class | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-135](#DECISION-v1.0.6-TODO-135) | [v1.0.6-TODO-135](release_v1_0_6.md) | BCa also blocked below 5 deletion units | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-133](#DECISION-v1.0.6-TODO-133) | [v1.0.6-TODO-133](release_v1_0_6.md) | an empty reservoir arm warns too | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-132](#DECISION-v1.0.6-TODO-132) | [v1.0.6-TODO-132](release_v1_0_6.md) | option 1: `estimate_only` computes the same IVW combination | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-115](#DECISION-v1.0.6-TODO-115) | [v1.0.6-TODO-115](release_v1_0_6.md) | fix the RMST horizon across randomization draws | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-101](#DECISION-v1.0.6-TODO-101) | [v1.0.6-TODO-101](release_v1_0_6.md) | no new Python dependency; private numpy-only checks | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-99a](#DECISION-v1.0.6-TODO-99a) | [v1.0.6-TODO-99](release_v1_0_6.md) | ~12 min strict article render accepted; no CI-size switch | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-99b](#DECISION-v1.0.6-TODO-99b) | [v1.0.6-TODO-99](release_v1_0_6.md) | per-chunk opt-out for the deliberate warning chunk | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-98a](#DECISION-v1.0.6-TODO-98a) | [v1.0.6-TODO-98](release_v1_0_6.md) | weekly CI job over every feature area | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-98b](#DECISION-v1.0.6-TODO-98b) | [v1.0.6-TODO-98](release_v1_0_6.md) | weekly; Opus 5.5 effort high; $30 per-area cap; re-run unchanged areas every 42 days | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-87](#DECISION-v1.0.6-TODO-87) | [v1.0.6-TODO-87](release_v1_0_6.md) | keep the removal of the always-NaN keys | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-82](#DECISION-v1.0.6-TODO-82) | [v1.0.6-TODO-82](release_v1_0_6.md) | keep `na.rm`, documented as "drop non-finite draws" | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-76](#DECISION-v1.0.6-TODO-76) | [v1.0.6-TODO-76](release_v1_0_6.md) | KK with `n = NULL` matches once the model matrix exists; `n` not required | 2026-11-18 |
-| [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-67](release_v1_0_6.md) | (c) leave the results-freshness findings listed; the full 1.0.5 regeneration clears them | 2026-11-23 |
-| [DECISION-v1.0.6-TODO-61](#DECISION-v1.0.6-TODO-61) | [v1.0.6-TODO-61](release_v1_0_6.md) | randomization replicates never chain warm starts, for any class | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-60](#DECISION-v1.0.6-TODO-60) | [v1.0.6-TODO-60](release_v1_0_6.md) | milder clamp (y(n-1)+0.5)/n in both KK21 proportion speedups | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-48](#DECISION-v1.0.6-TODO-48) | [v1.0.6-TODO-48](release_v1_0_6.md) | (a) n_gh = 60 for KK CLMM (EDI's 20-node rule was off the MLE at sigma ~2-2.6) | 2026-11-24 |
-| [DECISION-v1.0.6-TODO-12](#DECISION-v1.0.6-TODO-12) | [v1.0.6-TODO-12](release_v1_0_6.md) | minimum 95% valid replicates, user-settable | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-4a](#DECISION-v1.0.6-TODO-4a) | [v1.0.6-TODO-4](release_v1_0_6.md) | trailing partial permuted block merged into the previous block | 2026-11-19 |
-| [DECISION-v1.0.6-TODO-4b](#DECISION-v1.0.6-TODO-4b) | [v1.0.6-TODO-4](release_v1_0_6.md) | FixedBlocking: stratified JKn delete-one within strata (Wolter) | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-429](#DECISION-v1.0.6-TODO-429) | [v1.0.7-TODO-179](release_v1_0_7.md#todo-179) | StereotypeLogit asymp_ci / asymp_pval become known failures of the worker-count sweep (reported, not asserted); cause still open | 2026-11-25 |
+| [DECISION-v1.0.6-TODO-427](#DECISION-v1.0.6-TODO-427) | [v1.0.6-TODO-234](release_v1_0_6.md#todo-234) | accept both benchmark slowdowns (OrderedProbit fit, OLS rand p-value) and allowlist the rows | 2026-11-24 |
+| [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-228](release_v1_0_6.md#todo-228) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | calibration campaigns gate x.y.0 releases only; the unfinished campaign does not gate 1.0.5 | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-380a](#DECISION-v1.0.6-TODO-380a) | [v1.0.6-TODO-225](release_v1_0_6.md#todo-225) | new testing type `lik_ratio_bartlett_approx_design_conservative` | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-380b](#DECISION-v1.0.6-TODO-380b) | [v1.0.6-TODO-225](release_v1_0_6.md#todo-225) | `InferenceCountPoisson` gets the same split (default Bartlett result changes) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-380d](#DECISION-v1.0.6-TODO-380d) | [v1.0.6-TODO-225](release_v1_0_6.md#todo-225) | rank tests drop the bootstrap fallback (NA + reason); Poisson best-available Bartlett pair stays model-only | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-380c](#DECISION-v1.0.6-TODO-380c) | [v1.0.6-TODO-225](release_v1_0_6.md#todo-225) | the testing type you ask for is the test you get (no silent Wald -> bootstrap fallback) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-352](#DECISION-v1.0.6-TODO-352) | [v1.0.6-TODO-220](release_v1_0_6.md#todo-220) | set the version to 1.0.5 (next release to ship) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-327](#DECISION-v1.0.6-TODO-327) | [v1.0.6-TODO-208](release_v1_0_6.md#todo-208) | Bartlett LR stays model-only; design-conservative variant becomes its own option (v1.0.6-TODO-225) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-326](#DECISION-v1.0.6-TODO-326) | [v1.0.6-TODO-176](release_v1_0_6.md#todo-176) | DepCens Bayesian bootstrap unsupported (warn, NA) | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-298](#DECISION-v1.0.6-TODO-298) | [v1.0.6-TODO-185](release_v1_0_6.md#todo-185) | (a) n = NULL takes n from nrow(X_all); a disagreeing n keeps the error; assigning before subjects with n unknown errors | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-294](#DECISION-v1.0.6-TODO-294) | [v1.0.6-TODO-181](release_v1_0_6.md#todo-181) | best-of-k reference draws (realized allocations unchanged) | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-285](#DECISION-v1.0.6-TODO-285) | [v1.0.6-TODO-206](release_v1_0_6.md#todo-206) | 1.2-1.3x is close enough; no further speedups; allowlist row stays until the v1.0.6 release | 2026-11-21 |
+| [DECISION-v1.0.6-TODO-270a](#DECISION-v1.0.6-TODO-270a) | [v1.0.7-TODO-122](release_v1_0_7.md#todo-122) | few permuted blocks per stratum: auto unit switches to observation_within_block | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-235](#DECISION-v1.0.6-TODO-235) | [v1.0.6-TODO-169](release_v1_0_6.md#todo-169) | refuse the surrogate Bayesian bootstrap of the loggamma Weibull frailty IVWC class | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-234](#DECISION-v1.0.6-TODO-234) | [v1.0.6-TODO-168](release_v1_0_6.md#todo-168) | align both treated-count roundings (changes realized allocations at ties / n = 3 mod 4) | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-233](#DECISION-v1.0.6-TODO-233) | [v1.0.6-TODO-167](release_v1_0_6.md#todo-167) | report the convex hull of the accepted set | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-232](#DECISION-v1.0.6-TODO-232) | [v1.0.6-TODO-166](release_v1_0_6.md#todo-166) | document now, no more start candidates; ridge detector in v1.1.0-TODO-258 | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-231a](#DECISION-v1.0.6-TODO-231a) | [v1.0.6-TODO-165](release_v1_0_6.md#todo-165) | stratified jackknife variance: keep the rescaled replicates | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-231b](#DECISION-v1.0.6-TODO-231b) | [v1.0.6-TODO-165](release_v1_0_6.md#todo-165) | keep the stratified jackknife bias formula, documented | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-231c](#DECISION-v1.0.6-TODO-231c) | [v1.0.6-TODO-165](release_v1_0_6.md#todo-165) | ObservationalDesignBlocks with < 5 blocks: delete one observation within a block | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-231d](#DECISION-v1.0.6-TODO-231d) | [v1.0.6-TODO-165](release_v1_0_6.md#todo-165) | stratified jackknife-Wald uses t with df = sum_h(n_h - 1) | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-230a](#DECISION-v1.0.6-TODO-230a) | [v1.0.6-TODO-164](release_v1_0_6.md#todo-164) | g-comp RR subsampling cap default 0.8 (was 0.95) | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-230b](#DECISION-v1.0.6-TODO-230b) | [v1.0.6-TODO-164](release_v1_0_6.md#todo-164) | symmetric centered p-value for every ratio pivot | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-230c](#DECISION-v1.0.6-TODO-230c) | [v1.0.6-TODO-164](release_v1_0_6.md#todo-164) | user-settable generic cap: yes, later (v1.0.6-TODO-204) | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-222](#DECISION-v1.0.6-TODO-222) | [v1.0.6-TODO-163](release_v1_0_6.md#todo-163) | the R guard is the fix; the C++ root fix is optional later | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-220](#DECISION-v1.0.6-TODO-220) | [v1.0.6-TODO-161](release_v1_0_6.md#todo-161) | keep glm's expected-information Wald SE for probit / identity / log binomial (documented exception) | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-218a](#DECISION-v1.0.6-TODO-218a) | [v1.0.6-TODO-159](release_v1_0_6.md#todo-159) | softer "no evidence of zero inflation" message instead of the warning | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-218b](#DECISION-v1.0.6-TODO-218b) | [v1.0.6-TODO-159](release_v1_0_6.md#todo-159) | 5% cutoff for the no-inflation message confirmed | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-215a](#DECISION-v1.0.6-TODO-215a) | [v1.0.6-TODO-156](release_v1_0_6.md#todo-156) | Wald always uses observed information; "fisher" stays the score-test default | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-215b](#DECISION-v1.0.6-TODO-215b) | [v1.0.6-TODO-156](release_v1_0_6.md#todo-156) | partial PO on VGAM: publish the observed SE at the VGAM MLE | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-213](#DECISION-v1.0.6-TODO-213) | [v1.0.6-TODO-154](release_v1_0_6.md#todo-154) | pass the realized treated count to the kernel; only redraws change | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-212](#DECISION-v1.0.6-TODO-212) | [v1.0.6-TODO-153](release_v1_0_6.md#todo-153) | bump `EDI_TUNING_SCHEMA_VERSION` 1 -> 2; users re-tune once | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-211](#DECISION-v1.0.6-TODO-211) | [v1.0.6-TODO-152](release_v1_0_6.md#todo-152) | delete the orphan scripts `heavy_paths.R` / `heavy_only.R` | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-210a](#DECISION-v1.0.6-TODO-210a) | [v1.0.6-TODO-151](release_v1_0_6.md#todo-151) | record the three LR-bootstrap CI reasons in `procedure_failure_reason` | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-210b](#DECISION-v1.0.6-TODO-210b) | [v1.0.6-TODO-151](release_v1_0_6.md#todo-151) | error up front when B < 2/alpha - 1 (breaking) | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-209](#DECISION-v1.0.6-TODO-209) | [v1.0.6-TODO-150](release_v1_0_6.md#todo-150) | leave the default tolerance | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-208a](#DECISION-v1.0.6-TODO-208a) | [v1.0.6-TODO-149](release_v1_0_6.md#todo-149) | guard via v1.0.6-TODO-6 candidate 1; BRT reusable worker added to its scope | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-208b](#DECISION-v1.0.6-TODO-208b) | [v1.0.6-TODO-149](release_v1_0_6.md#todo-149) | clear "estimand not supported" error now; `InferenceCountNegBin` added to v1.4.0-TODO-17 | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-206](#DECISION-v1.0.6-TODO-206) | [v1.0.6-TODO-147](release_v1_0_6.md#todo-147) | document that the estimate need not lie in the exact CI; regenerate the matching-design rows | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-204](#DECISION-v1.0.6-TODO-204) | [v1.0.6-TODO-145](release_v1_0_6.md#todo-145) | add a little noise to both tuning fixtures | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-203](#DECISION-v1.0.6-TODO-203) | [v1.0.6-TODO-144](release_v1_0_6.md#todo-144) | probit on a one-level response returns NA; the old zeros were a bug | 2026-11-20 |
+| [DECISION-v1.0.6-TODO-201](#DECISION-v1.0.6-TODO-201) | [v1.0.6-TODO-142](release_v1_0_6.md#todo-142) | add `supports_fisher_information()` to PropOdds; check cauchit / cloglog; verify the information per link | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-195](#DECISION-v1.0.6-TODO-195) | [v1.0.6-TODO-140](release_v1_0_6.md#todo-140) | item (2): drop aliased count-part covariates on the positive rows, as `glm` does | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-191](#DECISION-v1.0.6-TODO-191) | [v1.0.6-TODO-137](release_v1_0_6.md#todo-137) | drop degenerate subsamples, NA above a 5% cap (later 0.8 under v1.0.6-TODO-164); Firth deferred | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-187](#DECISION-v1.0.6-TODO-187) | [v1.0.6-TODO-133](release_v1_0_6.md#todo-133) | disallow `n = NULL` for `DesignSeqOneByOneiBCRD` (breaking) | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-177](#DECISION-v1.0.6-TODO-177) | [v1.0.6-TODO-123](release_v1_0_6.md#todo-123) | sequential designs seed each assignment from (seed, subject index); session RNG untouched | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-175](#DECISION-v1.0.6-TODO-175) | [v1.0.6-TODO-121](release_v1_0_6.md#todo-121) | keep the log-scale width cap of 5 for theta-free RR intervals | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-168](#DECISION-v1.0.6-TODO-168) | [v1.0.6-TODO-116](release_v1_0_6.md#todo-116) | both: add a symmetric studentized log-RR interval and document the undercoverage | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-160](#DECISION-v1.0.6-TODO-160) | [v1.0.6-TODO-109](release_v1_0_6.md#todo-109) | both: +/-10 link-scale bound always; check RR on log(RR) | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-158a](#DECISION-v1.0.6-TODO-158a) | [v1.0.6-TODO-108](release_v1_0_6.md#todo-108) | perfect predictors: detect in the constructor, drop the columns with a warning | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-156](#DECISION-v1.0.6-TODO-156) | [v1.0.6-TODO-107](release_v1_0_6.md#todo-107) | keep the generic reason; no class-specific risk-diff reason | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-152](#DECISION-v1.0.6-TODO-152) | [v1.0.6-TODO-103](release_v1_0_6.md#todo-103) | (c) both: LBFGS candidate from pscl's start and zero-part separation detection | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-149](#DECISION-v1.0.6-TODO-149) | [v1.0.6-TODO-100](release_v1_0_6.md#todo-100) | keep `InferenceOrdinalGCompMeanDiff$get_standard_error()` private | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-147](#DECISION-v1.0.6-TODO-147) | [v1.0.6-TODO-99](release_v1_0_6.md#todo-99) | Zhang estimate uses all subjects, as documented | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-143](#DECISION-v1.0.6-TODO-143) | [v1.0.6-TODO-95](release_v1_0_6.md#todo-95) | allow the plain rand test/CI at nonzero delta under general censoring | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-138](#DECISION-v1.0.6-TODO-138) | [v1.0.6-TODO-92](release_v1_0_6.md#todo-92) | warn when a hardened refit drops a covariate, in every such class | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-135](#DECISION-v1.0.6-TODO-135) | [v1.0.6-TODO-89](release_v1_0_6.md#todo-89) | BCa also blocked below 5 deletion units | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-133](#DECISION-v1.0.6-TODO-133) | [v1.0.6-TODO-87](release_v1_0_6.md#todo-87) | an empty reservoir arm warns too | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-132](#DECISION-v1.0.6-TODO-132) | [v1.0.6-TODO-86](release_v1_0_6.md#todo-86) | option 1: `estimate_only` computes the same IVW combination | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-115](#DECISION-v1.0.6-TODO-115) | [v1.0.6-TODO-69](release_v1_0_6.md#todo-69) | fix the RMST horizon across randomization draws | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-101](#DECISION-v1.0.6-TODO-101) | [v1.0.6-TODO-59](release_v1_0_6.md#todo-59) | no new Python dependency; private numpy-only checks | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-99a](#DECISION-v1.0.6-TODO-99a) | [v1.0.6-TODO-57](release_v1_0_6.md#todo-57) | ~12 min strict article render accepted; no CI-size switch | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-99b](#DECISION-v1.0.6-TODO-99b) | [v1.0.6-TODO-57](release_v1_0_6.md#todo-57) | per-chunk opt-out for the deliberate warning chunk | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-98a](#DECISION-v1.0.6-TODO-98a) | [v1.0.6-TODO-56](release_v1_0_6.md#todo-56) | weekly CI job over every feature area | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-98b](#DECISION-v1.0.6-TODO-98b) | [v1.0.6-TODO-56](release_v1_0_6.md#todo-56) | weekly; Opus 5.5 effort high; $30 per-area cap; re-run unchanged areas every 42 days | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-87](#DECISION-v1.0.6-TODO-87) | [v1.0.6-TODO-48](release_v1_0_6.md#todo-48) | keep the removal of the always-NaN keys | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-82](#DECISION-v1.0.6-TODO-82) | [v1.0.6-TODO-43](release_v1_0_6.md#todo-43) | keep `na.rm`, documented as "drop non-finite draws" | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-76](#DECISION-v1.0.6-TODO-76) | [v1.0.6-TODO-38](release_v1_0_6.md#todo-38) | KK with `n = NULL` matches once the model matrix exists; `n` not required | 2026-11-18 |
+| [DECISION-v1.0.6-TODO-67](#DECISION-v1.0.6-TODO-67) | [v1.0.6-TODO-31](release_v1_0_6.md#todo-31) | (c) leave the results-freshness findings listed; the full 1.0.5 regeneration clears them | 2026-11-23 |
+| [DECISION-v1.0.6-TODO-61](#DECISION-v1.0.6-TODO-61) | [v1.0.6-TODO-25](release_v1_0_6.md#todo-25) | randomization replicates never chain warm starts, for any class | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-60](#DECISION-v1.0.6-TODO-60) | [v1.0.6-TODO-24](release_v1_0_6.md#todo-24) | milder clamp (y(n-1)+0.5)/n in both KK21 proportion speedups | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-48](#DECISION-v1.0.6-TODO-48) | [v1.0.6-TODO-13](release_v1_0_6.md#todo-13) | (a) n_gh = 60 for KK CLMM (EDI's 20-node rule was off the MLE at sigma ~2-2.6) | 2026-11-24 |
+| [DECISION-v1.0.6-TODO-12](#DECISION-v1.0.6-TODO-12) | [v1.0.6-TODO-2](release_v1_0_6.md#todo-2) | minimum 95% valid replicates, user-settable | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-4a](#DECISION-v1.0.6-TODO-4a) | [v1.0.6-TODO-1](release_v1_0_6.md#todo-1) | trailing partial permuted block merged into the previous block | 2026-11-19 |
+| [DECISION-v1.0.6-TODO-4b](#DECISION-v1.0.6-TODO-4b) | [v1.0.6-TODO-1](release_v1_0_6.md#todo-1) | FixedBlocking: stratified JKn delete-one within strata (Wolter) | 2026-11-19 |
 | [DECISION-v1.0.5-TODO-192](#DECISION-v1.0.5-TODO-192) | [v1.0.5-TODO-192](release_v1_0_5.md) | analysis scripts from `main` (TODO-200); acceptance list from the pinned commit (2026-11-17) | 2026-11-10 |
 | [DECISION-v1.0.5-TODO-174](#DECISION-v1.0.5-TODO-174) | [v1.0.5-TODO-174](release_v1_0_5.md) | (c) leave the shared code alone; unapproved jump guard (67347569) reverted in 42361aa5 | 2026-11-23 |
 | [DECISION-v1.0.5-TODO-189](#DECISION-v1.0.5-TODO-189) | [v1.0.5-TODO-189](release_v1_0_5.md) | accept the score oversize as a documented finite-sample property; bootstrap score p in v1.1.0-TODO-166 | 2026-11-09 |
@@ -189,7 +189,7 @@ Last updated 2026-11-25.
 | [DECISION-v1.0.5-TODO-18a](#DECISION-v1.0.5-TODO-18a) | [v1.0.5-TODO-18](release_v1_0_5.md) | (a) calibrate only the 9 named cells; drop plan TODO-3 | 2026-10-22 |
 | [DECISION-v1.0.5-TODO-18b](#DECISION-v1.0.5-TODO-18b) | [v1.0.5-TODO-18](release_v1_0_5.md) | (b) re-solve DesignFixedOptimalBlocks on each resample; keep re-solving for ompr too | 2026-10-23 |
 | [DECISION-v1.0.5-TODO-18c](#DECISION-v1.0.5-TODO-18c) | [v1.0.5-TODO-18](release_v1_0_5.md) | TODO-18 acceptance is simultaneous, Holm across 18 tests | 2026-10-28 |
-| [DECISION-v1.0.5-TODO-18d](#DECISION-v1.0.5-TODO-18d) | [v1.0.5-TODO-18](release_v1_0_5.md) | option A, accept C2 and N5 as a documented limitation; fix to v1.0.6-TODO-18 | 2026-11-12 |
+| [DECISION-v1.0.5-TODO-18d](#DECISION-v1.0.5-TODO-18d) | [v1.0.5-TODO-18](release_v1_0_5.md) | option A, accept C2 and N5 as a documented limitation; fix to v1.0.7-TODO-15 | 2026-11-12 |
 | [DECISION-v1.0.5-TODO-17](#DECISION-v1.0.5-TODO-17) | [v1.0.5-TODO-17](release_v1_0_5.md) | defer the Wilcoxon-specific remedy (to v1.5.0-TODO-1) | 2026-10-21 |
 | [DECISION-v1.0.5-TODO-16](#DECISION-v1.0.5-TODO-16) | [v1.0.5-TODO-16](release_v1_0_5.md) | Clopper-Pearson 95% per method and stratum, 500 outer datasets, finite-p denominator | 2026-10-22 |
 | [DECISION-v1.0.5-TODO-14](#DECISION-v1.0.5-TODO-14) | [v1.0.5-TODO-14](release_v1_0_5.md) | (a) predeclared expected skip for FixedBinaryMatch ~1 x pte_example; run authorized | 2026-10-22 |
@@ -436,7 +436,7 @@ Last updated 2026-11-25.
   refit from the observed-data fit.**
 - **Context:** each redraw already starts from its own data, not cold: `shared_rcpp()` starts from the fixed-effects
   cumulative-link MLE on the redraw's assignment (`clmm_warm_start()`, ~2 ms), and the kernel adds log-sigma starts
-  -1, 0, 1, -8. Nothing chains (v1.0.6-TODO-61 holds).
+  -1, 0, 1, -8. Nothing chains (v1.0.6-TODO-25 holds).
 - **Evidence (2026-11-23, agent):** observed-fit start vs current start, same redraws, max log-likelihood compared:
   default DGP (sigma at the lower boundary) KK14 / FixedBinaryMatch n = 200, 100 redraws each: |d nll| <= 9.4e-11,
   none worse or better by 1e-6, time 38.2 vs 29.7 s and 25.0 vs 20.7 s; n = 1000, 20 each: |d nll| <= 2.0e-10, 24.2 vs
@@ -660,7 +660,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-429"></a>
 ### DECISION-v1.0.6-TODO-429: Clear the StereotypeLogit last-bit worker-count difference for the v1.0.5 freeze, and how?
 
-- **TODO:** [v1.0.6-TODO-429](release_v1_0_6.md): **`InferenceOrdinalStereotypeLogitRegr` `asymp_ci` and `asymp_pval`
+- **TODO:** [v1.0.7-TODO-179](release_v1_0_7.md#todo-179): **`InferenceOrdinalStereotypeLogitRegr` `asymp_ci` and `asymp_pval`
   were "equal but not identical" at 2 and 4 cores vs 1 in the exhaustive worker-count sweep.**
 - **Context:** the `reproducibility (ubuntu-latest-release)` nightly leg failed on cf2beb67 (run 45494402590) and again on
   28e38d3a (run 45561016892), the last job left before the v1.0.5 freeze. The second run's log, with the sweep's new
@@ -679,7 +679,7 @@ Last updated 2026-11-25.
 - **Raised:** 2026-11-25, by the agent fixing nightly run 45561016892.
 - **Ruling:** (a) known failure: `InferenceOrdinalStereotypeLogitRegr|ordinal|asymp_ci` and `|asymp_pval` go into
   `worker_invariance_known_failures` in `R/EDI/tests/testthat/helper-worker-count-invariance.R`, citing
-  v1.0.6-TODO-429; TODO-429 stays open to find the cause. 2026-11-25, owner.
+  v1.0.7-TODO-179; TODO-429 stays open to find the cause. 2026-11-25, owner.
 - **Why:** No reason recorded (the freeze for v1.0.5 was waiting on this job).
 - **Rejected:** (b) a tolerance for these two keys; (c) investigate before the freeze.
 - **Revisit if:** TODO-429 finds the cause (then remove both keys), or another class or procedure shows a last-bit
@@ -688,7 +688,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-427"></a>
 ### DECISION-v1.0.6-TODO-427: Accept the two new nightly benchmark slowdowns (OrderedProbit fit, OLS randomization p-value) and allowlist them, or investigate first?
 
-- **TODO:** [v1.0.6-TODO-427](release_v1_0_6.md): **Two new nightly benchmark regressions at 82ef6889.**
+- **TODO:** [v1.0.6-TODO-234](release_v1_0_6.md#todo-234): **Two new nightly benchmark regressions at 82ef6889.**
 - **Context:** nightly run 45393057600 (82ef6889) failed the benchmark regression gate (slower than v1.0.4 in both
   comparisons, flagged as not noisy) on two rows that were not flagged at 38d1b90a (run 45158232611):
   `models-ordinal`: `InferenceOrdinalOrderedProbitRegr` 0.37 ms -> 0.49 ms; `procedures`: "Randomization test p-value:
@@ -696,7 +696,7 @@ Last updated 2026-11-25.
   randomization changes (bb0fa2b8 (1 + b) / (1 + B); 264b95ec realized-draw replay skip and enumeration drop, v1.2.0-TODO-263)
   and ordinal CLMM work (cf4b5a29, f27d8c00).
 - **Options:** (a) accept the cost: add both rows to `R/benchmark/benchmark_regression_allowlist.csv` citing this TODO,
-  as for v1.0.6-TODO-410; (b) investigate first: time both rows at 38d1b90a and 82ef6889 (needs a build of each) and fix
+  as for v1.0.6-TODO-228; (b) investigate first: time both rows at 38d1b90a and 82ef6889 (needs a build of each) and fix
   any avoidable overhead, then allowlist whatever remains; (c) allowlist the sub-millisecond probit row now and
   investigate only the OLS one.
 - **Evidence (agent, 2026-11-24, `load_all(compile = FALSE)`, n = 200, r = 1000):** stubbing
@@ -708,7 +708,7 @@ Last updated 2026-11-25.
   precompute when only a p-value is asked for would likely more than pay back the regression.
 - **Raised:** 2026-11-24, by the agent fixing nightly run 45393057600.
 - **Ruling:** (a) accept the cost: both rows go into `R/benchmark/benchmark_regression_allowlist.csv` citing
-  v1.0.6-TODO-427 (the OLS pattern names only the R6 randomization p-value row, not the OLS fit, CI or kernel rows).
+  v1.0.6-TODO-234 (the OLS pattern names only the R6 randomization p-value row, not the OLS fit, CI or kernel rows).
   2026-11-24, owner.
 - **Why:** No reason recorded.
 - **Rejected:** (b) investigate (bisect) first; (c) allowlist only the probit row and investigate the OLS one (the
@@ -719,8 +719,8 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-410"></a>
 ### DECISION-v1.0.6-TODO-410: L-BFGS Newton finish: accept the 1.3x-3x cost, or finish only the multistart winner (results move by up to 8e-4)?
 
-- **TODO:** [v1.0.6-TODO-410](release_v1_0_6.md): **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-169.**
-- **Context:** the v1.0.6-TODO-169 finish (`lbfgs_finish_with_newton_decrement()`) runs after every L-BFGS run whose
+- **TODO:** [v1.0.6-TODO-228](release_v1_0_6.md#todo-228): **Likelihood fits through the shared L-BFGS wrapper got 1.3x-3x slower with v1.0.6-TODO-117.**
+- **Context:** the v1.0.6-TODO-117 finish (`lbfgs_finish_with_newton_decrement()`) runs after every L-BFGS run whose
   gradient is above 1e-6, which on the benchmark data is every run, including each multistart start. Each finish
   evaluates at least one Hessian, and in the GLMM/CLMM/frailty kernels that Hessian is a central difference of the
   gradient costing about as much as the whole L-BFGS fit. Measured by kernel swap (2026-11-23, numbers in the TODO's
@@ -728,7 +728,7 @@ Last updated 2026-11-25.
   20 kernel/section fits toward the reference fitter (largest: ZIP wald 6.5e-3 -> 1.6e-4 vs pscl, clogit+GLMM 0.015),
   and on the colon scaling variants it fixes most of the raw / x1000 / +1e5 failures.
 - **Options on the table:** (a) keep the finish everywhere as it is and put the slowed rows into
-  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-410: no result changes. (b) In the four
+  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-228: no result changes. (b) In the four
   multistart kernels (CLMM, ordinal GLMM, Poisson GLMM, logistic GLMM) run each start without the finish and finish only
   the winner (an L-BFGS restart from the best start, with the finish); allowlist the single-start rows (ZIP, ZINB,
   hurdle NegBin, clogit+GLMM, Weibull frailty, Gaussian LMM), where one Hessian is the floor. Results move by up to
@@ -743,10 +743,10 @@ Last updated 2026-11-25.
   1e5x on the raw colon designs and keeps the old errors.
 - **Recommendation (agent):** (b); (c) only if the remaining CLMM wald row (1.3x after (b)) must pass the canary
   without an allowlist entry.
-- **Raised:** 2026-11-23, by the measurement agent working on v1.0.6-TODO-410.
+- **Raised:** 2026-11-23, by the measurement agent working on v1.0.6-TODO-228.
 - **Ruling:** (a) keep the finish everywhere and accept the cost; the slowed rows (CLMM, ordinal GLMM, Poisson GLMM,
   logistic GLMM kernel, Gaussian LMM, ZIP, ZINB, hurdle NegBin, conditional-logit + GLMM, Weibull frailty) go into
-  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-410. 2026-11-23, owner.
+  `R/benchmark/benchmark_regression_allowlist.csv` citing v1.0.6-TODO-228. 2026-11-23, owner.
 - **Why:** No reason recorded.
 - **Rejected:** (b) finish only the multistart winner (the agent's recommendation; moves estimates by up to 7.9e-4);
   (c) (b) plus forward-difference Hessians; (d) remove the finish.
@@ -754,21 +754,21 @@ Last updated 2026-11-25.
   kernel gets an analytic Hessian that makes the finish cheap.
 - **Note:** the same day a "finish only the multistart winner" instruction was relayed and implemented by kernel swap;
   the owner then confirmed (a) above, so that implementation was reverted to HEAD (2026-11-23). Its numbers are in
-  the v1.0.6-TODO-410 entry.
+  the v1.0.6-TODO-228 entry.
 
 
 <a id="DECISION-v1.0.6-TODO-409c"></a>
 ### DECISION-v1.0.6-TODO-409c: Does an unfinished calibration campaign gate a patch release (v1.0.5)?
 
-- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
-- **Context:** campaign 2026-11-15-e36c7710 is still running (v1.0.6-TODO-409). Its calibration summary carries 95 of
+- **TODO:** [v1.0.6-TODO-227](release_v1_0_6.md#todo-227): **The calibration planner abandoned slow units after shard timeouts instead of shrinking their shards.**
+- **Context:** campaign 2026-11-15-e36c7710 is still running (v1.0.6-TODO-227). Its calibration summary carries 95 of
   the 606 results-freshness row groups (DECISION-v1.0.6-TODO-67). The 1.0.5 release cut (2026-11-23) had to say
   whether 1.0.5 waits for the campaign to finish and be analysed.
 - **Options on the table:** (a) 1.0.5 waits for the campaign; (b) it does not, and the calibration-summary findings
   stay open at the tag.
 - **Ruling:** (b). Calibration campaigns gate minor and major releases (x.y.0: 1.1.0 and later) only, never a patch
   release (x.y.z, z > 0). The unfinished campaign does not gate 1.0.5; its 95 results-freshness groups may stay open at
-  the 1.0.5 tag, tracked by v1.0.6-TODO-409 and v1.0.6-TODO-67. 2026-11-23, owner. General rule recorded in
+  the 1.0.5 tag, tracked by v1.0.6-TODO-227 and v1.0.6-TODO-31. 2026-11-23, owner. General rule recorded in
   `release.md` ("Calibration campaigns gate x.y.0 releases only").
 - **Why:** owner: "The unfinished calibration campaign should not gate 1.0.5. It should only gate 1.1.0 and further
   x.x.0 releases." Calibration is a minor/major-release gate.
@@ -778,7 +778,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-380a"></a>
 ### DECISION-v1.0.6-TODO-380a: Name of the opt-in design-conservative Bartlett option
 
-- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **TODO:** [v1.0.6-TODO-225](release_v1_0_6.md#todo-225): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
 - **Question:** Following DECISION-v1.0.6-TODO-327, the design-conservative Bartlett version becomes its own option: a new testing type, or an argument on the Bartlett methods?
 - **Options on the table:** (a) a new testing type, e.g. `"lik_ratio_bartlett_approx_design_conservative"` (recommended: works through `set_testing_type()` and `InferenceSuite`); (b) an argument on the Bartlett methods.
 - **Ruling:** (a) the new testing type is named `"lik_ratio_bartlett_approx_design_conservative"`, 2026-11-21, owner
@@ -788,7 +788,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-380b"></a>
 ### DECISION-v1.0.6-TODO-380b: Does `InferenceCountPoisson` get the same model-only / design-conservative Bartlett split?
 
-- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **TODO:** [v1.0.6-TODO-225](release_v1_0_6.md#todo-225): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
 - **Question:** `InferenceCountPoisson`'s `lik_ratio_bartlett_approx` is already wrapped in its design-conservative rule (`R/EDI/R/inference_count_poisson.R:404`), the opposite of the KK count OneLik classes after DECISION-v1.0.6-TODO-327.
 - **Options on the table:** (a) split it the same way (its current Bartlett result becomes the new option, so the default changes and needs a NEWS entry); (b) leave it as is.
 - **Ruling:** (a) same split: its `lik_ratio_bartlett_approx` becomes the model-only Bartlett test and its current result moves to `"lik_ratio_bartlett_approx_design_conservative"`; changes the default Bartlett result, NEWS entry required, 2026-11-21, owner
@@ -798,19 +798,19 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-380d"></a>
 ### DECISION-v1.0.6-TODO-380d: Rank tests (log-rank, Gehan-Wilcoxon): keep the bootstrap fallback when the asymptotic p-value is unavailable?
 
-- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **TODO:** [v1.0.6-TODO-225](release_v1_0_6.md#todo-225): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
 - **Question:** `InferenceSurvivalLogRank`'s p-value falls back to the bootstrap when its variance or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R` ~L181-187); `InferenceSurvivalGehanWilcox`'s asymptotic p-value does the same for interval-censored data (~L196). Also: confirm the agent's change making `InferenceCountPoisson`'s best-available `compute_lik_ratio_bartlett_*` pair model-only.
 - **Options on the table:** (a) keep both fallbacks and document them; (b) the asymptotic p-value is NA with a reason and a warning, and the bootstrap stays its own method. For the Bartlett pair: keep it model-only, or revert to the design-conservative wrap.
-- **Ruling:** (b) for the rank tests, and the best-available Bartlett pair stays model-only, 2026-11-23, owner. Implementation: v1.0.6-TODO-417.
+- **Ruling:** (b) for the rank tests, and the best-available Bartlett pair stays model-only, 2026-11-23, owner. Implementation: v1.0.6-TODO-231.
 - **Why:** No reason recorded beyond the principle in DECISION-v1.0.6-TODO-380c ("If the user wants wald, we should always give wald").
 - **Rejected:** (a) keeping the rank-test fallbacks; reverting the Bartlett pair.
 
 <a id="DECISION-v1.0.6-TODO-380c"></a>
 ### DECISION-v1.0.6-TODO-380c: May a testing type silently return another procedure (e.g. Wald falling back to a bootstrap interval)?
 
-- **TODO:** [v1.0.6-TODO-380](release_v1_0_6.md): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
+- **TODO:** [v1.0.6-TODO-225](release_v1_0_6.md#todo-225): **A separate opt-in design-conservative Bartlett option, and "the testing type you ask for is the test you get".**
 - **Question:** The KK count OneLik classes (and several count-likelihood / survival classes) fall back to the nonparametric-bootstrap interval when the model-based SE is unavailable under `testing_type = "wald"`.
-- **Options on the table:** (a) keep silent fallbacks; (b) a testing type always returns that test: the Wald result, or NA with a recorded `procedure_failure_reason` and a classed warning (v1.0.6-TODO-255 convention), the bootstrap as its own option if still wanted.
+- **Options on the table:** (a) keep silent fallbacks; (b) a testing type always returns that test: the Wald result, or NA with a recorded `procedure_failure_reason` and a classed warning (v1.0.7-TODO-109 convention), the bootstrap as its own option if still wanted.
 - **Ruling:** (b) a testing type must return that test, never another procedure, 2026-11-21, owner
 - **Why:** Owner principle: "If the user wants wald, we should always give wald." Changes results where a fallback fired, so it needs a NEWS entry.
 - **Rejected:** (a) silent fallbacks.
@@ -818,7 +818,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-352"></a>
 ### DECISION-v1.0.6-TODO-352: Development builds report the last release's version: what version should the development tree carry?
 
-- **TODO:** [v1.0.6-TODO-352](release_v1_0_6.md): **Development builds still report version 1.0.4, so saved designs are stamped with a release whose seeding rule differs.**
+- **TODO:** [v1.0.6-TODO-220](release_v1_0_6.md#todo-220): **Development builds still report version 1.0.4, so saved designs are stamped with a release whose seeding rule differs.**
 - **Question:** `R/EDI/DESCRIPTION` said 1.0.4 while NEWS.md has a development section and the docs date the sequential seeding rule to v1.0.6, so a trial file stamped "1.0.4" points to the wrong allocation rule.
 - **Options on the table:** (a) a development version above the last release (e.g. 1.0.5.9000), changed only in DESCRIPTION and then `python3 scripts/sync_version.py` (the entry's proposal); (b) set the version to the next release to ship.
 - **Ruling:** (b) set the version to 1.0.5, 2026-11-21, owner
@@ -828,17 +828,17 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-327"></a>
 ### DECISION-v1.0.6-TODO-327: KK count OneLik: keep `lik_ratio_bartlett_approx` model-only, or make it design-conservative like `lik_ratio`?
 
-- **TODO:** [v1.0.6-TODO-327](release_v1_0_6.md): **`set_testing_type("lik_ratio_bartlett_*")` makes `compute_asymp_*()` return NULL on `InferenceContinKKOLSOneLik` and `InferenceCountPoisson`.**
+- **TODO:** [v1.0.6-TODO-208](release_v1_0_6.md#todo-208): **`set_testing_type("lik_ratio_bartlett_*")` makes `compute_asymp_*()` return NULL on `InferenceContinKKOLSOneLik` and `InferenceCountPoisson`.**
 - **Question:** On the KK count OneLik classes `lik_ratio` is design-conservative, but `lik_ratio_bartlett_approx` dispatches to the model-only Bartlett method, giving a narrower CI on the fixture: [-0.262, 0.663] vs [-0.277, 0.695].
 - **Options on the table:** (a) keep Bartlett model-only and document it; (b) make it design-conservative, like `InferenceCountPoisson`.
-- **Ruling:** (a) `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test, documented in the class roxygen; a separate opt-in design-conservative Bartlett option is v1.0.6-TODO-380, 2026-11-21, owner
+- **Ruling:** (a) `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test, documented in the class roxygen; a separate opt-in design-conservative Bartlett option is v1.0.6-TODO-225, 2026-11-21, owner
 - **Why:** No reason recorded here; see the owner principle in DECISION-v1.0.6-TODO-380c.
 - **Rejected:** (b) design-conservative Bartlett by default.
 
 <a id="DECISION-v1.0.6-TODO-326"></a>
 ### DECISION-v1.0.6-TODO-326: DepCens Bayesian bootstrap resamples a Cox log HR: add weights to the dependent-censoring likelihood, or make the method unsupported?
 
-- **TODO:** [v1.0.6-TODO-326](release_v1_0_6.md): **The `InferenceSurvivalDepCensTransformRegr` Bayesian bootstrap resamples a Cox log hazard ratio, not the class's log time ratio.**
+- **TODO:** [v1.0.6-TODO-176](release_v1_0_6.md#todo-176): **The `InferenceSurvivalDepCensTransformRegr` Bayesian bootstrap resamples a Cox log hazard ratio, not the class's log time ratio.**
 - **Question:** `compute_estimate_with_bootstrap_weights()` replaces every weighted draw with a weighted `survival::coxph` surrogate, whose coefficient is a log hazard ratio (about -beta / sigma under a log-normal AFT) that ignores the dependent censoring.
 - **Options on the table:** (a) add observation weights to the dependent-censoring likelihood (`DepCensTransformLikelihood`, `fast_dep_cens_transform_optim_cpp`) and refit per draw, warm-started from the full-data params; (b) if that is too slow or too unstable on small samples, make the Bayesian bootstrap unsupported (as the jackknife and randomization methods already are), with the reason in the docs.
 - **Ruling:** (b) the Bayesian-bootstrap methods warn `edi_unsupported_procedure` and return NA, 2026-11-21, owner (recorded by the coordinator)
@@ -848,7 +848,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-298"></a>
 ### DECISION-v1.0.6-TODO-298: Fixed designs with the default `n = NULL`: infer `n = nrow(X_all)`, or require `n`?
 
-- **TODO:** [v1.0.6-TODO-298](release_v1_0_6.md): **Every fixed design accepts the default `n = NULL`, then
+- **TODO:** [v1.0.6-TODO-185](release_v1_0_6.md#todo-185): **Every fixed design accepts the default `n = NULL`, then
   `add_all_subjects_to_experiment()` errors although `X_all` gives n.**
 - **Options:**
   - (a) infer `n = nrow(X_all)` in `add_all_subjects_to_experiment()` when `n` is NULL, set `fixed_sample = TRUE` and
@@ -873,7 +873,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-294"></a>
 ### DECISION-v1.0.6-TODO-294: Rerandomization with `prop_acceptable`: fixed cutoff, or best-of-k reference draws?
 
-- **TODO:** [v1.0.6-TODO-294](release_v1_0_6.md): **The realized `DesignFixedRerandomization` allocation with
+- **TODO:** [v1.0.6-TODO-181](release_v1_0_6.md#todo-181): **The realized `DesignFixedRerandomization` allocation with
   `prop_acceptable` comes from a different law than its randomization reference, and the randomization test
   over-rejects (7.25% at nominal 5%).**
 - **Options (each changes randomization p-values and CIs):**
@@ -898,7 +898,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-285"></a>
 ### DECISION-v1.0.6-TODO-285: Zhang hull CI at ~1.2-1.3x the pre-hull time: accept, or pursue further speedups?
 
-- **TODO:** [v1.0.6-TODO-285](release_v1_0_6.md): **The Zhang exact CI's convex-hull scan costs about 2x the v1.0.4 CI.**
+- **TODO:** [v1.0.6-TODO-206](release_v1_0_6.md#todo-206): **The Zhang exact CI's convex-hull scan costs about 2x the v1.0.4 CI.**
 - **Question:** After the C++ kernels the n = 1000 Bernoulli Fisher CI takes 9.6 ms vs 7.95 ms pre-hull (1.21x by medians, 1.26x median per-round ratio; earlier runs 1.19-1.29x), at about the canary's 1.25x but not clearly under it.
 - **Options on the table:** (a) accept; (b) skip outcomes far below the mode with a certified error bound and an exact fallback near alpha (not bit-identical, ~2%); (c) a scan restricted to breakpoints when one component is present.
 - **Ruling:** (a) 1.2-1.3x the pre-hull CI is close enough; the further options are not pursued. The benchmark allowlist row stays (it sits at about the canary's 1.25x and would fail intermittently); remove it at the v1.0.6 release, when the canary baseline includes the hull, 2026-11-21, owner
@@ -908,7 +908,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-270a"></a>
 ### DECISION-v1.0.6-TODO-270a: Permuted-block jackknife with few units per stratum: switch to `observation_within_block`, or a t reference?
 
-- **TODO:** [v1.0.6-TODO-270](release_v1_0_6.md): **Permuted-block jackknife with few units per stratum is oversized.**
+- **TODO:** [v1.0.7-TODO-122](release_v1_0_7.md#todo-122): **Permuted-block jackknife with few units per stratum is oversized.**
 - **Question:** InferenceCountPoisson, RandomBlockSize, prob_T 0.2, n = 200, `~1`: jackknife-Wald size 0.082 [0.066, 0.101] (16-20 deletion units, 3-4 in the smallest stratum), against 0.055 with the "observation_within_block" unit; SPBR about 0.061 pooled over 3000 reps.
 - **Options on the table:** (a) in `resolve_jackknife_unit("auto")`, when any stratum has fewer than about 5 permuted-block units, use "observation_within_block" (delete one subject within its stratum, Wolter 2007 Sec. 4.5); shared code, affects every class using the automatic unit; (b) a t reference with (units - strata) df.
 - **Ruling:** (a), 2026-11-20, owner
@@ -918,9 +918,9 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-235"></a>
 ### DECISION-v1.0.6-TODO-235: `InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC`'s surrogate Bayesian bootstrap: refuse it, or build a weighted fit?
 
-- **TODO:** [v1.0.6-TODO-235](release_v1_0_6.md): **KK IVWC leftovers after the Bayesian-bootstrap fix.**
+- **TODO:** [v1.0.6-TODO-169](release_v1_0_6.md#todo-169): **KK IVWC leftovers after the Bayesian-bootstrap fix.**
 - **Question:** Item (1): the class's own Bayesian-bootstrap hook is a marginal-Weibull surrogate, not the IVW estimator (bootstrap mean 0.55 vs estimate 0.63).
-- **Options on the table:** (a) refuse it like the Normal IVWC class (v1.0.6-TODO-217); (b) build a weighted fit.
+- **Options on the table:** (a) refuse it like the Normal IVWC class (v1.0.6-TODO-158); (b) build a weighted fit.
 - **Ruling:** (a) refuse it (same mechanism as the Normal IVWC class), 2026-11-19, owner (ruling undated; applied in the agent's 2026-11-19 status)
 - **Why:** No reason recorded.
 - **Rejected:** (b) a weighted fit.
@@ -928,7 +928,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-234"></a>
 ### DECISION-v1.0.6-TODO-234: Treated-count rounding across designs: align `DesignFixediBCRD` and the rerandomization `prop_acceptable` path, or document?
 
-- **TODO:** [v1.0.6-TODO-234](release_v1_0_6.md): **Treated-count rounding differs between designs.**
+- **TODO:** [v1.0.6-TODO-168](release_v1_0_6.md#todo-168): **Treated-count rounding differs between designs.**
 - **Question:** (1) `DesignFixediBCRD` rounds a .5 tie up (n = 21, prob_T = 0.5: 11 treated) while `DesignSeqOneByOneiBCRD` uses R's `round()` (10). (2) `DesignFixedRerandomization` with `prop_acceptable` at prob_T = 0.5 uses `complete_randomization_forced_balanced_cpp` = floor(n/2) (n = 23: 11) while the other paths use `round(n * prob_T)` (12); the null is right but the documented count is wrong. Both fixes change realized allocations.
 - **Options on the table:** (1) align (one-line R change in `design_fixed_ibcrd.R`, changes realized fixed allocations at ties) or document the difference; (2) use the forced-balanced kernel only when n is even (changes realized allocations for n = 3 mod 4) or document.
 - **Ruling:** "align both", 2026-11-19, owner (ruling undated; recorded in the agent's 2026-11-19 DONE note)
@@ -938,7 +938,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-233"></a>
 ### DECISION-v1.0.6-TODO-233: Gapped Zhang exact CIs: report the convex hull of the accepted set, or keep the connected piece and document it?
 
-- **TODO:** [v1.0.6-TODO-233](release_v1_0_6.md): **Zhang exact CIs can have gaps.**
+- **TODO:** [v1.0.6-TODO-167](release_v1_0_6.md#todo-167): **Zhang exact CIs can have gaps.**
 - **Question:** The combined two-sided exact p-value is not monotone in delta and can jump, so in about 2.5% of ordinary `InferenceIncidExactZhang` CIs on matching designs (8 of 323 checked) the accepted set has gaps, and the bisection returns only the piece around its starting point.
 - **Options on the table:** (a) report the convex hull of the accepted set (conservative, standard for exact CIs); (b) keep the connected piece and document it.
 - **Ruling:** (a) report the convex hull, 2026-11-20, owner (ruling undated; recorded by the 2026-11-20 DONE note)
@@ -948,7 +948,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-232"></a>
 ### DECISION-v1.0.6-TODO-232: Small ZIP fits stopping unflagged below a ridge: more start candidates, or document now?
 
-- **TODO:** [v1.0.6-TODO-232](release_v1_0_6.md): **Small ZIP fits that stop unflagged below the maximum.**
+- **TODO:** [v1.0.6-TODO-166](release_v1_0_6.md#todo-166): **Small ZIP fits that stop unflagged below the maximum.**
 - **Question:** After the sharpened pscl start (x10), 41 of 96 sweep fits still stop unflagged at an interior maximum below a ridge; with continuous covariates in the zero formula the ZIP MLE often does not exist at small n. More candidates (x5 / x10 / x20 together) still leave 35 of 96, at ~3x cost.
 - **Options on the table:** (a) add more start candidates (~3x cost); (b) document now, with a ridge detector later.
 - **Ruling:** (b) document now, no more start candidates; the ridge detector (an LP over which zeros can be separated from every positive, then compare the Poisson fit on the rest) is filed by the coordinator as v1.1.0-TODO-258, 2026-11-19, owner
@@ -958,7 +958,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-231a"></a>
 ### DECISION-v1.0.6-TODO-231a: Stratified jackknife variance: keep the rescaled (reweighting-equivalent) replicates, or the literal (n_h-1)/n_h form?
 
-- **TODO:** [v1.0.6-TODO-231](release_v1_0_6.md): **Stratified jackknife follow-ups.**
+- **TODO:** [v1.0.6-TODO-165](release_v1_0_6.md#todo-165): **Stratified jackknife follow-ups.**
 - **Question:** Item (1): TODO-4 applies Wolter's JKn formulas to reweighting-equivalent replicates theta* = theta-hat + r_h (theta_(h,i) - theta-hat), r_h = n_h(N-1)/(N(n_h-1)), because EDI's replicates are unweighted subset refits and the literal (n_h-1)/n_h weight undercovers on SPBR (0.89-0.93 vs 0.92-0.96). The bias form rested on recollection of Wolter (paywalled); verify against the book.
 - **Options on the table:** (a) confirm the rescaled form; (b) switch to the literal form (one-line change in `edi_jackknife_bias_variance()`).
 - **Ruling:** (a) variance: rescaled form kept, 2026-11-20, owner via the agent E status note of 2026-11-20 ("kept per the owner decision"; the ruling itself may be earlier)
@@ -968,7 +968,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-231b"></a>
 ### DECISION-v1.0.6-TODO-231b: Stratified jackknife bias on EDI's unweighted refits: keep, set to 0, or a ratio correction?
 
-- **TODO:** [v1.0.6-TODO-231](release_v1_0_6.md): **Stratified jackknife follow-ups.**
+- **TODO:** [v1.0.6-TODO-165](release_v1_0_6.md#todo-165): **Stratified jackknife follow-ups.**
 - **Question:** The bias sum_h (n_h-1)(theta_bar_h - theta_hat) is the stratified jackknife bias of Jones (1974) / Krewski & Rao (1981) on REWEIGHTED replicates; the r_h rescaling is first order only, so on EDI's refits it equals the ordinary unstratified bias (N-1)(theta_bar - theta_hat), which also counts the between-stratum spread. Sim (g(mean), 40000 reps): true bias 0.0815 / 0.0067 / -0.0004; Jones on reweighted 0.0854 / 0.0061 / -0.0005; EDI 0.108 / 0.036 / -0.0028 (overcorrects by up to ~0.4 SE when strata differ strongly; 0 for a difference in means); literal raw-refit form -0.10 / -0.088 (worse).
 - **Options on the table:** (a) keep (documented); (b) set the stratified bias to 0 / report theta_hat; (c) a ratio correction (bias x (N-1)/N sum n_h^2 v_h/(n_h-1) / sum n_h (m_h^2 + v_h); matched Jones in the scalar sim, unproven for regressions).
 - **Ruling:** (a) keep the current bias formula, documented in the roxygen (caveat: equals the ordinary (N-1)(theta_bar - theta_hat), can over-correct nonlinear estimators when strata differ), 2026-11-20, owner
@@ -978,7 +978,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-231c"></a>
 ### DECISION-v1.0.6-TODO-231c: `ObservationalDesignBlocks` with few strata-like blocks: keep leave-one-block-out, or delete within blocks?
 
-- **TODO:** [v1.0.6-TODO-231](release_v1_0_6.md): **Stratified jackknife follow-ups.**
+- **TODO:** [v1.0.6-TODO-165](release_v1_0_6.md#todo-165): **Stratified jackknife follow-ups.**
 - **Question:** Item (5): ObservationalDesignBlocks resolves to "block"; its blocks are user-defined matched sets / strata / clusters, so leave-one-block-out is right for matched sets and clusters but NA with < 5 strata-like blocks (explicit `unit = "observation_within_block"` works). Its bootstrap resamples within blocks (strata reading).
 - **Options on the table:** (a) keep; (b) switch to "observation_within_block" when there are < 5 blocks.
 - **Ruling:** (b) with fewer than 5 blocks, `"auto"` resolves to "observation_within_block" (delete one observation within a block), 2026-11-20, owner
@@ -988,7 +988,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-231d"></a>
 ### DECISION-v1.0.6-TODO-231d: Stratified jackknife-Wald: z or t reference with df = sum_h (n_h - 1)?
 
-- **TODO:** [v1.0.6-TODO-231](release_v1_0_6.md): **Stratified jackknife follow-ups.**
+- **TODO:** [v1.0.6-TODO-165](release_v1_0_6.md#todo-165): **Stratified jackknife follow-ups.**
 - **Question:** Item (6): 400 reps (n = 148, 2 prognostic binary strata, incidence, beta 0): jackknife-Wald z coverage 0.930, with t(sum_h (n_h-1) ~ 31 df) 0.943; mean SE 0.078 = SD 0.078; bias negligible. The shortfall is the z reference at ~31 df plus SE noise (MC SE 0.012).
 - **Options on the table:** (a) keep z; (b) t reference with df = sum_h (n_h - 1) for stratified units (changes results).
 - **Ruling:** (b) stratified jackknife Wald uses a t reference with df = sum_h(n_h - 1), 2026-11-20, owner
@@ -998,8 +998,8 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-230a"></a>
 ### DECISION-v1.0.6-TODO-230a: Default `min_fraction_usable_samples` cap for g-comp RR subsampling / m-out-of-n: 0.95 or 0.80?
 
-- **TODO:** [v1.0.6-TODO-230](release_v1_0_6.md): **Ratio subsampling follow-ups.**
-- **Question:** Item (1): at 0.95, 9% (subsampling) / 29% (m-out-of-n) of null datasets return NA, the size among the rest is 0.016 / 0.000, and 7 / 9 of the 11 datasets where Wald rejects become NA, because degenerate draws pile up where log RR-hat is extreme. At 0.80: 0% NA, size 0.040 / 0.030. (From v1.0.6-TODO-191: 0.90 gives NA 2% / 5%, size 0.031 / 0.011.)
+- **TODO:** [v1.0.6-TODO-164](release_v1_0_6.md#todo-164): **Ratio subsampling follow-ups.**
+- **Question:** Item (1): at 0.95, 9% (subsampling) / 29% (m-out-of-n) of null datasets return NA, the size among the rest is 0.016 / 0.000, and 7 / 9 of the 11 datasets where Wald rejects become NA, because degenerate draws pile up where log RR-hat is extreme. At 0.80: 0% NA, size 0.040 / 0.030. (From v1.0.6-TODO-137: 0.90 gives NA 2% / 5%, size 0.031 / 0.011.)
 - **Options on the table:** (a) keep 0.95; (b) 0.90; (c) 0.80.
 - **Ruling:** (c) default 0.8 (was 0.95) on the public methods and the private RR pivot; still user-settable; the bootstrap / Bayesian-bootstrap `na.rm` 0.95 unchanged, 2026-11-20, owner via the agent's 2026-11-20 note ("Owner decision applied"; ruling date not stated)
 - **Why:** No reason recorded beyond the size / NA numbers.
@@ -1008,7 +1008,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-230b"></a>
 ### DECISION-v1.0.6-TODO-230b: KK g-comp RR subsampling size: symmetric centered p-value for ratio pivots, or document?
 
-- **TODO:** [v1.0.6-TODO-230](release_v1_0_6.md): **Ratio subsampling follow-ups.**
+- **TODO:** [v1.0.6-TODO-164](release_v1_0_6.md#todo-164): **Ratio subsampling follow-ups.**
 - **Question:** Item (3): the KK g-comp RR subsampling / m-out-of-n size stays low (0.015 / 0.010) because the subsample law of log RR* is skewed toward the observed effect, so the equal-tailed p = 2 min(.) doubles the heavy tail. A symmetric p-value (mean(|pivot| >= |t|)) gives 0.045 (subsampling; non-KK 0.055) but m-out-of-n stays 0.015. Changing the p-value type is a methodology change.
 - **Options on the table:** (a) symmetric centered p-value for ratio pivots; (b) document.
 - **Ruling:** (a) switch to the symmetric centered p-value; applied to all ratio pivots since no class became anti-conservative, 2026-11-20, owner
@@ -1018,17 +1018,17 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-230c"></a>
 ### DECISION-v1.0.6-TODO-230c: Make the 0.8 usable-draw cap on the generic ratio subsampling / m-out-of-n paths user-settable?
 
-- **TODO:** [v1.0.6-TODO-230](release_v1_0_6.md): **Ratio subsampling follow-ups.**
+- **TODO:** [v1.0.6-TODO-164](release_v1_0_6.md#todo-164): **Ratio subsampling follow-ups.**
 - **Question:** The generic paths' cap is the fixed constant `ratio_resampling_min_fraction_usable = 0.8`; exposing it needs a new argument on the generic public methods in `inference_all_abstract_non_param_boot.R`.
 - **Options on the table:** (a) make it user-settable now; (b) later, as a separate TODO; (c) keep it fixed.
-- **Ruling:** (b) yes, later: a separate TODO (became v1.0.6-TODO-269, since done), 2026-11-20, owner ("yes, later", per the v1.0.6-TODO-269 header)
+- **Ruling:** (b) yes, later: a separate TODO (became v1.0.6-TODO-204, since done), 2026-11-20, owner ("yes, later", per the v1.0.6-TODO-204 header)
 - **Why:** No reason recorded.
 - **Rejected:** (a) now; (c) keep fixed.
 
 <a id="DECISION-v1.0.6-TODO-222"></a>
 ### DECISION-v1.0.6-TODO-222: ZINB randomization oversize: take the R guard as the fix, or wait for the C++ root fix?
 
-- **TODO:** [v1.0.6-TODO-222](release_v1_0_6.md): **`InferenceCountZeroInflatedNegBin`: the randomization test is oversized because `fast_zinb_cpp()` accepts non-MLE fits on permuted draws.**
+- **TODO:** [v1.0.6-TODO-163](release_v1_0_6.md#todo-163): **`InferenceCountZeroInflatedNegBin`: the randomization test is oversized because `fast_zinb_cpp()` accepts non-MLE fits on permuted draws.**
 - **Question:** Two acceptance shortcuts in `fast_zinb.cpp` accept non-MLE fits. An R guard (`fast_zinb_cpp_guarded()`) refits suspect fits with L-BFGS from a cold and the warm start and keeps the lowest nll (n = 50 `~.` randomization size 0.082 -> 0.045; about half of n = 50 fits trigger 2-3 extra fits); the root fix is C++ and needs a rebuild.
 - **Options on the table:** (a) take the R guard as the fix (C++ root fix optional later); (b) fix the C++ acceptance paths first.
 - **Ruling:** (a) the R guard is taken as the fix, with a NEWS "Changes that alter results" bullet and a class roxygen / Rd "Fitting" paragraph, 2026-11-19, owner
@@ -1038,17 +1038,17 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-220"></a>
 ### DECISION-v1.0.6-TODO-220: Probit / identity-binomial / log-binomial Wald SE: switch to observed information or keep glm's expected-information convention?
 
-- **TODO:** [v1.0.6-TODO-220](release_v1_0_6.md): **Wald SEs that are not observed information, and SE paths that disagree.**
+- **TODO:** [v1.0.6-TODO-161](release_v1_0_6.md#todo-161): **Wald SEs that are not observed information, and SE paths that disagree.**
 - **Question:** Item (1): `InferenceIncidProbitRegr` exposes only expected information, and `InferenceIncidBinomialIdentityRiskDiff` / `InferenceIncidLogBinomial` take their public Wald SE from the IRLS expected X'WX (as `glm()` does for non-canonical links; observed SE 0.5% / 7.7% higher on one fixture).
-- **Options on the table:** (a) switch them to observed to follow the v1.0.6-TODO-215 rule (probit needs a real observed-Hessian closure); (b) keep glm's convention and leave the documented exception.
-- **Ruling:** (b) keep `glm()`'s convention (expected information) for these three classes; the documented exception to the v1.0.6-TODO-215 observed-information rule stays, 2026-11-19, owner
+- **Options on the table:** (a) switch them to observed to follow the v1.0.6-TODO-156 rule (probit needs a real observed-Hessian closure); (b) keep glm's convention and leave the documented exception.
+- **Ruling:** (b) keep `glm()`'s convention (expected information) for these three classes; the documented exception to the v1.0.6-TODO-156 observed-information rule stays, 2026-11-19, owner
 - **Why:** No reason recorded.
 - **Rejected:** (a) switching to observed information.
 
 <a id="DECISION-v1.0.6-TODO-218a"></a>
 ### DECISION-v1.0.6-TODO-218a: ZIP / ZINB zero-part separation warning on data with no excess zeros: keep, silence, or soften?
 
-- **TODO:** [v1.0.6-TODO-218](release_v1_0_6.md): **Zero-part separation warning follow-ups.**
+- **TODO:** [v1.0.6-TODO-159](release_v1_0_6.md#todo-159): **Zero-part separation warning follow-ups.**
 - **Question:** Item (1): on ordinary count data with no excess zeros, ZIP's zero part saturates and ZINB falls back to its zero-inflation-off boundary fit, so `edi_zero_part_separation_warning` fires (about 12 existing test files, and calibration runs without inflation).
 - **Options on the table:** (a) keep it (it is true: the zero part is not identified); (b) silence it for ZINB boundary fits only; (c) replace it with a softer message such as "no evidence of zero inflation".
 - **Ruling:** (c) a softer message (`edi_no_zero_inflation_message`) in the no-inflation case; the warning stays for real separation, 2026-11-19, owner
@@ -1058,7 +1058,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-218b"></a>
 ### DECISION-v1.0.6-TODO-218b: Confirm the 5% cutoff (`ZERO_AUGMENTED_NO_INFLATION_MAX_LOGIT` = qlogis(0.05)) for the no-inflation message
 
-- **TODO:** [v1.0.6-TODO-218](release_v1_0_6.md): **Zero-part separation warning follow-ups.**
+- **TODO:** [v1.0.6-TODO-159](release_v1_0_6.md#todo-159): **Zero-part separation warning follow-ups.**
 - **Question:** The implementing agent chose a 5% bound (every zero logit <= qlogis(0.05) ~ -2.94), not "every logit <= -10": on plain Poisson / NB data the MLE usually sends one arm to pi -> 0 and leaves the other at 0.5-4% (e.g. ZINB n = 500: 247 of 500 to 0, 3.7% for the rest).
 - **Options on the table:** (a) confirm the 5% cutoff; (b) a stricter rule such as every logit <= -10.
 - **Ruling:** (a) the 5% cutoff is confirmed, 2026-11-19, owner
@@ -1068,7 +1068,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-215a"></a>
 ### DECISION-v1.0.6-TODO-215a: Public Wald p-value / CI vs `get_standard_error()` under "fisher": which information source wins?
 
-- **TODO:** [v1.0.6-TODO-215](release_v1_0_6.md): **Information-source follow-ups.**
+- **TODO:** [v1.0.6-TODO-156](release_v1_0_6.md#todo-156): **Information-source follow-ups.**
 - **Question:** Item (1): for every `StandardModelCache` class the public Wald p-value and CI use the C++ `ssq_b_j` (observed information) whenever it is finite, while `get_standard_error()` follows the information preference; under "fisher" the two disagree (invisible for canonical-link GLMs, visible for the ordinal links after TODO-201). Which wins?
 - **Options on the table:** (a) the information preference governs the Wald SE too; (b) the public Wald p-value and CI always use observed information.
 - **Ruling:** (b) the public Wald p-value and CI always use observed information, including any fallback when the C++ `ssq_b_j` is not finite; "fisher" stays the score-test default; document that the information preference applies to score tests and score CIs only, 2026-11-19, owner
@@ -1078,7 +1078,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-215b"></a>
 ### DECISION-v1.0.6-TODO-215b: `InferenceOrdinalPartialProportionalOddsRegr` on the VGAM path: which Wald SE source?
 
-- **TODO:** [v1.0.6-TODO-215](release_v1_0_6.md): **Information-source follow-ups.**
+- **TODO:** [v1.0.6-TODO-156](release_v1_0_6.md#todo-156): **Information-source follow-ups.**
 - **Question:** Item (3): the class's published Wald SE is EXPECTED on the VGAM path (any nonparallel column), against the item-1 rule, while the fast-solver and clm fallback paths are observed. Moving the VGAM path to observed changes the treatment SE by a median 0.4-0.8% (max 1.0%) at n = 60-100, 0.2% (max 0.5%) at n = 300, 0.05% (max 0.2%) at n = 1000; estimates do not change.
 - **Options on the table:** (a) publish the observed SE computed at the VGAM MLE (one R pass per fit, matches clm, follows item 1, makes the three backends agree); (b) put clm ahead of VGAM (moves estimates when the optimizers disagree); (c) keep VGAM's expected SE as a documented exception. Tables in the research note (section 7).
 - **Ruling:** (a) publish the observed SE at the VGAM MLE, 2026-11-20, owner
@@ -1088,7 +1088,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-213"></a>
 ### DECISION-v1.0.6-TODO-213: iBCRD tie rounding: change the realized count (R side) or only the redraws (kernel side)?
 
-- **TODO:** [v1.0.6-TODO-213](release_v1_0_6.md): **`DesignSeqOneByOneiBCRD`'s realized assignment and its randomization redraws round the treated count differently.**
+- **TODO:** [v1.0.6-TODO-154](release_v1_0_6.md#todo-154): **`DesignSeqOneByOneiBCRD`'s realized assignment and its randomization redraws round the treated count differently.**
 - **Question:** When `n * prob_T` ends in .5, `assign_wt()` uses R's `round()` (half to even) but the C++ kernel uses `std::round` (half away from zero), so the randomization distribution is wrong for about half of odd n at the default prob_T.
 - **Options on the table:** (a) R side uses `floor(x + 0.5)` (changes some realized allocations); (b) `draw_ws_raw` passes `round(n * prob_T) / n` to the kernel (keeps realized allocations, changes only redraws).
 - **Ruling:** (b) pass the realized treated count to the kernel, so only the redraws change, 2026-11-19, owner
@@ -1098,7 +1098,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-212"></a>
 ### DECISION-v1.0.6-TODO-212: Bump `EDI_TUNING_SCHEMA_VERSION` to invalidate tuning policies timed on covariate-dropped fits?
 
-- **TODO:** [v1.0.6-TODO-212](release_v1_0_6.md): **Vacuous NA-equals-NA goldens and fixture follow-ups.**
+- **TODO:** [v1.0.6-TODO-153](release_v1_0_6.md#todo-153): **Vacuous NA-equals-NA goldens and fixture follow-ups.**
 - **Question:** Item (3): saved `tune_EDI_for_this_machine()` policies were timed on covariate-dropped continuous / proportion / survival fits before TODO-204. Invalidate them, or leave them valid?
 - **Options on the table:** (a) bump `EDI_TUNING_SCHEMA_VERSION` so saved policies are invalidated; (b) leave them valid.
 - **Ruling:** (a) bump `EDI_TUNING_SCHEMA_VERSION` 1 -> 2 (saved v1 policies are ignored; users re-tune once), 2026-11-19, owner (done by the coordinator)
@@ -1108,7 +1108,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-211"></a>
 ### DECISION-v1.0.6-TODO-211: Orphan benchmark scripts that now hit the LR-bootstrap minimum-B error: raise B, pass alpha = 0.2, or delete?
 
-- **TODO:** [v1.0.6-TODO-211](release_v1_0_6.md): **Leftovers of the LR-bootstrap minimum-B check.**
+- **TODO:** [v1.0.6-TODO-152](release_v1_0_6.md#todo-152): **Leftovers of the LR-bootstrap minimum-B check.**
 - **Question:** Item (1): `R/benchmark/heavy_paths.R` (PB = 10, now hard-errors) and `R/benchmark/heavy_only.R` (PB_H = 5, times the error inside tryCatch) are orphans that nothing references.
 - **Options on the table:** (a) raise to B >= 39; (b) pass alpha = 0.2; (c) delete them.
 - **Ruling:** (c) delete both scripts, 2026-11-19, owner (done by the coordinator)
@@ -1118,7 +1118,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-210a"></a>
 ### DECISION-v1.0.6-TODO-210a: Record the three LR-bootstrap CI NA reasons in `procedure_failure_reason`?
 
-- **TODO:** [v1.0.6-TODO-210](release_v1_0_6.md): **LR-bootstrap CI leftovers.**
+- **TODO:** [v1.0.6-TODO-151](release_v1_0_6.md#todo-151): **LR-bootstrap CI leftovers.**
 - **Question:** Item (1): the three new LR-bootstrap CI NA reasons (`lik_ratio_bootstrap_ci_pval_at_estimate_unavailable`, `..._rejects_at_estimate`, `..._bound_not_found`) warn but are not recorded in `procedure_failure_reason`; record them?
 - **Options on the table:** (a) record them; (b) leave them as warnings only.
 - **Ruling:** (a) record the three reasons in `procedure_failure_reason`, as other procedures do, 2026-11-19, owner
@@ -1128,7 +1128,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-210b"></a>
 ### DECISION-v1.0.6-TODO-210b: LR-bootstrap CI with B < 2/alpha - 1: warn up front or error up front?
 
-- **TODO:** [v1.0.6-TODO-210](release_v1_0_6.md): **LR-bootstrap CI leftovers.**
+- **TODO:** [v1.0.6-TODO-151](release_v1_0_6.md#todo-151): **LR-bootstrap CI leftovers.**
 - **Question:** Item (2): the LR-bootstrap CI and p-value don't check `B` up front; with B < 2/alpha - 1 the CI can never be found and this is only reported after the search. Add an up-front warning or error?
 - **Options on the table:** (a) an up-front warning; (b) an up-front error.
 - **Ruling:** (b) error up front when B < 2/alpha - 1, 2026-11-19, owner
@@ -1138,7 +1138,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-209"></a>
 ### DECISION-v1.0.6-TODO-209: Tighten the identity-binomial default tolerance so exact-tie draws stop depending on warm-start order?
 
-- **TODO:** [v1.0.6-TODO-209](release_v1_0_6.md): **Leftovers from the identity-binomial randomization fix.**
+- **TODO:** [v1.0.6-TODO-150](release_v1_0_6.md#todo-150): **Leftovers from the identity-binomial randomization fix.**
 - **Question:** Item (3): the identity-binomial MLE near the mu = 0 bound is accurate to ~1e-6 at the default tol, so exact-tie draws depend slightly on warm-start order; tightening tol moves stored estimates by ~1e-6.
 - **Options on the table:** (a) tighten the tolerance (moves stored estimates by ~1e-6); (b) leave the default tolerance.
 - **Ruling:** (b) leave the default tolerance, 2026-11-19, owner
@@ -1149,17 +1149,17 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-208a"></a>
 ### DECISION-v1.0.6-TODO-208a: ZIP BRT worker vs slow-path difference on barely identified inflation: document or guard?
 
-- **TODO:** [v1.0.6-TODO-208](release_v1_0_6.md): **Two failing tests and two leftovers.**
+- **TODO:** [v1.0.6-TODO-149](release_v1_0_6.md#todo-149): **Two failing tests and two leftovers.**
 - **Question:** Item (3): `InferenceCountZeroInflatedPoisson` BRT worker and slow path differ by ~0.1 / ~0.2 on plain Poisson data where the inflation part is barely identified (the reused worker warm-starts from a saturated zero part). Document or guard?
-- **Options on the table:** (a) document; (b) guard (agent's recommendation: guard, under v1.0.6-TODO-30 candidate 1, no warm start from a saturated or ridge zero part).
-- **Ruling:** (b) guard: folded into v1.0.6-TODO-30 (fix candidate 1, cold start when the zero part is saturated), with the BRT reusable worker added to its scope, 2026-11-19, owner
+- **Options on the table:** (a) document; (b) guard (agent's recommendation: guard, under v1.0.6-TODO-6 candidate 1, no warm start from a saturated or ridge zero part).
+- **Ruling:** (b) guard: folded into v1.0.6-TODO-6 (fix candidate 1, cold start when the zero part is saturated), with the BRT reusable worker added to its scope, 2026-11-19, owner
 - **Why:** No reason recorded beyond the agent's recommendation (guard, not document).
 - **Rejected:** (a) document only.
 
 <a id="DECISION-v1.0.6-TODO-208b"></a>
 ### DECISION-v1.0.6-TODO-208b: NegBin classes without `set_estimand`: a clear "estimand not supported" error now, or wait for v1.4.0-TODO-17?
 
-- **TODO:** [v1.0.6-TODO-208](release_v1_0_6.md): **Two failing tests and two leftovers.**
+- **TODO:** [v1.0.6-TODO-149](release_v1_0_6.md#todo-149): **Two failing tests and two leftovers.**
 - **Question:** Item (4): `InferenceCountHurdleNegBin` has no `set_estimand` (errors "attempt to apply non-function"); v1.4.0-TODO-17 extends `set_estimand` later. Should the error become a clear "estimand not supported" error sooner?
 - **Options on the table:** (a) add a clear error now; (b) leave it until v1.4.0-TODO-17.
 - **Ruling:** (a) add a clear "estimand not supported" error to the NegBin classes now, and add plain `InferenceCountNegBin` to v1.4.0-TODO-17, 2026-11-19, owner
@@ -1169,8 +1169,8 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-206"></a>
 ### DECISION-v1.0.6-TODO-206: Pooled Zhang estimate outside the exact CI: document it, or change the estimate or the CI?
 
-- **TODO:** [v1.0.6-TODO-206](release_v1_0_6.md): **The pooled Zhang estimate can lie outside the exact CI.**
-- **Question:** After v1.0.6-TODO-147 the point estimate uses the pooled table while the exact CI inverts the combined matched + reservoir test, so the two are different quantities (in every case checked the estimate was inside, e.g. 2.34 in [0.66, 5.53]). Document that the estimate is not guaranteed to lie in the CI, or change one of them?
+- **TODO:** [v1.0.6-TODO-147](release_v1_0_6.md#todo-147): **The pooled Zhang estimate can lie outside the exact CI.**
+- **Question:** After v1.0.6-TODO-99 the point estimate uses the pooled table while the exact CI inverts the combined matched + reservoir test, so the two are different quantities (in every case checked the estimate was inside, e.g. 2.34 in [0.66, 5.53]). Document that the estimate is not guaranteed to lie in the CI, or change one of them?
 - **Options on the table:** (a) document that the estimate is not guaranteed to lie in the CI; (b) change one of the two quantities.
 - **Ruling:** (a) document that the estimate is not guaranteed to lie in the exact CI, and regenerate the stored test results holding Zhang estimates on matching designs, 2026-11-19, owner
 - **Why:** No reason recorded.
@@ -1179,7 +1179,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-204"></a>
 ### DECISION-v1.0.6-TODO-204: Perfect-predictor tuning fixtures: add noise to `inference_migration_complete_design()` / `edi_tuning_synthetic_experiment()`?
 
-- **TODO:** [v1.0.6-TODO-204](release_v1_0_6.md): **Unmuffled procedure-NA warnings in two tests, and a fixture that is an exact perfect predictor.**
+- **TODO:** [v1.0.6-TODO-145](release_v1_0_6.md#todo-145): **Unmuffled procedure-NA warnings in two tests, and a fixture that is an exact perfect predictor.**
 - **Question:** Item (2): `inference_migration_complete_design()` adds noise collinear with x, so y is exactly linear in w, x, z and every caller with covariates hits `edi_perfect_predictor_warning`; `edi_tuning_synthetic_experiment()` has no noise for proportion / continuous responses. Make the noise non-collinear at the source (may move goldens and the benchmark tuner's inputs)?
 - **Options on the table:** (a) add a little (non-collinear) noise to both fixtures, at the cost of moving goldens and the tuner's inputs; (b) leave the fixtures as they are.
 - **Ruling:** (a) add a little noise to both fixtures, 2026-11-19, owner
@@ -1189,7 +1189,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-203"></a>
 ### DECISION-v1.0.6-TODO-203: Ordered probit on a one-level response: NA (like cauchit / cloglog), or the old estimate 0?
 
-- **TODO:** [v1.0.6-TODO-203](release_v1_0_6.md): **The three fixed-link ordinal kernels (cauchit, cloglog, probit) disagree on edge cases.**
+- **TODO:** [v1.0.6-TODO-144](release_v1_0_6.md#todo-144): **The three fixed-link ordinal kernels (cauchit, cloglog, probit) disagree on edge cases.**
 - **Question:** After unifying the kernels, `InferenceOrdinalOrderedProbitRegr` on a one-level response gives NA instead of estimate 0 (a threshold-free fit with `converged = TRUE`), and single-level bootstrap draws are dropped instead of entering as exact zeros, which moves probit bootstrap CIs / p-values on such data. Confirm?
 - **Options on the table:** (a) NA, as cauchit / cloglog already did (user-visible change for probit); (b) keep the old zeros.
 - **Ruling:** (a) confirmed: probit on a one-level response returns NA, 2026-11-20, owner
@@ -1199,7 +1199,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-201"></a>
 ### DECISION-v1.0.6-TODO-201: Should `InferenceOrdinalPropOddsRegr` support Fisher information like its probit sibling?
 
-- **TODO:** [v1.0.6-TODO-201](release_v1_0_6.md): **`InferenceOrdinalPropOddsRegr` lacks `supports_fisher_information()`, unlike its probit sibling.**
+- **TODO:** [v1.0.6-TODO-142](release_v1_0_6.md#todo-142): **`InferenceOrdinalPropOddsRegr` lacks `supports_fisher_information()`, unlike its probit sibling.**
 - **Question:** Adding `supports_fisher_information()` changes the testing types offered and the information source PropOdds uses (results change), so it was left out of the bit-identical refactor. Should PropOdds support it (and check cauchit / cloglog for the same gap)?
 - **Options on the table:** (a) add it (and check cauchit / cloglog); (b) leave PropOdds without it.
 - **Ruling:** (a) add `supports_fisher_information()` to PropOdds and check cauchit / cloglog for the same gap; verify the Fisher information is mathematically correct for each link, 2026-11-19, owner
@@ -1209,11 +1209,11 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-195"></a>
 ### DECISION-v1.0.6-TODO-195: Drop aliased count-part covariates on the positive rows, so more small-n zero-augmented fits stay estimable?
 
-- **TODO:** [v1.0.6-TODO-195](release_v1_0_6.md): **Leftovers from the zero-augmented identification fix.**
+- **TODO:** [v1.0.6-TODO-140](release_v1_0_6.md#todo-140): **Leftovers from the zero-augmented identification fix.**
 - **Question:** item (2), a change that alters results: drop aliased count-part covariates on the positive rows (as
   `glm` would), so more small-n datasets stay estimable instead of NA?
 - **Options on the table:** (a) drop the aliased count-part covariates on the positive rows, as `glm` does; or keep
-  returning NA (`zero_augmented_count_treatment_unidentified`) as the v1.0.6-TODO-186 guard does.
+  returning NA (`zero_augmented_count_treatment_unidentified`) as the v1.0.6-TODO-132 guard does.
 - **Ruling:** (a), 2026-11-19, owner. The docs must say it is the same as what `glm` does and link `glm`'s
   documentation.
 - **Why:** no reason recorded beyond the item's own: more small-n datasets stay estimable instead of NA, matching
@@ -1223,7 +1223,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-191"></a>
 ### DECISION-v1.0.6-TODO-191: Risk-ratio subsampling / m-out-of-n p-values that almost never reject: which fix?
 
-- **TODO:** [v1.0.6-TODO-191](release_v1_0_6.md): **Risk-ratio subsampling and m-out-of-n p-values almost never
+- **TODO:** [v1.0.6-TODO-137](release_v1_0_6.md#todo-137): **Risk-ratio subsampling and m-out-of-n p-values almost never
   reject.**
 - **Question:** how to fix the near-zero null size of the g-computation RR subsampling and m-out-of-n tests.
 - **Options on the table:** larger default b / m for ratio estimands; drop degenerate subsamples; a studentized
@@ -1236,17 +1236,17 @@ Last updated 2026-11-25.
   do not use a studentized pivot or just raise the default b; document that the ordinary bootstrap is the better
   choice for RR.
 - **Ruling:** drop degenerate subsamples (an arm with zero or all events, or a separated / non-converged fit) and
-  return NA with a recorded reason when their fraction exceeds 5% (same threshold as v1.0.6-TODO-12), 2026-11-19,
+  return NA with a recorded reason when their fraction exceeds 5% (same threshold as v1.0.6-TODO-2), 2026-11-19,
   owner. Firth inside subsamples is deferred: noted as `firth_penalties_report.md TODO-6` (v1.1.0).
 - **Why:** No reason recorded beyond the evidence above.
 - **Rejected:** a studentized pivot; raising the default b; Firth subsample fits for now.
 - **Later:** the owner reopened the TODO the same day ("keep this TODO open"; the code stays as shipped, documented as
-  provisional), and the default cap was changed to 0.8 by the owner on 2026-11-20 under v1.0.6-TODO-230 (1).
+  provisional), and the default cap was changed to 0.8 by the owner on 2026-11-20 under v1.0.6-TODO-164 (1).
 
 <a id="DECISION-v1.0.6-TODO-187"></a>
 ### DECISION-v1.0.6-TODO-187: `DesignSeqOneByOneiBCRD` with `n = NULL`: fix the redraw, or disallow `n = NULL`?
 
-- **TODO:** [v1.0.6-TODO-187](release_v1_0_6.md): **`DesignSeqOneByOneiBCRD` with `n = NULL` has the wrong
+- **TODO:** [v1.0.6-TODO-133](release_v1_0_6.md#todo-133): **`DesignSeqOneByOneiBCRD` with `n = NULL` has the wrong
   randomization distribution.**
 - **Question:** with no planned `n` the design falls back to a Bernoulli coin but redraws with forced balance at `t`.
 - **Options on the table:** (a) when `private$n` is NULL, redraw with `generate_permutations_bernoulli_cpp(t, r,
@@ -1259,13 +1259,13 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-177"></a>
 ### DECISION-v1.0.6-TODO-177: Should sequential designs carry their own randomness, seeded per subject?
 
-- **TODO:** [v1.0.6-TODO-177](release_v1_0_6.md): **Sequential designs get their own randomness, seeded per
+- **TODO:** [v1.0.6-TODO-123](release_v1_0_6.md#todo-123): **Sequential designs get their own randomness, seeded per
   subject.**
 - **Question:** a `DesignSeqOneByOne*` design calls `set.seed(seed)` once at construction and then draws from R's
   global stream, so (a) any RNG use between construction and the assignments changes the allocation, (b) a saved
   trial does not continue exactly after `readRDS()` without the user saving `.Random.seed`, and (c) it resets the
-  session's stream. Raised as an open owner question in v1.0.6-TODO-79.
-- **Options on the table (v1.0.6-TODO-79):** fix the docs only (say this for sequential designs and show saving
+  session's stream. Raised as an open owner question in v1.0.6-TODO-41.
+- **Options on the table (v1.0.6-TODO-41):** fix the docs only (say this for sequential designs and show saving
   `.Random.seed`, done there), or make sequential designs carry their own RNG state (a larger change; would make
   save/restore exact without user code).
 - **Ruling:** own randomness, 2026-11-18, owner (the TODO was added as an owner decision): when `seed` is given,
@@ -1279,7 +1279,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-175"></a>
 ### DECISION-v1.0.6-TODO-175: Hold theta-free RR intervals to the log-scale width cap of 5, or the +/-10 bound only?
 
-- **TODO:** [v1.0.6-TODO-175](release_v1_0_6.md): **Remaining raw-ratio-scale guards for the g-computation risk
+- **TODO:** [v1.0.6-TODO-121](release_v1_0_6.md#todo-121): **Remaining raw-ratio-scale guards for the g-computation risk
   ratio.**
 - **Question:** theta-free RR intervals (subsampling / m-out-of-n) are also held to the log-scale width cap of 5
   (bounds more than ~148x apart are rejected, as for log-OR subsampling).
@@ -1291,7 +1291,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-168"></a>
 ### DECISION-v1.0.6-TODO-168: KK g-comp RR studentized Bayesian-bootstrap undercoverage: new interval, documentation, or both?
 
-- **TODO:** [v1.0.6-TODO-168](release_v1_0_6.md): **Investigate the low coverage of the
+- **TODO:** [v1.0.6-TODO-116](release_v1_0_6.md#todo-116): **Investigate the low coverage of the
   `InferenceIncidKKGCompRiskRatio` studentized Bayesian-bootstrap interval.**
 - **Question:** the raw studentized interval covers about 0.89 at n = 60 (a small-sample property of the Bayesian
   bootstrap-t, not KK-specific, not the truth).
@@ -1307,7 +1307,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-160"></a>
 ### DECISION-v1.0.6-TODO-160: Tighten the bootstrap extreme-interval check for log-scale and ratio estimands?
 
-- **TODO:** [v1.0.6-TODO-160](release_v1_0_6.md): **Gaps left in the bootstrap extreme-interval check.**
+- **TODO:** [v1.0.6-TODO-109](release_v1_0_6.md#todo-109): **Gaps left in the bootstrap extreme-interval check.**
 - **Question:** (1) for log-scale estimands with a large outcome SD the outcome-SD cap (~100 log units) never binds,
   so degenerate Poisson/NegBin intervals are not caught; tightening it changes intervals accepted today. (2) The raw
   risk ratio of `InferenceIncidGCompRiskRatio` / `InferenceIncidKKGCompRiskRatio` keeps the outcome-SD cap: should a
@@ -1322,7 +1322,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-158a"></a>
 ### DECISION-v1.0.6-TODO-158a: Perfect predictors among the inference covariates: drop them with a warning, or fit as specified?
 
-- **TODO:** [v1.0.6-TODO-158](release_v1_0_6.md): **Detect perfect predictors in the inference covariates, drop
+- **TODO:** [v1.0.6-TODO-108](release_v1_0_6.md#todo-108): **Detect perfect predictors in the inference covariates, drop
   them and warn.**
 - **Question:** how to handle covariates that predict the response exactly (leakage).
 - **Options on the table:** drop the columns in the constructor with a warning; fit as specified and mark the SE
@@ -1342,7 +1342,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-156"></a>
 ### DECISION-v1.0.6-TODO-156: Should risk-diff's `generate_mod()` set a class-specific nonestimable reason?
 
-- **TODO:** [v1.0.6-TODO-156](release_v1_0_6.md): **`inference_incidence_risk_diff.R` (~L217-273) hard-codes the
+- **TODO:** [v1.0.6-TODO-107](release_v1_0_6.md#todo-107): **`inference_incidence_risk_diff.R` (~L217-273) hard-codes the
   nonestimable reason `"model_fit_unavailable"`.**
 - **Question:** the fix uses `generate_mod_nonestimable_reason %||% ...`, but no output changes today because
   risk-diff's `generate_mod()` never sets a reason; should it?
@@ -1356,8 +1356,8 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-152"></a>
 ### DECISION-v1.0.6-TODO-152: ZIP fits under zero-part separation: LBFGS candidate, separation detection, or both?
 
-- **TODO:** [v1.0.6-TODO-152](release_v1_0_6.md): **ZIP fits under separation in the zero-inflation part.** (Split
-  out of v1.0.6-TODO-142 item (3), where it was first left for an owner decision: LBFGS candidate from pscl's start,
+- **TODO:** [v1.0.6-TODO-103](release_v1_0_6.md#todo-103): **ZIP fits under separation in the zero-inflation part.** (Split
+  out of v1.0.7-TODO-47 item (3), where it was first left for an owner decision: LBFGS candidate from pscl's start,
   separation detection, or leave to v1.1.0's multistart work.)
 - **Question:** the zero-part coefficients diverge (supremum at infinity); warm and cold starts stop at different
   points.
@@ -1367,7 +1367,7 @@ Last updated 2026-11-25.
   2026-11-16 rule that replicates chain warm starts only when `likelihood_concave` is TRUE.
 - **Ruling:** (c) both, 2026-11-19, owner: an LBFGS candidate from pscl's start keeping the lower nll, and detect
   separation in the zero part and warn / mark the zero-part estimate nonestimable. Done together with
-  v1.0.6-TODO-30 (same flat zero-inflation region); the TODO's header records "owner decision: keep for v1.0.6"
+  v1.0.6-TODO-6 (same flat zero-inflation region); the TODO's header records "owner decision: keep for v1.0.6"
   (2026-11-18).
 - **Why:** No reason recorded.
 - **Rejected:** (a) or (b) alone; deferring to v1.1.0.
@@ -1375,7 +1375,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-149"></a>
 ### DECISION-v1.0.6-TODO-149: `InferenceOrdinalGCompMeanDiff$get_standard_error()`: keep it private, or drop `Wald`?
 
-- **TODO:** [v1.0.6-TODO-149](release_v1_0_6.md): **Remaining G-computation studentized gaps.**
+- **TODO:** [v1.0.6-TODO-100](release_v1_0_6.md#todo-100): **Remaining G-computation studentized gaps.**
 - **Question:** the ordinal class's `get_standard_error()` "error" is not a bug: it is private there (the class
   composes `Wald`).
 - **Options on the table:** keep it private (agent's recommendation); drop `Wald` to match the sibling classes.
@@ -1387,7 +1387,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-147"></a>
 ### DECISION-v1.0.6-TODO-147: Should `InferenceIncidExactZhang`'s estimate use all subjects on KK designs, as documented?
 
-- **TODO:** [v1.0.6-TODO-147](release_v1_0_6.md): **`InferenceIncidExactZhang`'s point estimate ignores the matched
+- **TODO:** [v1.0.6-TODO-99](release_v1_0_6.md#todo-99): **`InferenceIncidExactZhang`'s point estimate ignores the matched
   pairs on KK designs.**
 - **Question:** the code counts the reservoir only (estimate always 0 when every subject is matched), while the docs
   say the pooled 2x2 table across all subjects.
@@ -1399,7 +1399,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-143"></a>
 ### DECISION-v1.0.6-TODO-143: Allow the plain randomization test / CI at nonzero delta under general censoring?
 
-- **TODO:** [v1.0.6-TODO-143](release_v1_0_6.md): **In the slow randomization-bootstrap path with general censoring
+- **TODO:** [v1.0.6-TODO-95](release_v1_0_6.md#todo-95): **In the slow randomization-bootstrap path with general censoring
   and `delta != 0`, `y_L`/`y_R` may not be shifted along with `y_sim`.**
 - **Question:** the plain rand test / CI refused nonzero delta under general censoring; with the bounds shift now in
   place for the bootstrap randomization test, allow the plain ones too, with the same shift?
@@ -1411,7 +1411,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-138"></a>
 ### DECISION-v1.0.6-TODO-138: When separation forces a hardened refit that drops a covariate, warn?
 
-- **TODO:** [v1.0.6-TODO-138](release_v1_0_6.md): **When separation forces a hardened refit,
+- **TODO:** [v1.0.6-TODO-92](release_v1_0_6.md#todo-92): **When separation forces a hardened refit,
   `InferenceIncidProbitRegr` silently drops the separated covariate; it must warn.**
 - **Question:** the hardened QR step drops the covariate and reports the reduced fit with no message.
 - **Options on the table:** warn; stay silent.
@@ -1424,7 +1424,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-135"></a>
 ### DECISION-v1.0.6-TODO-135: Gate BCa below 5 deletion units too, like the jackknife?
 
-- **TODO:** [v1.0.6-TODO-135](release_v1_0_6.md): **A jackknife with very few deletion units returns a finite but
+- **TODO:** [v1.0.6-TODO-89](release_v1_0_6.md#todo-89): **A jackknife with very few deletion units returns a finite but
   meaningless SE with no warning.**
 - **Question:** the jackknife summary is NA below `EDI_JACKKNIFE_MIN_DELETION_UNITS = 5`; BCa was deliberately not
   gated (it uses replicates directly; with 2 units the acceleration is 0, so bias-corrected percentile), "owner to
@@ -1437,7 +1437,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-133"></a>
 ### DECISION-v1.0.6-TODO-133: Warn when an empty reservoir arm drops the KK Strat Cox IVWC reservoir half?
 
-- **TODO:** [v1.0.6-TODO-133](release_v1_0_6.md): **`InferenceSurvivalKKStratCoxPHIVWC`'s reservoir treatment-only
+- **TODO:** [v1.0.6-TODO-87](release_v1_0_6.md#todo-87): **`InferenceSurvivalKKStratCoxPHIVWC`'s reservoir treatment-only
   fallback is never checked.**
 - **Question:** an empty arm dropped the reservoir silently (routine for small KK reservoirs, same as the sibling IVWC
   classes); to warn, change `nRT > 0L && nRC > 0L` to `nRT + nRC > 0L`.
@@ -1449,7 +1449,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-132"></a>
 ### DECISION-v1.0.6-TODO-132: KK Strat Cox IVWC `estimate_only = TRUE` is a different estimator: which way to align?
 
-- **TODO:** [v1.0.6-TODO-132](release_v1_0_6.md): **`InferenceSurvivalKKStratCoxPHIVWC`'s `estimate_only = TRUE` is a
+- **TODO:** [v1.0.6-TODO-86](release_v1_0_6.md#todo-86): **`InferenceSurvivalKKStratCoxPHIVWC`'s `estimate_only = TRUE` is a
   different estimator.**
 - **Question:** `estimate_only` weights the halves by sample size, the full call by inverse variance; resampling
   replicates use `estimate_only`.
@@ -1472,7 +1472,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-115"></a>
 ### DECISION-v1.0.6-TODO-115: RMST randomization test: fix the horizon across draws, or require a prespecified `tau`?
 
-- **TODO:** [v1.0.6-TODO-115](release_v1_0_6.md): **RMST on interval-censored `DesignFixedBlockedCluster` data with a
+- **TODO:** [v1.0.6-TODO-69](release_v1_0_6.md#todo-69): **RMST on interval-censored `DesignFixedBlockedCluster` data with a
   strong effect: randomization p-value >= 0.05 and asymptotic CI NA.**
 - **Question:** the default tau is recomputed in every randomization draw (observed 39, null draws 162-180), so the
   test has power below alpha at large effects (0.027 vs 0.927 with a prespecified tau = 30; null 0.047 both).
@@ -1485,7 +1485,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-101"></a>
 ### DECISION-v1.0.6-TODO-101: Python input validation: adopt a dependency, or hand-written checks?
 
-- **TODO:** [v1.0.6-TODO-101](release_v1_0_6.md): **Input-validation gate for the Python kernels.**
+- **TODO:** [v1.0.6-TODO-59](release_v1_0_6.md#todo-59): **Input-validation gate for the Python kernels.**
 - **Question:** how to validate inputs before the pybind11 kernels.
 - **Options on the table:** a third-party validator (`beartype`, `typeguard`, `jaxtyping`, `pydantic`,
   `icontract` / `deal`); or a private numpy-only module.
@@ -1499,7 +1499,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-99a"></a>
 ### DECISION-v1.0.6-TODO-99a: Strict article render over the ~10 min target: accept, or add a CI-size switch?
 
-- **TODO:** [v1.0.6-TODO-99](release_v1_0_6.md): **Articles as a CI gate.**
+- **TODO:** [v1.0.6-TODO-57](release_v1_0_6.md#todo-57): **Articles as a CI gate.**
 - **Question:** the full strict render takes 12 m 20 s on 2 workers because three articles take 4-7 min each
   (`matching-on-the-fly` 398 s, `planning-a-study` 305 s, `learn-statistics-through-edi` 240 s).
 - **Options on the table:** accept the runtime; a CI-size switch for their simulations; run them on push to main only.
@@ -1510,7 +1510,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-99b"></a>
 ### DECISION-v1.0.6-TODO-99b: The article chunk that shows a warning on purpose: hide it, or opt it out of the gate?
 
-- **TODO:** [v1.0.6-TODO-99](release_v1_0_6.md): **Articles as a CI gate.**
+- **TODO:** [v1.0.6-TODO-57](release_v1_0_6.md#todo-57): **Articles as a CI gate.**
 - **Question:** `cluster-and-factorial-experiments.Rmd` chunk `cluster-warning` fails the gate because it shows EDI's
   cluster-SE warning on purpose.
 - **Options on the table:** `warning = FALSE` and show the text another way; or a per-chunk opt-out in the gate.
@@ -1521,7 +1521,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-98a"></a>
 ### DECISION-v1.0.6-TODO-98a: What triggers the docs-only scenario agents?
 
-- **TODO:** [v1.0.6-TODO-98](release_v1_0_6.md): **Scenario tests written from the docs alone, per feature area.**
+- **TODO:** [v1.0.6-TODO-56](release_v1_0_6.md#todo-56): **Scenario tests written from the docs alone, per feature area.**
 - **Question:** the trigger for a docs-only agent run when a feature area lands or changes.
 - **Options on the table:** a release-gate checklist item; a step in the new-feature plan template.
 - **Ruling:** neither: run every feature area as a weekly CI job (the `ANTHROPIC_API_KEY` secret is set, as for the
@@ -1534,7 +1534,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-98b"></a>
 ### DECISION-v1.0.6-TODO-98b: Docs-scenario job settings: caps, effort and re-runs of unchanged areas
 
-- **TODO:** [v1.0.6-TODO-98](release_v1_0_6.md): **Scenario tests written from the docs alone, per feature area.**
+- **TODO:** [v1.0.6-TODO-56](release_v1_0_6.md#todo-56): **Scenario tests written from the docs alone, per feature area.**
 - **Question:** the 8-area / $15 caps, the effort level, and a periodic re-run of unchanged areas (agent's estimate:
   $5-12 per area, ~4 h for an 8-area run).
 - **Options on the table:** as built (8 areas per run, $15 cap, no re-run of unchanged areas), or other values.
@@ -1546,7 +1546,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-87"></a>
 ### DECISION-v1.0.6-TODO-87: Keep the removal of the always-NaN keys from the Python kernel outputs?
 
-- **TODO:** [v1.0.6-TODO-87](release_v1_0_6.md): **Variance outputs are missing from the Python kernels.**
+- **TODO:** [v1.0.6-TODO-48](release_v1_0_6.md#todo-48): **Variance outputs are missing from the Python kernels.**
 - **Question:** the fix removed always-NaN keys the C++ never set (logged under Changed in `python/CHANGELOG.md`: may
   break code that checks they exist).
 - **Options on the table:** (a) keep the removal; restoring the keys is the implied alternative (not recorded).
@@ -1558,7 +1558,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-82"></a>
 ### DECISION-v1.0.6-TODO-82: `na.rm` in `compute_rand_two_sided_pval()`: remove it, or keep it as "drop non-finite draws"?
 
-- **TODO:** [v1.0.6-TODO-82](release_v1_0_6.md): **`na.rm` in `compute_rand_two_sided_pval()` does nothing, and the
+- **TODO:** [v1.0.6-TODO-43](release_v1_0_6.md#todo-43): **`na.rm` in `compute_rand_two_sided_pval()` does nothing, and the
   finite-draw minimum is misdocumented.**
 - **Question:** the argument is asserted but never used; non-finite draws are always dropped.
 - **Options on the table:** honour `na.rm = FALSE` literally (return NA if any draw is non-finite); remove the
@@ -1572,7 +1572,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-76"></a>
 ### DECISION-v1.0.6-TODO-76: KK designs with `n = NULL`: what does the burn-in mean, or require `n`?
 
-- **TODO:** [v1.0.6-TODO-76](release_v1_0_6.md): **KK14, KK21 and KK21stepwise crash on the first assignment when
+- **TODO:** [v1.0.6-TODO-38](release_v1_0_6.md#todo-38): **KK14, KK21 and KK21stepwise crash on the first assignment when
   `n = NULL`.**
 - **Question:** what burn-in means without `n`.
 - **Options on the table:** an absolute `t_0`; burn-in until the covariate model matrix exists (as implemented); or
@@ -1585,13 +1585,13 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-67"></a>
 ### DECISION-v1.0.6-TODO-67: 606 open results-freshness findings: stable unit-keyed ids then cite, one audit-wide citation, or leave listed until the regeneration?
 
-- **TODO:** [v1.0.6-TODO-67](release_v1_0_6.md): **Regenerate the stale result rows.**
+- **TODO:** [v1.0.6-TODO-31](release_v1_0_6.md#todo-31): **Regenerate the stale result rows.**
 - **Context:** the weekly results-freshness audit (run 45033002717 at `9186e6a5`, 2026-11-22; issue #23) reports 606
   row groups generated before their class's code last changed: `comprehensive_tests_mse.csv` 103,
   `comprehensive_tests_size.csv` 103, `comprehensive_tests_coverage.csv` 102,
   `comprehensive_coverage_attempt_summary.csv` 102, `comprehensive_tests_power.csv` 101, and the calibration summary
   of campaign 2026-11-15-e36c7710 (`calibration-results` branch) 95. They are real (the rows predate the code), and
-  v1.0.6-TODO-67 already plans the regeneration, but the open-decisions list (issue #56) counts them as uncovered:
+  v1.0.6-TODO-31 already plans the regeneration, but the open-decisions list (issue #56) counts them as uncovered:
   a finding leaves the list only when a run stops reporting it, an open release TODO cites its exact
   `results-freshness-m<hex>` id, or DISMISSED_DECISIONS.md lists it. The id is a hash of the unit
   (`<file>::<class>::<family>`) and a key built from the finding text with digits masked
@@ -1600,14 +1600,14 @@ Last updated 2026-11-25.
 - **Options:**
   - (a) Key results-freshness findings on the unit alone (pass a fixed `key`, e.g. `stale-class`, from
     `.github/scripts/audits/results_freshness.py`, which `track_mechanical()` already supports), then cite the 606
-    ids once in v1.0.6-TODO-67. Ids stay stable until the rows are regenerated; one long citation list in the TODO.
+    ids once in v1.0.6-TODO-31. Ids stay stable until the rows are regenerated; one long citation list in the TODO.
   - (b) Let `audit_decisions.py` (and `cited_decisions()`) accept an audit-wide citation, e.g. an open TODO containing
     `results-freshness-m*`, so every open finding of that audit counts as covered. Short, but it would also hide new
     stale groups that appear later, until the TODO is ticked.
   - (c) Change nothing: leave the 606 listed until the next comprehensive and calibration regeneration clears them,
     and treat results-freshness as known in the triage sweeps.
 - **Evidence:** counts above from `results-freshness/mechanical_open.json` on `audit-notes` (2026-11-22); every
-  finding gives the regenerate command for its class. The calibration campaign is still running (v1.0.6-TODO-409),
+  finding gives the regenerate command for its class. The calibration campaign is still running (v1.0.6-TODO-227),
   so its 95 groups clear only after it finishes.
 - **Raised:** 2026-11-23, by the audit triage sweep (coordinator, owner request).
 - **Ruling:** (c) leave the findings listed; the full 1.0.5 comprehensive regeneration clears them. 2026-11-23, owner
@@ -1617,8 +1617,8 @@ Last updated 2026-11-25.
   `comprehensive_tests_*.csv` tables and `comprehensive_coverage_attempt_summary.csv`, so citing ids that would vanish
   with it is moot. The 95 calibration-summary groups stay open at the 1.0.5 tag: calibration does not gate a patch
   release ([DECISION-v1.0.6-TODO-409c](#DECISION-v1.0.6-TODO-409c)); they clear when campaign 2026-11-15-e36c7710 (or
-  a later one) finishes and is analysed (v1.0.6-TODO-409).
-- **Rejected:** (a) unit-keyed stable ids and one citation list in v1.0.6-TODO-67; (b) an audit-wide
+  a later one) finishes and is analysed (v1.0.6-TODO-227).
+- **Rejected:** (a) unit-keyed stable ids and one citation list in v1.0.6-TODO-31; (b) an audit-wide
   `results-freshness-m*` citation.
 - **Revisit if:** stale groups persist after the 1.0.5 regeneration's rows are committed and the weekly audit has run
   on that commit, or the full regeneration is dropped for slices.
@@ -1626,7 +1626,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-61"></a>
 ### DECISION-v1.0.6-TODO-61: Should randomization replicates chain warm starts?
 
-- **TODO:** [v1.0.6-TODO-61](release_v1_0_6.md): **Randomization distribution of warm-started fits depends on the
+- **TODO:** [v1.0.6-TODO-25](release_v1_0_6.md#todo-25): **Randomization distribution of warm-started fits depends on the
   core count.**
 - **Question:** the reused-worker randomization path chained warm starts within each core's chunk, so results
   depended on the core count.
@@ -1641,7 +1641,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-60"></a>
 ### DECISION-v1.0.6-TODO-60: KK21 proportion speedup: which clamp for 0/1 responses?
 
-- **TODO:** [v1.0.6-TODO-60](release_v1_0_6.md): **KK21 proportion speedup loses all weights when a response is 0 or
+- **TODO:** [v1.0.6-TODO-24](release_v1_0_6.md#todo-24): **KK21 proportion speedup loses all weights when a response is 0 or
   1.**
 - **Question (open design question, both KK21 classes):** the eps clamp makes a 0/1 response a +/-36 logit outlier for
   the OLS t-statistics.
@@ -1655,7 +1655,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-48"></a>
 ### DECISION-v1.0.6-TODO-48: KK CLMM quadrature: raise the fixed Gauss-Hermite rule from 20 to 60 nodes, wait for adaptive quadrature, or keep 20?
 
-- **TODO:** [v1.0.6-TODO-48](release_v1_0_6.md): **KK ordinal CLMM cloglog link disagrees with `ordinal::clmm`.**
+- **TODO:** [v1.0.6-TODO-13](release_v1_0_6.md#todo-13): **KK ordinal CLMM cloglog link disagrees with `ordinal::clmm`.**
 - **Context (2026-11-24, agent):** EDI is the side that is off. On the two disagreeing cells (cloglog, n = 60,
   sigma_b = 1.2, seeds 2 and 3 of `test-ordinal-kk-clmm-matches-clmm-all-links-reference.R`) both fits are stationary
   for their own objective (EDI gradient norm 7e-6 / 2e-6, clmm max gradient 1e-6 / 2e-6), but EDI maximizes the
@@ -1675,7 +1675,7 @@ Last updated 2026-11-25.
   - (c) keep 20 nodes and document the bias at large sigma.
 - **Recommendation (agent, 2026-11-24):** (a): it is R-only, follows the Poisson GLMM precedent, and fixes the
   measured gap; (b) is the eventual fix.
-- **Raised:** 2026-11-24, by the agent that investigated v1.0.6-TODO-48 (owner request "which side is wrong").
+- **Raised:** 2026-11-24, by the agent that investigated v1.0.6-TODO-13 (owner request "which side is wrong").
 - **Ruling:** (a), owner 2026-11-24: n_gh = 60 for KK CLMM. Implemented 2026-11-24 (R-only): `KK_CLMM_N_GH = 60L`
   is passed by every KK CLMM `fast_ordinal_clmm_cpp()` call (observed fit, randomization / bootstrap refits via
   `compute_ri_estimate_rcpp()`, the Newton retry and SE refit that copy those arguments, and the score-test null fit)
@@ -1687,7 +1687,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-12"></a>
 ### DECISION-v1.0.6-TODO-12: Bootstrap p-values with `na.rm = TRUE`: minimum valid-replicate fraction, and user-settable?
 
-- **TODO:** [v1.0.6-TODO-12](release_v1_0_6.md): **Fractional-validity guard for bootstrap p-values with `na.rm`.**
+- **TODO:** [v1.0.6-TODO-2](release_v1_0_6.md#todo-2): **Fractional-validity guard for bootstrap p-values with `na.rm`.**
 - **Question:** decide the threshold and whether it is user-settable.
 - **Options on the table:** a threshold value; fixed or user-settable.
 - **Ruling:** default minimum 95% valid replicates, user-settable, 2026-11-19, owner.
@@ -1697,7 +1697,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-4a"></a>
 ### DECISION-v1.0.6-TODO-4a: SPBR jackknife: is a trailing partial permuted block its own unit or merged into the previous one?
 
-- **TODO:** [v1.0.6-TODO-4](release_v1_0_6.md): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
+- **TODO:** [v1.0.6-TODO-1](release_v1_0_6.md#todo-1): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
 - **Question:** with the permuted block as the jackknife unit on `DesignSeqOneByOneSPBR` (fix (b), owner-chosen at
   v1.0.5-TODO-162), what to do with partial trailing blocks.
 - **Options on the table:** its own unit; merge into the previous block.
@@ -1708,7 +1708,7 @@ Last updated 2026-11-25.
 <a id="DECISION-v1.0.6-TODO-4b"></a>
 ### DECISION-v1.0.6-TODO-4b: FixedBlocking jackknife: delete-one within strata, or the t(G - 1) / minimum-group rule?
 
-- **TODO:** [v1.0.6-TODO-4](release_v1_0_6.md): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
+- **TODO:** [v1.0.6-TODO-1](release_v1_0_6.md#todo-1): **Block jackknife on SPBR / FixedBlocking leaves out whole strata.**
 - **Question:** FixedBlocking has no permuted blocks.
 - **Options on the table:** (a) delete-one within strata; the t(G - 1) / minimum-group rule from the rejected fix (a)
   of v1.0.5-TODO-162.
@@ -1718,7 +1718,7 @@ Last updated 2026-11-25.
 - **Why:** No reason recorded.
 - **Rejected:** the t(G - 1) / minimum-group rule.
 - **Note:** the implementation deviated from the literal (n_h - 1)/n_h weighting (reweighting-equivalent replicates,
-  "owner to confirm" in the TODO); the variance form was kept by the owner under v1.0.6-TODO-231 (1), 2026-11-20.
+  "owner to confirm" in the TODO); the variance form was kept by the owner under v1.0.6-TODO-165 (1), 2026-11-20.
 
 ## v1.0.5
 
@@ -1906,7 +1906,7 @@ Last updated 2026-11-25.
 - **TODO:** [v1.0.5-TODO-162](release_v1_0_5.md): **RMST jackknife-Wald undercovers on blocked designs at beta 0.**
 - **Question:** the "block" unit on blocking designs is the stratum (G = 2-4), with z instead of t(G-1): coverage SPBR 0.838, FixedBlocking 0.860 suite-wide. Agent recommendation: fix, do not baseline; owner to choose fix shape and minimum group count.
 - **Options on the table:** (a) `df = G - 1` for block/cluster units and refuse when G < 3 (threshold: owner); (b) use the SPBR permuted block (~37 units) as the jackknife unit (changes `get_block_ids()` semantics). Either requires regenerating the SPBR/FixedBlocking jackknife rows and the baseline (G4).
-- **Ruling:** deferred to v1.1.0 with fix (b), the SPBR permuted block as the jackknife unit (`release_v1_1_0.md` TODO-162, later v1.0.6-TODO-4); fix (a) not applied; 1.0.5 ships the current behavior, listed under NEWS Known limitations, with the SPBR/FixedBlocking jackknife-Wald rows accepted in the baseline citing this TODO. 2026-10-27, owner.
+- **Ruling:** deferred to v1.1.0 with fix (b), the SPBR permuted block as the jackknife unit (`release_v1_1_0.md` TODO-162, later v1.0.6-TODO-1); fix (a) not applied; 1.0.5 ships the current behavior, listed under NEWS Known limitations, with the SPBR/FixedBlocking jackknife-Wald rows accepted in the baseline citing this TODO. 2026-10-27, owner.
 - **Why:** No reason recorded.
 - **Rejected:** fix (a) (t(G-1) df, minimum 3 groups); fixing in 1.0.5.
 
@@ -2567,7 +2567,7 @@ Last updated 2026-11-25.
 - **Question:** R3 ran: N3/N6/N7 pass, N4 passes on its 2,000-rep rerun, N5 fails marginally, C2 fails at 13.4-14.2% (a
   high p/n limitation). Open: the owner decision on C2/N5.
 - **Options on the table:** option A, accept C2 and N5 as a documented limitation (move the fix on); others not recorded.
-- **Ruling:** option A: C2 and N5 are accepted as a documented limitation; the fix moves to `release_v1_0_6.md` TODO-18.
+- **Ruling:** option A: C2 and N5 are accepted as a documented limitation; the fix moves to `release_v1_0_7.md` TODO-15.
   2026-11-12, owner.
 - **Why:** TODO-18's question (does smoothing break calibration?) is answered no: in every cell smoothed and percentile
   reject at the same rate. C2/N5 fail equally for both variants, from the unstudentized bootstrap at high p / n
@@ -2858,7 +2858,7 @@ Last updated 2026-11-25.
   ZOIB) on?
 - **Options on the table:** (a) accept TODO-6 as met (axis completes, decisive verdict) and move the fixture; (b) not.
 - **Ruling:** (a): "completed, default kept" meets plan TODO-6 (ticked in `reusable_bootstrap.md`); TODO-1 CLOSED. The
-  realistic proportion fixture moves to `release_v1_0_6.md` TODO-11 (first filed as `release_v1_1_0.md` TODO-192).
+  realistic proportion fixture moves to `release_v1_0_7.md` TODO-9 (first filed as `release_v1_1_0.md` TODO-192).
   2026-11-10, owner.
 - **Why:** the direct A/B (2026-11-10, 5 interleaved reps, quiet host) showed the shipped warm-start setting wins
   decisively: median time ON vs OFF n = 50 5.12 vs 5.17 s (tie), n = 200 0.76 vs 10.6 s, n = 1000 13.0 vs 248 s, so "no
@@ -2882,7 +2882,7 @@ Rulings recorded as sections of the repo's `CLAUDE.md` (pointers only; the text 
 - 2026-10-25 (owner): `.trail/` is never committed in this public repo (`CLAUDE.md`, "Trail learnings stay local").
 - 2026-11-07 (owner): test file names never carry a TODO number (`CLAUDE.md`, "Test file names never carry a TODO
   number").
-- TODOs are always cited with their release, `v1.0.6-TODO-30` (`CLAUDE.md`, "Always cite a TODO with its release").
+- TODOs are always cited with their release, `v1.0.6-TODO-6` (`CLAUDE.md`, "Always cite a TODO with its release").
 - 2026-11-19 (owner): ignore the four stuck "queued" Actions runs of 2026-11-11 (`CLAUDE.md`, "Ignore the four stuck
   "queued" Actions runs from 2026-11-11").
 - 2026-11-19 (owner): one source of truth for the version, `R/EDI/DESCRIPTION` + `scripts/sync_version.py`

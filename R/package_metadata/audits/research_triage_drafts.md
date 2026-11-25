@@ -8,13 +8,13 @@ reject it. The finding id links to its full text in `research_findings/2026-11-1
 
 ## v1.0.6 (3 drafts)
 
-### KK CLMM/GLMM Bayesian-bootstrap replicates: check clmm's per-observation weight semantics  `clmm-ordinal-mixed-fit#43925959437.1`  → **v1.0.6-TODO-40** (approved 2026-11-17)
+### KK CLMM/GLMM Bayesian-bootstrap replicates: check clmm's per-observation weight semantics  `clmm-ordinal-mixed-fit#43925959437.1`  → **v1.0.7-TODO-32** (approved 2026-11-17)
 Step 1 (bounded): for one KK ordinal dataset and one Bayesian-bootstrap weight draw, evaluate clmm's weighted -logLik and a direct sum_g w_g log integral (same theta, 20-node GH) and compare; also compare replicate beta_hat_T between the two objectives over 200 draws at n in {50, 200}. Done when: either the objectives agree (close as not a bug) or they differ and the owner rules on the intended weighting; if a fix is ordered, add w_g to GLMMObjective/OrdinalGLMMObjective, switch the callers, and report replicate CI coverage plus per-replicate time vs clmm.
 
-### Quantile IVWC Zhang CI: reservoir randomization p-value does not vanish as |delta| grows  `monte-carlo-test-inversion-ci#43925959437.1`  → **v1.0.6-TODO-41** (approved 2026-11-17)
+### Quantile IVWC Zhang CI: reservoir randomization p-value does not vanish as |delta| grows  `monte-carlo-test-inversion-ci#43925959437.1`  → **v1.0.7-TODO-33** (approved 2026-11-17)
 Check whether compute_rand_pval_reservoir tests H0: effect = delta. Unit test on a Bernoulli design (m = 0, all subjects in the reservoir) and on a KK fixture: evaluate p_R(delta) on a grid out to +/-20 SE and record whether it falls below alpha on both sides; then run 200 reps of the IVWC quantile rand CI at n = 100 and record coverage and the share of bounds hitting the bracket edge. Stop condition: if p_R stays above alpha on one side, fix by subtracting delta * w_obs before permuting (standard form) and re-run the coverage check; if not, close with the numbers. Only if the current form is kept, the one-shot affine breakpoint inversion (closed_form_ci_from_affine_null_draws, c_b = 1) becomes a v1.1.0 speed item. Done when: the reservoir p-value is shown valid or fixed, with coverage within MC error of 95%.
 
-### Sequential designs: draw_ws_raw overwrites the live design's w (CMH SE path)  `sequential-biased-coin-designs#43925959437.1`  → **v1.0.6-TODO-42** (approved 2026-11-17)
+### Sequential designs: draw_ws_raw overwrites the live design's w (CMH SE path)  `sequential-biased-coin-designs#43925959437.1`  → **v1.0.6-TODO-8** (approved 2026-11-17)
 _Also related to existing v1.2.0-TODO-22._
 Reproduce: build an urn (or other generic-draw_ws_raw sequential) design, run InferenceIncidCMH's SE path (inference_incidence_cmh.R:196), then compare des$get_w() and a second Inference's estimate before and after. If w changes, fix by saving/restoring private$w (and t-dependent state) in draw_ws_raw or by drawing on a duplicate. Done when: a regression test shows get_w() and downstream estimates unchanged after the CMH SE call, or the check closes with evidence that no reachable path mutates a live design.
 
@@ -182,7 +182,7 @@ Exact and more stable, but the only caller is compute_wilcox_matching_ivwc_boots
 
 ### Linearized (CV3L) jackknife from per-unit scores/information as an opt-in  `jackknife-replicates#43925959437.2`  → **v1.2.0-TODO-229** (approved 2026-11-19)
 _Revisit 2027-05-01._
-Estimator change (first-order approximation; BCa a-hat and jackknife SE move), low confidence, and it needs per-unit score and information contributions that most EDI specs do not expose (the same obstacle the catalog records for the infinitesimal jackknife, line ~1676). The 'v1.0.6-TODO-7' the finding cites is unrelated (ModifiedPoisson ~1 at large n). Revisit after the exact LS jackknife lands and if per-unit hooks are added.
+Estimator change (first-order approximation; BCa a-hat and jackknife SE move), low confidence, and it needs per-unit score and information contributions that most EDI specs do not expose (the same obstacle the catalog records for the infinitesimal jackknife, line ~1676). The 'v1.0.7-TODO-6' the finding cites is unrelated (ModifiedPoisson ~1 at large n). Revisit after the exact LS jackknife lands and if per-unit hooks are added.
 
 ### Distinct-y frequency table for the NB theta score/information sums in KK21 tstats  `kk21-covariate-weights#43925959437.1`  → **v1.2.0-TODO-230** (approved 2026-11-19)
 _Revisit 2027-05-01._

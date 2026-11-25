@@ -7,7 +7,9 @@ Every entry that excuses a gate failure must cite an open TODO. This audit reads
 from the release and plan files (with the TODO-status audit's parser, imported, not copied) and:
 
 - removes entries whose cited TODO is ticked or does not exist, from the files where an entry is one
-  CSV line and deleting it is the documented way to retire it (`REMOVABLE` below);
+  CSV line and deleting it is the documented way to retire it (`REMOVABLE` below), except that an
+  entry whose TODO was ticked by an owner ruling (a `Decided ...` pointer to a section of
+  COMPLETED_DECISIONS.md, e.g. "inherent, the rows stay") is kept and only reported;
 - reports entries whose TODO moved (a struck pointer), entries in files whose own rules say not to
   delete them (`stale_ok_row_rules.csv`: reclassify `todo:` to `commit:` instead), TODO citations
   next to the known-failure lists embedded in R test code, and entries that can be seen not to
@@ -73,13 +75,28 @@ def release_file(version):
     return "release_v{}_{}_{}.md".format(*parts[:3])
 
 
+COMPLETED_DECISIONS = "R/package_metadata/future_release_plans/COMPLETED_DECISIONS.md"
+# A TODO's pointer to its owner ruling (CLAUDE.md, "Owner decisions"):
+#   `  - Decided <date> (<who>): <option>; see [DECISION-v1.1.0-TODO-216](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-216).`
+DECIDED_POINTER = re.compile(r"^\s*-\s*Decided\b[^\n]*?COMPLETED_DECISIONS\.md#(DECISION-[\w.-]+)\)", re.M)
+
+
 class TodoState:
-    """State of a cited TODO: open, ticked, moved (a struck pointer) or missing."""
+    """State of a cited TODO: open, ticked, decided (ticked by an owner ruling), moved (a struck pointer) or
+    missing.
+
+    "decided" (owner ruling 2026-11-25): a ticked TODO whose text carries a `Decided ...; see
+    [DECISION-...](COMPLETED_DECISIONS.md#DECISION-...)` pointer to a section that exists in
+    COMPLETED_DECISIONS.md was closed by the owner's ruling, for example "inherent, the accepted rows stay"
+    (v1.1.0-TODO-216 / -217). Entries citing it stay; they are reported, never removed."""
 
     def __init__(self, repo):
         self.repo = repo
         self.st = ts.load_todo_state(repo)
         self.look = ts.todo_lookup(self.st)
+        p = Path(repo) / COMPLETED_DECISIONS
+        text = p.read_text() if p.exists() else ""
+        self.decisions = set(re.findall(r'<a id="(DECISION-[\w.-]+)"></a>', text))
 
     def state(self, base, num):
         it, file_found = ts.find_target(self.st, self.look, base, num, self.repo)
@@ -89,6 +106,9 @@ class TodoState:
             tg = ", ".join(f"{b} → TODO-{n}" for b, n in it.get("targets") or []) or "elsewhere"
             return ("moved", f"`{base} → TODO-{num}` moved to {tg}")
         if it["checked"]:
+            ruled = [d for d in DECIDED_POINTER.findall(it.get("text") or "") if d in self.decisions]
+            if ruled:
+                return ("decided", f"`{base} → TODO-{num}` is ticked by the owner ruling {ruled[0]}")
             return ("ticked", f"`{base} → TODO-{num}` is ticked")
         return ("open", "")
 
@@ -202,6 +222,10 @@ def mechanical(ctx):
                     else:
                         f["text"] = f"`{rel}`: `{key}` cites `{cite[2]}`, which is {state} ({why})."
                     out.append(f)
+                elif state == "decided":
+                    out.append({"unit": unit, "kind": "todo-decided",
+                                "text": f"`{rel}`: `{key}` cites `{cite[2]}`: {why}; kept. If the ruling retired "
+                                        "the entry (a fix, not an acceptance), delete it by hand."})
                 elif state == "moved":
                     out.append({"unit": unit, "kind": "todo-moved",
                                 "text": f"`{rel}`: `{key}` cites `{cite[2]}`: {why}; cite the new TODO."})
@@ -234,7 +258,7 @@ def embedded(ctx, todos):
                     continue
                 seen.add((base, num))
                 state, why = todos.state(base, num)
-                if state != "open":
+                if state not in ("open", "decided"):
                     out.append({"unit": f"{rel}::{m.group(1)}", "kind": f"embedded-todo-{state}",
                                 "text": f"`{rel}` line {at + 1}: `{m.group(1)}` is tracked by `{c.group(0)}`, "
                                         f"which is {state} ({why}); remove its entries or cite an open TODO."})
