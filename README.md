@@ -226,7 +226,7 @@ inf$compute_score_confidence_interval()
 
 # Nonparametric bootstrap p-value and confidence interval
 inf$set_seed(42)
-inf$compute_bootstrap_two_sided_pval(type = "percentile") # the default (BCa) is NA with only two blocks
+inf$compute_bootstrap_two_sided_pval(type = "percentile") # the default (BCa) is NA with 2 blocks
 inf$compute_bootstrap_confidence_interval()
 
 # Randomization (design-based) test and its inverted confidence interval
