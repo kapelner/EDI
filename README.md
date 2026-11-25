@@ -324,48 +324,57 @@ inf$compute_asymp_two_sided_pval()
 
 None of the trials in the [dataset catalog](#real-experimental-datasets) was
 assigned by a sequential design, and a sequential design always draws its own
-assignment. So this example replays the real CGD patients from the example
-above, one at a time in the order they were actually randomized, through
-Pocock–Simon minimization on sex and pattern of inheritance, and compares its
-balance with the trial's own allocation. Minimization balances both margins
-exactly, where the trial's allocation was off by 6 among the autosomal
-patients. The real outcomes were observed under the trial's assignment, not
-this one, so the outcome is simulated.
+assignment, so this example replays a real trial's patients through one. The
+trial is the Medical Research Council's 1948 study of streptomycin for
+pulmonary tuberculosis, often called the first modern randomized controlled
+trial, from the `medicaldata` package (`install.packages("medicaldata")`). Its 107 patients
+arrive one at a time and Pocock–Simon minimization assigns each on sex,
+condition at admission and lung cavitation; the example then compares the
+balance with the trial's own allocation. The real outcomes were observed under
+the trial's assignment, not this one, so the outcome is simulated.
 
 ```r
 library(EDI)
+library(medicaldata)
 
-# Replay the CGD trial's 128 real patients in their actual order of
-# randomization, assigning each one by Pocock-Simon minimization on sex and
-# pattern of inheritance (the trial itself used permuted blocks within center)
-cgd1 = subset(survival::cgd, enum == 1)
-cgd1 = cgd1[order(cgd1$random, cgd1$id), ]
-X = cgd1[, c("sex", "inherit", "age", "steroids", "propylac")]
+# The Medical Research Council's 1948 streptomycin trial for pulmonary
+# tuberculosis, often called the first modern randomized controlled trial.
+# Replay its 107 patients one at a time through Pocock-Simon minimization on
+# sex, condition at admission and lung cavitation. The data don't record the
+# order patients were enrolled in, so they arrive in a random order.
+set.seed(1948)
+tb = strep_tb[sample(nrow(strep_tb)), ]
+X = as.data.frame(tb[, c("gender", "baseline_condition", "baseline_cavitation")])
 
 des = DesignSeqOneByOnePocockSimon$new(n = nrow(X), response_type = "incidence",
-                                       strata_cols = c("sex", "inherit"), seed = 1)
+    strata_cols = c("gender", "baseline_condition", "baseline_cavitation"), seed = 1)
 for (i in seq_len(nrow(X))) {
     des$add_one_subject_to_experiment_and_assign(X[i, ])
 }
 w = des$get_w()
 
-# Treated-minus-control counts in each margin: minimization vs. the trial's
-# actual allocation
-w_trial = as.integer(cgd1$treat == "rIFN-g")
-margins = function(w) c(tapply(2 * w - 1, X$sex, sum), tapply(2 * w - 1, X$inherit, sum))
-margins(w)
-margins(w_trial)
+# Treated-minus-control count at each level of the three factors: minimization
+# vs. the trial's actual allocation (sealed envelopes, stratified by sex and
+# hospital)
+margins = function(w) unlist(lapply(X, function(f) tapply(2 * w - 1, f, sum)))
+w_trial = as.integer(tb$arm == "Streptomycin")
+imbalance = rbind(minimization = margins(w), trial = margins(w_trial))
+imbalance
+rowSums(abs(imbalance))
 
-# These patients' real outcomes were observed under the trial's assignment,
-# not this one, so the outcome here is simulated (true probit effect: -0.5)
-set.seed(2)
-y = rbinom(nrow(X), 1, pnorm(-0.3 - 0.5 * w))
+# The patients' real outcomes were observed under the trial's assignment, not
+# this one, so the outcome here is simulated (true probit effect: 0.8)
+y = rbinom(nrow(X), 1, pnorm(-0.3 + 0.8 * w))
 des$add_all_subject_responses(y)
 
 inf = InferenceIncidProbitRegr$new(des)
 inf$compute_estimate()
 inf$compute_asymp_two_sided_pval()
 ```
+
+Summed over the seven factor levels, minimization leaves an imbalance of 9
+patients where the trial's allocation left 15, most of it the 6 extra
+streptomycin patients among those admitted in poor condition.
 
 #### Inference Suite example
 
