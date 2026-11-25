@@ -2,11 +2,11 @@
 
 [![CRAN](https://img.shields.io/cran/v/EDI.svg)](https://CRAN.R-project.org/package=EDI)
 [![R-CMD-check](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/R-CMD-check.yaml)
-[![R coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=r)](https://app.codecov.io/gh/kapelner/EDI/flags/r)
+[![R codecov](https://img.shields.io/codecov/c/github/kapelner/EDI/main?flag=r&label=R%20codecov)](https://app.codecov.io/gh/kapelner/EDI/flags/r)
 [![Calibration study](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/calibration-study.yml)\
 [![PyPI](https://img.shields.io/pypi/v/edi_kernels.svg)](https://pypi.org/project/edi_kernels/)
 [![Python tests](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml/badge.svg)](https://github.com/kapelner/EDI/actions/workflows/test-coverage-python.yml)
-[![Python coverage](https://codecov.io/gh/kapelner/EDI/branch/main/graph/badge.svg?flag=python)](https://app.codecov.io/gh/kapelner/EDI/flags/python)\
+[![Python codecov](https://img.shields.io/codecov/c/github/kapelner/EDI/main?flag=python&label=Python%20codecov)](https://app.codecov.io/gh/kapelner/EDI/flags/python)\
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 [![Last commit](https://img.shields.io/github/last-commit/kapelner/EDI)](https://github.com/kapelner/EDI/commits/main)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
