@@ -85,13 +85,17 @@ comparison.
 | `InferenceOrdinalOrderedProbitRegr` | ordinal | 0.570 | statsmodels `OrderedModel(probit)` | 62.3 | **109x** |
 | `InferenceOrdinalGCompMeanDiff` | ordinal | 0.760 | statsmodels `OrderedModel(logit)+gcomp` | 69.7 | **91.5x** |
 
-**→ [Full results (`benchmark_model_fits_python.html`)](https://kapelner.github.io/EDI/benchmarks/python/)**
+**→ Full results: [nightly, on GitHub-hosted runners](https://kapelner.github.io/EDI/benchmarks/python/) · [release snapshot, on the maintainer's machine](https://rawcdn.githack.com/kapelner/EDI/main/python/benchmark/benchmark_model_fits_python.html)**
 — includes the Wald/full-inference table (standard errors + p-values, not just
 the point estimate), the utility/math-kernel table, dataset spec, and
 methodology notes. Same table shape as the R package's own
-[`benchmark_model_fits_R.html`](https://kapelner.github.io/EDI/benchmarks/).
-(These are the reports the nightly CI run publishes to the project's GitHub
-Pages site, so they show the latest nightly results.)
+report ([nightly](https://kapelner.github.io/EDI/benchmarks/) ·
+[release snapshot](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html)).
+The nightly reports use the default portable build on a shared 4-vCPU VM and update
+every night; the release snapshots are regenerated on the maintainer's machine before
+each release. See
+[Tuning Local Builds](https://github.com/kapelner/EDI#tuning-local-builds) for
+building R and EDI with optimized flags yourself.
 
 ## Models with no Python canonical baseline
 

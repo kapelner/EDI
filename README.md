@@ -99,7 +99,9 @@ methods papers behind the KK-family designs and estimators (run
 installing is [Getting Started](#getting-started) below and the
 [vignettes](#vignettes).
 
-> **Benchmark report:** [Rendered model-fitting benchmark report](https://kapelner.github.io/EDI/benchmarks/) — speed and correctness of every model-fitting kernel against its R canonical baseline.
+> **Benchmark reports:** speed and correctness of every model-fitting kernel against its R canonical baseline, in two builds:
+> * [Nightly, on GitHub-hosted runners](https://kapelner.github.io/EDI/benchmarks/): the default portable build (`EDI_PORTABLE=1`) that CRAN, R-universe and GitHub installs give you, on a shared 4-vCPU VM. Updated every night; its timings are what a typical install sees.
+> * [Release snapshot, on the maintainer's machine](https://rawcdn.githack.com/kapelner/EDI/main/R/benchmark/benchmark_model_fits_R.html): the same default EDI build, compiled by an R toolchain built with optimized flags (`-O3 -march=native -funroll-loops`). Regenerated before each release, so it shows what an optimized R toolchain can reach rather than the latest code. See [Tuning Local Builds](#tuning-local-builds) to compile R and EDI this way yourself.
 
 > **Inference path audit:** [Rendered comprehensive-tests coverage and estimability report](https://rawcdn.githack.com/kapelner/EDI/main/R/package_tests/path_audits.html) — supported inference paths and their latest observed percent estimability.
 
