@@ -2466,7 +2466,7 @@ ca01dd4b under v1.0.6-TODO-191; proportion f8, by design).
 <a id="todo-143"></a>
 <!-- pre-split-id: 1.0.6/359; 2026-11-25 -->
 
-- [ ] TODO-143 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the
+- [x] TODO-143 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the *(ticked by the TODO audit 2026-11-25 as v1.0.6-TODO-359: R/EDI/R/design_fixed_blocking.R:222; R/EDI/R/design_fixed_blocking.R:91; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:351; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:146)*
   existing-experiment article and `?DesignFixedBlocking` doesn't match the code.**
   Ids: ds-observational-44883784401-f10, ds-observational-44883784401-f11.
   With unequal strata and `equal_block_sizes = TRUE` the error comes at the first bootstrap/randomization call

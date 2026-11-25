@@ -6255,7 +6255,7 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
 <a id="todo-233"></a>
 <!-- pre-split-id: 1.0.6/426; 2026-11-25 -->
 
-- [ ] TODO-233 (added 2026-11-24, agent): **Full R-CMD-check run 45295584606: CRAN-extra nold, gcc16 and devel-devdeps
+- [x] TODO-233 (added 2026-11-24, agent; done 2026-11-25, confirmed by the full run 45403920576 on 4e83509a, all 21 jobs green): **Full R-CMD-check run 45295584606: CRAN-extra nold, gcc16 and devel-devdeps
   failures.** All three legs failed the same way in every earlier full run since they were added (44358518303 on
   2026-11-18, 44903905332 on 2026-11-21); none has passed yet. None is a long-double or results problem.
   - [ ] **nold** (workflow; fixed, confirm on the next dispatch): the tests never ran. Loading `digest` failed with

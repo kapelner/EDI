@@ -15395,6 +15395,12 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      yet the KK survival selector lists this class (L4441). After wave 1, `grep IVWC $W/c/discovered.csv`; if it is
      absent, TODO-14 needs its own class-filtered run (unverified which path wins).
    - Passed when: each open v1.0.6 TODO touching `R/EDI` is landed or named deferred; a full R-CMD-check dispatched on HEAD shows no remaining test failures.
+   - Passed 2026-11-25 (owner): the full dispatched R-CMD-check run 45403920576 on 4e83509a passed all 21 jobs
+     (every OS leg, no-Suggests, native, openmp, valgrind, ASAN/UBSAN, rchk and the CRAN extras nold, gcc16, lto,
+     clang23, devel-devdeps). No new full run on the release commit 912c61aa: the owner ruled the changes since 4e83509a
+     not substantial enough to need one (`R/EDI` code: a65304eb, v1.0.6-TODO-411 Hurdle NB, and e57fb3c5,
+     v1.0.6-TODO-428 randomization enumeration; the rest test-only). The push run 45494251501 on cf2beb67, which
+     contains both, passed every job it ran (the push subset: no sanitizers, valgrind or most CRAN extras).
 1. **Release commit + freeze (O).** Pick `SHA` on `main`. Announce the freeze. `git switch -c dev-1.0.6 $SHA` and
    push it (push is the owner's). Passed when: `dev-1.0.6` exists; `main` gets no `R/EDI` / harness commit until step 9.
    Docs-only commits on `main` (the tables, NEWS, these files) are allowed.
@@ -15516,7 +15522,7 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      release commit. Before tagging `py-v1.0.5`: build the wheel at the release commit, run
      `python3 .github/scripts/check_wheel_isa.py <wheel>` (no AVX/AVX-512, v1.0.6-TODO-205) and the Python tests, and
      check `python/pyproject.toml` reads 1.0.5 (`sync_version.py --check`).
-10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. If CRAN asks for changes during review (before acceptance), fix
+10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. Then delete `dev-1.0.6` on the remote (`git push origin --delete dev-1.0.6`): `scripts/pre-push` refuses `R/EDI` / harness pushes to `main` while `origin/dev-<version>` exists (`scripts/check_release_freeze.py`, added 2026-11-25). If CRAN asks for changes during review (before acceptance), fix
     them on `release-1.0.5` (`git switch -c release-1.0.5 v1.0.5`), keep the version 1.0.5, move the `v1.0.5` tag to
     the fixed commit, resubmit, and merge `release-1.0.5` back into `main` (owner, 2026-11-23: the release is 1.0.5;
     no patch version name). Only a fix needed after CRAN has published 1.0.5 needs a higher version, because CRAN
