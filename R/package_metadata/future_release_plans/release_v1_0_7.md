@@ -1949,13 +1949,14 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
     | FixedBernoulli | 1000 | `~1` | 400 | 0.0275 [0.014, 0.049] | 0.0854 |
     | SeqOneByOneEfron | 1000 | `~1` | 400 | 0.0425 [0.025, 0.067] | 0.0902 |
     | FixedBinaryMatch | 1000 | `~1` | 400 | 0.0375 [0.021, 0.061] | 0.0826 |
+    | FixedBlocking@0.2 | 1000 | `~1` | 400 | 0.0325 [0.017, 0.055] | 0.086 |
 
     Why: at n = 1000 `~1` (FixedBernoulli, 12 datasets, 6,012 draw fits), 0% of the draw fits are off the MLE now
     (best of three cold kernel fits plus `pscl::zeroinfl`, tolerance 1e-4 in nll). An emulation of the campaign's
     code (chained warm start, no guard) on the same datasets gives 72% off the MLE: median treatment-estimate error
     0.045, nll gap up to 9.3. The `~1` flags therefore come from the chaining (removed in c28bbb34) plus the missing
     guard. Each draw is warm-started from the full-data fit (anchored), and the guard refits about 33% of draw fits.
-    Not yet measured: FixedBlocking@0.2 n = 1000 (the run died), the n = 200 `~1` cells and the n = 50 `~.` cells.
+    Not yet measured: the n = 200 `~1` cells and the n = 50 `~.` cells.
     **Still open at n = 50 `~.`:** 12% of draw fits (FixedBernoulli, 30 datasets, 15,060 fits) stop at an interior
     local maximum. These fits are converged, with gradient about 1e-7 and zero-part coefficients about 1, so the
     guard does not flag them. The supremum is on a zero-part separation ridge, up to 13.6 nll units lower. Adding a
