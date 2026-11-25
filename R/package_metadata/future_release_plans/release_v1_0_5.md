@@ -15514,7 +15514,7 @@ HEAD `fe6ccc4b`); nothing here was run except the planner dry runs (base R + dat
      release commit. Before tagging `py-v1.0.5`: build the wheel at the release commit, run
      `python3 .github/scripts/check_wheel_isa.py <wheel>` (no AVX/AVX-512, v1.0.6-TODO-284) and the Python tests, and
      check `python/pyproject.toml` reads 1.0.5 (`sync_version.py --check`).
-10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. If CRAN asks for changes during review (before acceptance), fix
+10. **Unfreeze (O).** Merge `dev-1.0.6` into `main`. Then delete `dev-1.0.6` on the remote (`git push origin --delete dev-1.0.6`): `scripts/pre-push` refuses `R/EDI` / harness pushes to `main` while `origin/dev-<version>` exists (`scripts/check_release_freeze.py`, added 2026-11-25). If CRAN asks for changes during review (before acceptance), fix
     them on `release-1.0.5` (`git switch -c release-1.0.5 v1.0.5`), keep the version 1.0.5, move the `v1.0.5` tag to
     the fixed commit, resubmit, and merge `release-1.0.5` back into `main` (owner, 2026-11-23: the release is 1.0.5;
     no patch version name). Only a fix needed after CRAN has published 1.0.5 needs a higher version, because CRAN

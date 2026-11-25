@@ -60,6 +60,12 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 		base="$remote_sha"
 	fi
 
+	# Release freeze: while origin/dev-<version> exists, main takes no R/EDI or
+	# comprehensive-harness commits (release_v1_0_5.md runbook step 1). Stdlib Python.
+	if [ "$remote_ref" = "refs/heads/main" ] && ! python3 scripts/check_release_freeze.py "$base" "$local_sha"; then
+		exit 1
+	fi
+
 	git diff --name-only "$base" "$local_sha" >> "$changed_files_raw"
 	# Release files are appended to by concurrent agents, which can pick the same
 	# next TODO number (v1.0.6-TODO-147 collided on 2026-11-18). Refuse a push that
