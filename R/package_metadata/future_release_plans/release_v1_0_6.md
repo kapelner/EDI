@@ -6794,7 +6794,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   v1.0.6-TODO-301 cluster-check pattern); consider `ObservationalDesignMatching` too. Done when: the observational F9
   repro errors and a valid one-per-pair `w` is stored unchanged.
 
-- [ ] TODO-359 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the
+- [x] TODO-359 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the *(ticked by the TODO audit 2026-11-25: R/EDI/R/design_fixed_blocking.R:222; R/EDI/R/design_fixed_blocking.R:91; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:351; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:146)*
   existing-experiment article and `?DesignFixedBlocking` doesn't match the code.**
   Ids: ds-observational-44883784401-f10, ds-observational-44883784401-f11.
   With unequal strata and `equal_block_sizes = TRUE` the error comes at the first bootstrap/randomization call
