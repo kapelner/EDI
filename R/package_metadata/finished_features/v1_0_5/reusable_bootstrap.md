@@ -2,7 +2,7 @@
 
 > **Status: CLOSED 2026-11-10** (`release_v1_0_5.md` TODO-1, owner). TODO-1/4/5 done, TODO-2/3 waived for v1.0.5,
 > TODO-6 ruled met ("completed, default kept"). Follow-ups: speed target and a general column-dropping cache in
-> `release_v1_1_0.md` TODO-191; realistic proportion tuning data in `release_v1_0_6.md` TODO-11 (was `release_v1_1_0.md` TODO-192). Moved from `bug_fix_plans/` the same day.
+> `release_v1_1_0.md` TODO-191; realistic proportion tuning data in `release_v1_0_7.md` TODO-9 (was `release_v1_1_0.md` TODO-192). Moved from `bug_fix_plans/` the same day.
 
 > **Depends on:** nothing new -- the reusable-worker contract
 > (`supports_reusable_bootstrap_worker()` / `create_bootstrap_worker_state()`
@@ -513,7 +513,7 @@ TODO-1 acceptance gate was changed.
       **Run 2026-11-10 (G2, see `release_v1_0_5.md` TODO-1):** standard effort, 1,065 cells, 0 failed; the ZOIB
       jackknife cells completed, with no deviation from the shipped default and no correctness-gate discard.
       **DECIDED 2026-11-10 (owner):** "completed, default kept" meets this TODO (a direct A/B showed the shipped
-      warm-start setting wins decisively). A realistic proportion fixture moves to `release_v1_0_6.md` TODO-11 (first filed as `release_v1_1_0.md` TODO-192).
+      warm-start setting wins decisively). A realistic proportion fixture moves to `release_v1_0_7.md` TODO-9 (first filed as `release_v1_1_0.md` TODO-192).
 
 ## Standing constraints
 

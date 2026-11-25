@@ -31,29 +31,29 @@ Last updated 2026-11-24.
 | [DECISION-v1.1.0-TODO-268](#DECISION-v1.1.0-TODO-268) | [v1.1.0-TODO-268](release_v1_1_0.md) | Turn on the sequential-MC early stop for the standalone randomization p-value (p-values change), and for which classes? |
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
-| [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
-| [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-409](release_v1_0_6.md) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
-| [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.6-TODO-403](release_v1_0_6.md) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
-| [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.6-TODO-402](release_v1_0_6.md) | How should audit-written bug tests skipped without a TODO be surfaced? |
-| [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.6-TODO-373](release_v1_0_6.md) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
-| [DECISION-v1.0.6-TODO-371](#DECISION-v1.0.6-TODO-371) | [v1.0.6-TODO-371](release_v1_0_6.md) | OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)? |
-| [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.6-TODO-367](release_v1_0_6.md) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
-| [DECISION-v1.0.6-TODO-342](#DECISION-v1.0.6-TODO-342) | [v1.0.6-TODO-342](release_v1_0_6.md) | `InferenceSuite`: down-weight or exclude rows that raised a separation / boundary warning? |
-| [DECISION-v1.0.6-TODO-340](#DECISION-v1.0.6-TODO-340) | [v1.0.6-TODO-340](release_v1_0_6.md) | Retag the GLM / count-part coefficients `log_rate_ratio_conditional`? |
-| [DECISION-v1.0.6-TODO-317](#DECISION-v1.0.6-TODO-317) | [v1.0.6-TODO-317](release_v1_0_6.md) | `Inf` in a numeric covariate: refuse at entry, or treat as missing under `"impute"`? |
-| [DECISION-v1.0.6-TODO-308](#DECISION-v1.0.6-TODO-308) | [v1.0.6-TODO-308](release_v1_0_6.md) | Exact event time 0: refuse at data entry, or only in the parametric classes? |
-| [DECISION-v1.0.6-TODO-305](#DECISION-v1.0.6-TODO-305) | [v1.0.6-TODO-305](release_v1_0_6.md) | Confirm that a one-level factor next to a two-level one (`list(dose = 1, arm = 2)`) now errors |
-| [DECISION-v1.0.6-TODO-304](#DECISION-v1.0.6-TODO-304) | [v1.0.6-TODO-304](release_v1_0_6.md) | BCa on 2-block blocking designs: within-block jackknife acceleration, or percentile / BC fallback? |
-| [DECISION-v1.0.6-TODO-303](#DECISION-v1.0.6-TODO-303) | [v1.0.6-TODO-303](release_v1_0_6.md) | Allow the plain randomization test at delta = 0 for incidence on `DesignFixedFactorial` / `DesignFixedBlocking`? |
-| [DECISION-v1.0.6-TODO-291](#DECISION-v1.0.6-TODO-291) | [v1.0.6-TODO-291](release_v1_0_6.md) | `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept? |
-| [DECISION-v1.0.6-TODO-290](#DECISION-v1.0.6-TODO-290) | [v1.0.6-TODO-290](release_v1_0_6.md) | Confirm KK `lambda` and `t_0_pct` allowed in the closed [0, 1] |
-| [DECISION-v1.0.6-TODO-270](#DECISION-v1.0.6-TODO-270) | [v1.0.6-TODO-270](release_v1_0_6.md) | SPBR jackknife-Wald at 0.062: accept, raise the permuted-block threshold, or investigate? |
-| [DECISION-v1.0.6-TODO-197](#DECISION-v1.0.6-TODO-197) | [v1.0.6-TODO-197](release_v1_0_6.md) | Delete or fix the unused ZOIB wrapper `.fit_zero_one_inflated_beta` (`helper_zoib.R`)? |
-| [DECISION-v1.0.6-TODO-158](#DECISION-v1.0.6-TODO-158) | [v1.0.6-TODO-158](release_v1_0_6.md) | Confirm the perfect-predictor detection's three judgment calls |
-| [DECISION-v1.0.6-TODO-106](#DECISION-v1.0.6-TODO-106) | [v1.0.6-TODO-106](release_v1_0_6.md) | Add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook? |
-| [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) | [v1.0.6-TODO-74](release_v1_0_6.md) | Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both? |
-| [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.6-TODO-43](release_v1_0_6.md) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
-| [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.6-TODO-17](release_v1_0_6.md) | Calibration early stopping of clearly passing null units: settle the five design questions |
+| [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
+| [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
+| [DECISION-v1.0.6-TODO-403](#DECISION-v1.0.6-TODO-403) | [v1.0.7-TODO-100](release_v1_0_7.md#todo-100) | Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods? |
+| [DECISION-v1.0.6-TODO-402](#DECISION-v1.0.6-TODO-402) | [v1.0.7-TODO-99](release_v1_0_7.md#todo-99) | How should audit-written bug tests skipped without a TODO be surfaced? |
+| [DECISION-v1.0.6-TODO-373](#DECISION-v1.0.6-TODO-373) | [v1.0.7-TODO-157](release_v1_0_7.md#todo-157) | `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`? |
+| [DECISION-v1.0.6-TODO-371](#DECISION-v1.0.6-TODO-371) | [v1.0.7-TODO-155](release_v1_0_7.md#todo-155) | OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)? |
+| [DECISION-v1.0.6-TODO-367](#DECISION-v1.0.6-TODO-367) | [v1.0.7-TODO-151](release_v1_0_7.md#todo-151) | `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)? |
+| [DECISION-v1.0.6-TODO-342](#DECISION-v1.0.6-TODO-342) | [v1.0.7-TODO-134](release_v1_0_7.md#todo-134) | `InferenceSuite`: down-weight or exclude rows that raised a separation / boundary warning? |
+| [DECISION-v1.0.6-TODO-340](#DECISION-v1.0.6-TODO-340) | [v1.0.7-TODO-132](release_v1_0_7.md#todo-132) | Retag the GLM / count-part coefficients `log_rate_ratio_conditional`? |
+| [DECISION-v1.0.6-TODO-317](#DECISION-v1.0.6-TODO-317) | [v1.0.7-TODO-83](release_v1_0_7.md#todo-83) | `Inf` in a numeric covariate: refuse at entry, or treat as missing under `"impute"`? |
+| [DECISION-v1.0.6-TODO-308](#DECISION-v1.0.6-TODO-308) | [v1.0.7-TODO-78](release_v1_0_7.md#todo-78) | Exact event time 0: refuse at data entry, or only in the parametric classes? |
+| [DECISION-v1.0.6-TODO-305](#DECISION-v1.0.6-TODO-305) | [v1.0.6-TODO-190](release_v1_0_6.md#todo-190) | Confirm that a one-level factor next to a two-level one (`list(dose = 1, arm = 2)`) now errors |
+| [DECISION-v1.0.6-TODO-304](#DECISION-v1.0.6-TODO-304) | [v1.0.7-TODO-77](release_v1_0_7.md#todo-77) | BCa on 2-block blocking designs: within-block jackknife acceleration, or percentile / BC fallback? |
+| [DECISION-v1.0.6-TODO-303](#DECISION-v1.0.6-TODO-303) | [v1.0.7-TODO-76](release_v1_0_7.md#todo-76) | Allow the plain randomization test at delta = 0 for incidence on `DesignFixedFactorial` / `DesignFixedBlocking`? |
+| [DECISION-v1.0.6-TODO-291](#DECISION-v1.0.6-TODO-291) | [v1.0.6-TODO-178](release_v1_0_6.md#todo-178) | `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept? |
+| [DECISION-v1.0.6-TODO-290](#DECISION-v1.0.6-TODO-290) | [v1.0.6-TODO-177](release_v1_0_6.md#todo-177) | Confirm KK `lambda` and `t_0_pct` allowed in the closed [0, 1] |
+| [DECISION-v1.0.6-TODO-270](#DECISION-v1.0.6-TODO-270) | [v1.0.7-TODO-122](release_v1_0_7.md#todo-122) | SPBR jackknife-Wald at 0.062: accept, raise the permuted-block threshold, or investigate? |
+| [DECISION-v1.0.6-TODO-197](#DECISION-v1.0.6-TODO-197) | [v1.0.7-TODO-55](release_v1_0_7.md#todo-55) | Delete or fix the unused ZOIB wrapper `.fit_zero_one_inflated_beta` (`helper_zoib.R`)? |
+| [DECISION-v1.0.6-TODO-158](#DECISION-v1.0.6-TODO-158) | [v1.0.6-TODO-108](release_v1_0_6.md#todo-108) | Confirm the perfect-predictor detection's three judgment calls |
+| [DECISION-v1.0.6-TODO-106](#DECISION-v1.0.6-TODO-106) | [v1.0.6-TODO-60](release_v1_0_6.md#todo-60) | Add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook? |
+| [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) | [v1.0.7-TODO-37](release_v1_0_7.md#todo-37) | Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both? |
+| [DECISION-v1.0.6-TODO-43](#DECISION-v1.0.6-TODO-43) | [v1.0.7-TODO-34](release_v1_0_7.md#todo-34) | Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first? |
+| [DECISION-v1.0.6-TODO-17](#DECISION-v1.0.6-TODO-17) | [v1.0.7-TODO-14](release_v1_0_7.md#todo-14) | Calibration early stopping of clearly passing null units: settle the five design questions |
 
 ## v4.0.0
 
@@ -235,7 +235,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-409a"></a>
 ### DECISION-v1.0.6-TODO-409a: Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone?
 
-- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **Calibration planner: shards of slow units time out and the units get abandoned.**
+- **TODO:** [v1.0.6-TODO-227](release_v1_0_6.md#todo-227): **Calibration planner: shards of slow units time out and the units get abandoned.**
 - **Context:** owner decision 2026-11-22 took both fixes: halve a unit's shard after each timeout (down to 1 replicate)
   and give units that lost a shard a 180-minute job timeout (75 otherwise). A shard runs its replicates in parallel on 4
   cores and the first round is never cut by the 25-minute deadline, so a shard of 4 or fewer replicates lasts about as
@@ -246,12 +246,12 @@ Last updated 2026-11-24.
 - **Evidence:** dry run of the planner on the campaign 2026-11-15-e36c7710 files: 3 abandoned units return with 2-3
   replicates per shard (262 extra shards, all theirs); every other shard unchanged.
 - **Recommendation (coordinator):** (b): the timeout does the work, and fewer jobs keep the waves faster.
-- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-409.
+- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-227.
 
 <a id="DECISION-v1.0.6-TODO-409b"></a>
 ### DECISION-v1.0.6-TODO-409b: Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates?
 
-- **TODO:** [v1.0.6-TODO-409](release_v1_0_6.md): **Calibration planner: shards of slow units time out and the units get abandoned.**
+- **TODO:** [v1.0.6-TODO-227](release_v1_0_6.md#todo-227): **Calibration planner: shards of slow units time out and the units get abandoned.**
 - **Context:** under the new rule only dead 1-replicate shards count toward `--max-dead 3`. Three of them still abandon
   the whole unit, even if hundreds of its other 1-replicate shards finish.
 - **Options:** (a) keep it: three single replicates that cannot finish in 180 minutes mean the unit is not
@@ -260,12 +260,12 @@ Last updated 2026-11-24.
 - **Evidence:** none yet; no unit has reached 1-replicate shards. (b) risks a biased replicate set if the slow fits
   are systematically different (compare v1.1.0-TODO-264, a bias measured on an abandoned unit's finished replicates).
 - **Recommendation (coordinator):** (a) for now; revisit if a unit actually reaches it.
-- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-409.
+- **Raised:** 2026-11-23, by the planner agent working on v1.0.6-TODO-227.
 
 <a id="DECISION-v1.0.6-TODO-403"></a>
 ### DECISION-v1.0.6-TODO-403: Objects saved under another EDI version keep their old method code: document only, warn on load, or rebind methods?
 
-- **TODO:** [v1.0.6-TODO-403](release_v1_0_6.md): **A saved design or inference object carries its own method code.**
+- **TODO:** [v1.0.7-TODO-100](release_v1_0_7.md#todo-100): **A saved design or inference object carries its own method code.**
 - **Context:** R6 objects serialize their method closures. A design saved with `saveRDS()` under EDI 1.0.4 and
   restored under a later EDI runs the 1.0.4 methods, while new objects run the new ones; nothing tells the user.
   Saved designs already carry a version stamp (`get_edi_version_created()`), and `check_version_compat` exists.
@@ -279,11 +279,11 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-402"></a>
 ### DECISION-v1.0.6-TODO-402: How should audit-written bug tests skipped without a TODO be surfaced?
 
-- **TODO:** [v1.0.6-TODO-402](release_v1_0_6.md): **Audit-written bug tests that are skipped without a TODO never
+- **TODO:** [v1.0.7-TODO-99](release_v1_0_7.md#todo-99): **Audit-written bug tests that are skipped without a TODO never
   reach any issue.**
 - **Context:** numerical-robustness merges bug tests behind `skip("open a release TODO for this")`; test-suite-health
   sees them as `unconditional-skip` in `mechanical.json`, but `audit_decisions.py` and issue #56 never list them, so
-  17 sat untracked (now v1.0.6-TODO-385..401).
+  17 sat untracked (now v1.0.7-TODO-87 / v1.0.7-TODO-88 / v1.0.7-TODO-89 / v1.0.7-TODO-90 / v1.0.6-TODO-197 / v1.0.7-TODO-91 / v1.0.7-TODO-92 / v1.0.7-TODO-93 / v1.0.6-TODO-198 / v1.0.6-TODO-199 / v1.0.6-TODO-200 / v1.0.6-TODO-201 / v1.0.7-TODO-94 / v1.0.7-TODO-95 / v1.0.7-TODO-96 / v1.0.7-TODO-97 / v1.0.7-TODO-98).
 - **Options:** (a) have `audit_decisions.py` read test-suite-health's `unconditional-skip` findings as open mechanical
   findings, cleared when the skip names a release TODO; (b) a pre-push / CI gate that fails on any
   `skip("open a release TODO for this")`; (c) have the numerical-robustness audit file the TODO itself in its PR
@@ -293,7 +293,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-373"></a>
 ### DECISION-v1.0.6-TODO-373: `InferenceIncidKKGEE`: drop the stale incidence randomization refusal, or stop advertising `rand`?
 
-- **TODO:** [v1.0.6-TODO-373](release_v1_0_6.md): **`InferenceIncidKKGEE` can never return a randomization
+- **TODO:** [v1.0.7-TODO-157](release_v1_0_7.md#todo-157): **`InferenceIncidKKGEE` can never return a randomization
   p-value.**
 - **Context:** the KK GEE mixin's `compute_rand_two_sided_pval` override (`inference_mixin_kk_gee_shared.R` ~L125)
   stops with "not supported for incidence. Use Zhang method." unless the design is a rerandomization design, but the
@@ -301,12 +301,12 @@ Last updated 2026-11-24.
   since 2026-10-20, so the refusal looks stale.
 - **Options:** (a) drop the refusal and use the draw-based path, as the base does; (b) remove `rand` from the class's
   supported procedures and say so in its docs. Test either way.
-- **Raised:** 2026-11-21, by the agent that fixed v1.0.6-TODO-328.
+- **Raised:** 2026-11-21, by the agent that fixed v1.0.6-TODO-209.
 
 <a id="DECISION-v1.0.6-TODO-371"></a>
 ### DECISION-v1.0.6-TODO-371: OK to scale the `InferencePropGCompMeanDiff` model-based variance by the Pearson dispersion (results change)?
 
-- **TODO:** [v1.0.6-TODO-371](release_v1_0_6.md): **`InferencePropGCompMeanDiff`'s `"model_based"` variance fallback
+- **TODO:** [v1.0.7-TODO-155](release_v1_0_7.md#todo-155): **`InferencePropGCompMeanDiff`'s `"model_based"` variance fallback
   uses the unscaled Bernoulli information for a fractional response.**
 - **Context:** `resolve_effect_variance()` / `model_based_covariance_matrix()` (`inference_proportion_gcomp.R`
   ~L786-840, docs :92-110) use the binomial Fisher information, which `?InferencePropFractionalLogit` (:12-20) calls
@@ -318,12 +318,12 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-367"></a>
 ### DECISION-v1.0.6-TODO-367: `InferencePropQuantileRegr` on exact 0/1: Smithson-Verkuilen squeeze, or warn / error (results change)?
 
-- **TODO:** [v1.0.6-TODO-367](release_v1_0_6.md): **Exact 0s and 1s in proportion outcomes: Beta's silent squeeze,
+- **TODO:** [v1.0.7-TODO-151](release_v1_0_7.md#todo-151): **Exact 0s and 1s in proportion outcomes: Beta's silent squeeze,
   QuantileRegr's eps clamp, and the cookbook's open-interval claim.**
 - **Context:** `InferencePropQuantileRegr` clamps to `.Machine$double.eps` before the logit
   (`inference_continuous_quantile_regr.R:139`, `helper_math.R:26`), giving a "log-odds shift" of about +/-34 with
   p ~ 1e-117 at low / high tau, no warning. Same clamp in the rand kernel's `zero_one_logit_clamp`. Precedent:
-  v1.0.6-TODO-60.
+  v1.0.6-TODO-24.
 - **Options (results change; owner OK and NEWS needed):** (a) apply the Smithson-Verkuilen squeeze, as
   `sanitize_beta_response()` does for Beta; (b) warn on exact 0/1; (c) error on exact 0/1.
 - **Raised:** 2026-11-21, docs-scenarios run 44883784401 (ds-proportion-44883784401-f2).
@@ -331,7 +331,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-342"></a>
 ### DECISION-v1.0.6-TODO-342: `InferenceSuite`: down-weight or exclude rows that raised a separation / boundary warning?
 
-- **TODO:** [v1.0.6-TODO-342](release_v1_0_6.md): **The suite drops a valid exact p-value and CI when only the
+- **TODO:** [v1.0.7-TODO-134](release_v1_0_7.md#todo-134): **The suite drops a valid exact p-value and CI when only the
   estimate is non-estimable, and keeps separated fits at full weight.**
 - **Context:** on the incidence F9 repro, GComp RR (p = 0, CI 2.7e-10 to 7.6e-10) with its own separation warning
   stays `ok` at full weight in Combined Evidence (`inference_suite.R:1759-1771`).
@@ -343,7 +343,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-340"></a>
 ### DECISION-v1.0.6-TODO-340: Retag the GLM / count-part coefficients `log_rate_ratio_conditional`?
 
-- **TODO:** [v1.0.6-TODO-340](release_v1_0_6.md): **Count estimand tags and the QuasiPoisson/RobustPoisson
+- **TODO:** [v1.0.7-TODO-132](release_v1_0_7.md#todo-132): **Count estimand tags and the QuasiPoisson/RobustPoisson
   randomization-CI scale.**
 - **Context:** `EDI_INFERENCE_ESTIMAND_TAGS` (`inference_class_registry.R:1621-1634`) tags Poisson, Quasi, Robust,
   NegBin, ZIP and HurdlePoisson `log_rate_ratio_marginal` but HurdleNegBin and ZINB `log_rate_ratio_conditional`,
@@ -356,7 +356,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-317"></a>
 ### DECISION-v1.0.6-TODO-317: `Inf` in a numeric covariate: refuse at entry, or treat as missing under `"impute"`?
 
-- **TODO:** [v1.0.6-TODO-317](release_v1_0_6.md): **An `Inf` covariate is accepted at enrollment, and inference later
+- **TODO:** [v1.0.7-TODO-83](release_v1_0_7.md#todo-83): **An `Inf` covariate is accepted at enrollment, and inference later
   fails with `qr.default` "NA/NaN/Inf in foreign function call".**
 - **Options:** (a) refuse `Inf` / `-Inf` in numeric covariates in `add_one_subject()` and
   `add_all_subjects_to_experiment()` with a message naming column and rows (the entry's fix); (b) treat them as
@@ -367,7 +367,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-308"></a>
 ### DECISION-v1.0.6-TODO-308: Exact event time 0: refuse at data entry, or only in the parametric classes?
 
-- **TODO:** [v1.0.6-TODO-308](release_v1_0_6.md): **An exact event time of 0 is accepted, and
+- **TODO:** [v1.0.7-TODO-78](release_v1_0_7.md#todo-78): **An exact event time of 0 is accepted, and
   `InferenceSurvivalWeibullRegr` then returns NA estimate, CI and p-value with no warning.**
 - **Options:** (a) refuse an exact time of 0 at entry (require y > 0; a time-0 event is left-censored, `y_L = 0,
   y_R = <first assessment>`, which the message should say): one check in `assert_y()`, but it changes what every
@@ -380,7 +380,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-305"></a>
 ### DECISION-v1.0.6-TODO-305: Confirm that a one-level factor next to a two-level one (`list(dose = 1, arm = 2)`) now errors
 
-- **TODO:** [v1.0.6-TODO-305](release_v1_0_6.md) (ticked): **`DesignFixedFactorial` accepts a non-integer number of
+- **TODO:** [v1.0.6-TODO-190](release_v1_0_6.md#todo-190) (ticked): **`DesignFixedFactorial` accepts a non-integer number of
   levels.**
 - **Context:** the fix requires every factor to be a whole number >= 2. A single-level factor next to a two-level one
   was accepted before and pinned as accepted by
@@ -392,11 +392,11 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-304"></a>
 ### DECISION-v1.0.6-TODO-304: BCa on 2-block blocking designs: within-block jackknife acceleration, or percentile / BC fallback?
 
-- **TODO:** [v1.0.6-TODO-304](release_v1_0_6.md): **On the 2 x 2 main-effect design the default BCa bootstrap CI and
+- **TODO:** [v1.0.7-TODO-77](release_v1_0_7.md#todo-77): **On the 2 x 2 main-effect design the default BCa bootstrap CI and
   p-value and every jackknife unit return NA.**
 - **Options (part (1) of the fix; both change the default BCa result on blocking designs):** (a) compute the BCa
   acceleration from a leave-one-subject-out jackknife within blocks (the jackknife currently refuses this on blocking
-  designs with blocks of size > 1, `jackknife_block_size_gt_one_unsupported()`, the same refusal as v1.0.6-TODO-74);
+  designs with blocks of size > 1, `jackknife_block_size_gt_one_unsupported()`, the same refusal as v1.0.7-TODO-37);
   (b) fall back to the percentile / BC interval with a warning that says so.
 - **Context:** parts (2)-(3) (the messages) depend on the advice chosen for
   [DECISION-v1.0.6-TODO-74](#DECISION-v1.0.6-TODO-74) and [DECISION-v1.0.6-TODO-303](#DECISION-v1.0.6-TODO-303) (which
@@ -406,10 +406,10 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-303"></a>
 ### DECISION-v1.0.6-TODO-303: Allow the plain randomization test at delta = 0 for incidence on `DesignFixedFactorial` / `DesignFixedBlocking`?
 
-- **TODO:** [v1.0.6-TODO-303](release_v1_0_6.md): **Randomization tests refuse every incidence analysis on
+- **TODO:** [v1.0.7-TODO-76](release_v1_0_7.md#todo-76): **Randomization tests refuse every incidence analysis on
   `DesignFixedFactorial` and `DesignFixedBlocking` although `supports("randomization_test")` is TRUE, and the "Use
   Zhang method" advice then fails.**
-- **Options:** (a) allow it (as v1.0.6-TODO-110 did for custom statistics): parts (1)-(3) of the fix reduce to lifting
+- **Options:** (a) allow it (as v1.0.6-TODO-64 did for custom statistics): parts (1)-(3) of the fix reduce to lifting
   `supports_rand_pval_for_incidence()`'s refusal for delta = 0 and keeping it for nonzero delta, and
   `supports("randomization_test")` is already right; (b) keep refusing: (1) makes `supports()` read
   `supports_rand_pval_for_incidence()`, (2)/(3) are message changes (name `InferenceIncidExactFisher` / CMH, mention
@@ -421,7 +421,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-291"></a>
 ### DECISION-v1.0.6-TODO-291: `InferenceContinKKGLMM` Wald SE near sigma_b = 0: fix the kernel's `vcov`, or accept?
 
-- **TODO:** [v1.0.6-TODO-291](release_v1_0_6.md) (ticked; the parametric-bootstrap fix is done).
+- **TODO:** [v1.0.6-TODO-178](release_v1_0_6.md#todo-178) (ticked; the parametric-bootstrap fix is done).
 - **Context:** on the F4 repro the Wald CI is [0.585, 1.056] (SE 0.120) against lmer's 0.233. The kernel's `vcov`
   (inverse full observed information) at log_sigma_b = -4.0 has a negative diagonal for log_sigma_b and a w SE of
   0.120, so the Wald SE looks wrong when sigma_b is near 0. The finding's run (older build) had Wald SE 0.230. The
@@ -432,7 +432,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-290"></a>
 ### DECISION-v1.0.6-TODO-290: Confirm KK `lambda` and `t_0_pct` allowed in the closed [0, 1]
 
-- **TODO:** [v1.0.6-TODO-290](release_v1_0_6.md) (ticked): **KK14/KK21 constructors accept `lambda` and `t_0_pct`
+- **TODO:** [v1.0.6-TODO-177](release_v1_0_6.md#todo-177) (ticked): **KK14/KK21 constructors accept `lambda` and `t_0_pct`
   outside [0, 1].**
 - **Context:** the entry asked for 0 < lambda < 1; the fix keeps the endpoints legal: `lambda = 0` (never match) is
   used by `test-kk14-design-matching-threshold-early-phase-and-pair-invariants-reference.R`, and `lambda = 1` runs
@@ -443,7 +443,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-270"></a>
 ### DECISION-v1.0.6-TODO-270: SPBR jackknife-Wald at 0.062: accept, raise the permuted-block threshold, or investigate?
 
-- **TODO:** [v1.0.6-TODO-270](release_v1_0_6.md): **Permuted-block jackknife with few units per stratum is
+- **TODO:** [v1.0.7-TODO-122](release_v1_0_7.md#todo-122): **Permuted-block jackknife with few units per stratum is
   oversized.**
 - **Context:** the implemented rule (switch to `"observation_within_block"` below
   `EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM` = 5) makes the RandomBlockSize cell nominal, but the SPBR cell stays
@@ -456,19 +456,19 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-197"></a>
 ### DECISION-v1.0.6-TODO-197: Delete or fix the unused ZOIB wrapper `.fit_zero_one_inflated_beta` (`helper_zoib.R`)?
 
-- **TODO:** [v1.0.6-TODO-197](release_v1_0_6.md): **Every `betareg` call in EDI fails, so the beta fits silently fall
+- **TODO:** [v1.0.7-TODO-55](release_v1_0_7.md#todo-55): **Every `betareg` call in EDI fails, so the beta fits silently fall
   back to OLS on logit(y).**
 - **Context:** the 2026-11-17 verdict re-review (`new_feature_plans/v1_0_5/algorithm_choice_audit.md`, section
   "2026-11-17: verdict re-review") put the ZOIB wrapper on hold. Unverified suspicion there: `helper_zoib.R:135,143`
   reads `fit$coefficients`, which `fast_zero_one_inflated_beta_cpp` never returns (it returns `params`), so the wrapper
   would return NULL on real data; it has no callers and the bulk tests mock the kernel.
 - **Options:** (a) delete the wrapper; (b) fix it.
-- **Raised:** 2026-11-17 (verdict re-review); cited as an open owner decision in v1.0.6-TODO-197 (2026-11-19).
+- **Raised:** 2026-11-17 (verdict re-review); cited as an open owner decision in v1.0.7-TODO-55 (2026-11-19).
 
 <a id="DECISION-v1.0.6-TODO-158"></a>
 ### DECISION-v1.0.6-TODO-158: Confirm the perfect-predictor detection's three judgment calls
 
-- **TODO:** [v1.0.6-TODO-158](release_v1_0_6.md) (ticked): **Detect perfect predictors in the inference covariates,
+- **TODO:** [v1.0.6-TODO-108](release_v1_0_6.md#todo-108) (ticked): **Detect perfect predictors in the inference covariates,
   drop them and warn.**
 - **Judgment calls made by the implementing agent, for the owner to confirm or change:**
   1. ties drop the union (e.g. `y = 3z + 0.4 x1 + 1.5 w` drops z and x1), vs a deterministic single pick;
@@ -480,7 +480,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-106"></a>
 ### DECISION-v1.0.6-TODO-106: Add `# checkmate-loose` opt-outs and put the explicit-defaults check in the pre-push hook?
 
-- **TODO:** [v1.0.6-TODO-106](release_v1_0_6.md) (ticked): **Audit every other checkmate assertion in `R/EDI/R/`.**
+- **TODO:** [v1.0.6-TODO-60](release_v1_0_6.md#todo-60) (ticked): **Audit every other checkmate assertion in `R/EDI/R/`.**
 - **Context:** the static check `R/package_tests/check_checkmate_explicit_defaults.R` flags 16 sites today, all
   loose but fine. It would need `# checkmate-loose: <why>` opt-outs at those sites before it can join the pre-push
   hook.
@@ -490,7 +490,7 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-74"></a>
 ### DECISION-v1.0.6-TODO-74: Jackknife on `DesignFixedBlockedCluster`: implement a stratified delete-one-cluster jackknife, fix the advice, or both?
 
-- **TODO:** [v1.0.6-TODO-74](release_v1_0_6.md): **The jackknife silently returns `c(NA, NA)` on
+- **TODO:** [v1.0.7-TODO-37](release_v1_0_7.md#todo-37): **The jackknife silently returns `c(NA, NA)` on
   `DesignFixedBlockedCluster`.**
 - **Context:** on a blocking design `jackknife_block_size_gt_one_unsupported()` (`inference_all_abstract_non_param_boot.R`
   ~L1332) refuses every unit except block / permuted_block / observation_within_block / pair / matched_set, so
@@ -508,17 +508,17 @@ Last updated 2026-11-24.
 <a id="DECISION-v1.0.6-TODO-43"></a>
 ### DECISION-v1.0.6-TODO-43: Delete the exported dead kernel `compute_coxph_rand_bootstrap_cpp`, or deprecate it first?
 
-- **TODO:** [v1.0.6-TODO-43](release_v1_0_6.md): **Remove three dead C++ code paths.**
+- **TODO:** [v1.0.7-TODO-34](release_v1_0_7.md#todo-34): **Remove three dead C++ code paths.**
 - **Context:** `compute_coxph_rand_bootstrap_cpp` (`src/fast_coxph_regression.cpp` ~L1135) has no caller in R or C++;
   only a reference test calls it. It is exported (`NAMESPACE` L147) but documented `@keywords internal`.
 - **Options:** (a) delete it, its export, Rd page and test case, with a NEWS line (an exported internal kernel is
-  removed): the entry's default; (b) deprecate it first, as v1.0.6-TODO-38 does for `robust_negbinreg`.
+  removed): the entry's default; (b) deprecate it first, as v1.0.7-TODO-30 does for `robust_negbinreg`.
 - **Raised:** 2026-11-17, by the agent that filed the TODO ("if the owner prefers").
 
 <a id="DECISION-v1.0.6-TODO-17"></a>
 ### DECISION-v1.0.6-TODO-17: Calibration early stopping of clearly passing null units: settle the five design questions
 
-- **TODO:** [v1.0.6-TODO-17](release_v1_0_6.md): **Stop clearly passing null cells early in calibration campaigns.**
+- **TODO:** [v1.0.7-TODO-14](release_v1_0_7.md#todo-14): **Stop clearly passing null cells early in calibration campaigns.**
 - **Context:** two looks per null unit (e.g. at 500 and 1000 replicates); a unit stops at the first look if every test
   in it is clearly inside its bound. Rough saving 30-50% of null work. These questions are to be settled before any
   code.

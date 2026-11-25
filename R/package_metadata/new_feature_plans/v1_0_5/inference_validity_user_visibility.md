@@ -45,7 +45,7 @@ allocation (n_min_arm), one finite-sample row (exact / rand), existing
 * Do not run roxygen (owner's pre-push regenerates Rd); verify the helper's
   output by calling it directly for a handful of classes.
 
-## 3. Measured values from a complete campaign (TODO-196, GATED; moved 2026-11-12 to `release_v1_0_6.md → TODO-19`)
+## 3. Measured values from a complete campaign (TODO-196, GATED; moved 2026-11-12 to `release_v1_0_7.md → TODO-16`)
 
 Do when a calibration campaign has completed (status `complete` on the
 `calibration-results` branch; the first is `2026-11-09-8c32d060`, expected

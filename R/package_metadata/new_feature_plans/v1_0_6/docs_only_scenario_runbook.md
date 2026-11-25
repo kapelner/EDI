@@ -1,14 +1,14 @@
 # Runbook: Docs-Only Scenario Runs, One Per Feature Area
 
-> **Release:** v1.0.6-TODO-98 (`../../future_release_plans/release_v1_0_6.md`). Owner request 2026-11-18.
+> **Release:** v1.0.6-TODO-56 (`../../future_release_plans/release_v1_0_6.md`). Owner request 2026-11-18.
 > **Trigger (decided by the owner 2026-11-18):** every feature area runs as a weekly CI job, skipped for an area
 > when nothing relevant to it changed since its last run; see section 7. Sections 1-6 still apply: the job
 > follows them (section 4 is pasted into its prompt verbatim), and a run by hand is still possible.
 >
 > **Related:**
-> - v1.0.6-TODO-73..94: the 22 bugs the six v1.0.6 article agents found. They are the model for how findings are
+> - v1.0.6-TODO-36 / v1.0.7-TODO-37 / v1.0.6-TODO-37 / v1.0.6-TODO-38 / v1.0.6-TODO-39 / v1.0.6-TODO-40 / v1.0.6-TODO-41 / v1.0.7-TODO-38 / v1.0.6-TODO-42 / v1.0.6-TODO-43 / v1.0.6-TODO-44 / v1.0.6-TODO-45 / v1.0.6-TODO-46 / v1.0.6-TODO-47 / v1.0.6-TODO-48 / v1.0.7-TODO-39 / v1.0.7-TODO-40 / v1.0.6-TODO-49 / v1.0.6-TODO-50 / v1.0.6-TODO-51 / v1.0.6-TODO-52 / v1.0.6-TODO-53: the 22 bugs the six v1.0.6 article agents found. They are the model for how findings are
 >   written up (section 6).
-> - v1.0.6-TODO-95, -96, -97: the mechanical checks (NA audit, message audit, option matrix) that would have caught
+> - v1.0.6-TODO-54 / v1.0.6-TODO-55 / v1.0.7-TODO-41: the mechanical checks (NA audit, message audit, option matrix) that would have caught
 >   most of those 22. A scenario run finds what those checks cannot list in advance; it does not replace them.
 > - The owner's agent-harness audit (tiers 1-5; gitignored notes, not in the public repo) and its verified
 >   tier-1 findings, `release_v1_0_5.md` → "Agent-harness tier-1 findings, verified 2026-10-22" (v1.0.5-TODO-103..119).
@@ -25,19 +25,19 @@ Why it works: in v1.0.6 the agents writing six pkgdown articles were, in effect,
 that the testthat suite, the comprehensive suite, the argument-combination harness and the audit jobs had all
 missed. None were wrong numbers on canonical inputs. They were:
 
-- **silent `NA`s** on legal inputs (v1.0.6-TODO-74, -75, -90, -91);
-- **documented options that crash** (`n = NULL` for sequential designs, v1.0.6-TODO-76..78; unequal block sizes,
-  v1.0.6-TODO-73);
-- **messages that say something false**: an argument the function does not take (v1.0.6-TODO-73), advice to use
-  the `B` just used (v1.0.6-TODO-92), a fallback that does not exist (v1.0.6-TODO-84), survival wording on a
-  continuous response (v1.0.6-TODO-93);
-- **docs that say something false**: a "no intercept column" that needs one (v1.0.6-TODO-85), re-seeding
-  claims (v1.0.6-TODO-79), a minimum-draw count (v1.0.6-TODO-82), a documented fallback that never runs
-  (v1.0.6-TODO-90);
-- **inputs accepted that should be refused**: `w` coded 1/2 (v1.0.6-TODO-86), a multi-valued statistic silently
-  truncated (v1.0.6-TODO-83), `y = NA` (v1.0.6-TODO-94), a banned `delta` (v1.0.6-TODO-81);
-- **an incoherent result**: a hypothesis shifted on two scales at once (v1.0.6-TODO-80);
-- **gaps and inconsistencies in an API surface** outside the R6 registry (Python kernels, v1.0.6-TODO-87..89).
+- **silent `NA`s** on legal inputs (v1.0.7-TODO-37 / v1.0.6-TODO-37 / v1.0.6-TODO-49 / v1.0.6-TODO-50);
+- **documented options that crash** (`n = NULL` for sequential designs, v1.0.6-TODO-38 / v1.0.6-TODO-39 / v1.0.6-TODO-40; unequal block sizes,
+  v1.0.6-TODO-36);
+- **messages that say something false**: an argument the function does not take (v1.0.6-TODO-36), advice to use
+  the `B` just used (v1.0.6-TODO-51), a fallback that does not exist (v1.0.6-TODO-45), survival wording on a
+  continuous response (v1.0.6-TODO-52);
+- **docs that say something false**: a "no intercept column" that needs one (v1.0.6-TODO-46), re-seeding
+  claims (v1.0.6-TODO-41), a minimum-draw count (v1.0.6-TODO-43), a documented fallback that never runs
+  (v1.0.6-TODO-49);
+- **inputs accepted that should be refused**: `w` coded 1/2 (v1.0.6-TODO-47), a multi-valued statistic silently
+  truncated (v1.0.6-TODO-44), `y = NA` (v1.0.6-TODO-53), a banned `delta` (v1.0.6-TODO-42);
+- **an incoherent result**: a hypothesis shifted on two scales at once (v1.0.7-TODO-38);
+- **gaps and inconsistencies in an API surface** outside the R6 registry (Python kernels, v1.0.6-TODO-48 / v1.0.7-TODO-39 / v1.0.7-TODO-40).
 
 ## 2. When to run, and which feature areas
 
@@ -50,12 +50,12 @@ Run log (append a row per run; the TODO numbers are the ones the run produced):
 
 | Date | Feature area | Task given | EDI build | Findings |
 |---|---|---|---|---|
-| 2026-11-17 | Cluster and factorial designs | article `cluster-and-factorial-experiments.Rmd` | installed 1.0.4 | v1.0.6-TODO-73, -74 |
-| 2026-11-17 | Reporting an analysis | article `reporting-an-analysis.Rmd` | installed 1.0.4 | v1.0.6-TODO-75 |
-| 2026-11-17 | Sequential designs, `n = NULL`, save/restore | article `running-a-sequential-trial.Rmd` | installed 1.0.4 | v1.0.6-TODO-76..79 |
-| 2026-11-17 | Custom randomization statistic | article `custom-randomization-statistic.Rmd` | installed 1.0.4 | v1.0.6-TODO-80..84 |
-| 2026-11-17 | Python kernels | article `edi-from-python.Rmd` | installed 1.0.4 + wheel | v1.0.6-TODO-85..89 |
-| 2026-11-17 | Missing data and censoring | articles `missing-covariates.Rmd`, `censored-survival-outcomes.Rmd` | installed 1.0.4 | v1.0.6-TODO-90..94 |
+| 2026-11-17 | Cluster and factorial designs | article `cluster-and-factorial-experiments.Rmd` | installed 1.0.4 | v1.0.6-TODO-36 / v1.0.7-TODO-37 |
+| 2026-11-17 | Reporting an analysis | article `reporting-an-analysis.Rmd` | installed 1.0.4 | v1.0.6-TODO-37 |
+| 2026-11-17 | Sequential designs, `n = NULL`, save/restore | article `running-a-sequential-trial.Rmd` | installed 1.0.4 | v1.0.6-TODO-38 / v1.0.6-TODO-39 / v1.0.6-TODO-40 / v1.0.6-TODO-41 |
+| 2026-11-17 | Custom randomization statistic | article `custom-randomization-statistic.Rmd` | installed 1.0.4 | v1.0.7-TODO-38 / v1.0.6-TODO-42 / v1.0.6-TODO-43 / v1.0.6-TODO-44 / v1.0.6-TODO-45 |
+| 2026-11-17 | Python kernels | article `edi-from-python.Rmd` | installed 1.0.4 + wheel | v1.0.6-TODO-46 / v1.0.6-TODO-47 / v1.0.6-TODO-48 / v1.0.7-TODO-39 / v1.0.7-TODO-40 |
+| 2026-11-17 | Missing data and censoring | articles `missing-covariates.Rmd`, `censored-survival-outcomes.Rmd` | installed 1.0.4 | v1.0.6-TODO-49 / v1.0.6-TODO-50 / v1.0.6-TODO-51 / v1.0.6-TODO-52 / v1.0.6-TODO-53 |
 
 The 2026-11-17 runs were article-writing agents, not strictly docs-only: they could read source. Runs under this
 runbook are docs-only (section 4), so later rows are not directly comparable with these six.
@@ -191,7 +191,7 @@ Finding format:
 3. **Place it by the release's entry rule.** A fix that meets the current patch release's entry rule (wrong
    output, crash, NA where a value is defined, ...) goes in the current release file; a new option, API or
    convention change goes in the next minor's.
-4. **File it in the house style**, one TODO per cause, following v1.0.6-TODO-73..94:
+4. **File it in the house style**, one TODO per cause, following v1.0.6-TODO-36 / v1.0.7-TODO-37 / v1.0.6-TODO-37 / v1.0.6-TODO-38 / v1.0.6-TODO-39 / v1.0.6-TODO-40 / v1.0.6-TODO-41 / v1.0.7-TODO-38 / v1.0.6-TODO-42 / v1.0.6-TODO-43 / v1.0.6-TODO-44 / v1.0.6-TODO-45 / v1.0.6-TODO-46 / v1.0.6-TODO-47 / v1.0.6-TODO-48 / v1.0.7-TODO-39 / v1.0.7-TODO-40 / v1.0.6-TODO-49 / v1.0.6-TODO-50 / v1.0.6-TODO-51 / v1.0.6-TODO-52 / v1.0.6-TODO-53:
    ~~~~markdown
    - [ ] TODO-<n> (added <date>, agent, owner request; found by the <area> docs-only scenario agent): **<What is
      wrong, as one sentence a user would recognise.>** <Where: `R/EDI/R/<file>.R` (~L<n>), the function, and the
@@ -205,7 +205,7 @@ Finding format:
    ~~~~
    Cite related TODOs as `v<version>-TODO-<n>`. Name the agent's run in the "found by" note so the run log row
    can point at it. The coordinator writes to the release file; the scenario agent never does.
-5. **Feed the mechanical checks.** If a finding is of a kind that v1.0.6-TODO-95 (NA audit), -96 (message audit)
+5. **Feed the mechanical checks.** If a finding is of a kind that v1.0.6-TODO-54 (NA audit), -96 (message audit)
    or -97 (option-matrix tests) should catch but did not, say so in the TODO, so the gap in that check is fixed
    too.
 6. **Add the run-log row** in section 2 (date, area, task, build version and commit, TODO numbers, and "subagent,

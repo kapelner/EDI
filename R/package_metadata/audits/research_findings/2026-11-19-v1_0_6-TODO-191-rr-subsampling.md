@@ -1,6 +1,6 @@
 # Risk-ratio subsampling / m-out-of-n p-values that almost never reject (2026-11-19)
 
-Manual investigation of v1.0.6-TODO-191 (owner request 2026-11-19), not output of the monthly research job. Literature
+Manual investigation of v1.0.6-TODO-137 (owner request 2026-11-19), not output of the monthly research job. Literature
 claims are cited to the primary sources listed at the end; the theorem conditions quoted below were read from the
 papers' full text (Politis, Romano and Wolf 2001; Bickel and Sakov 2008). Simulation numbers are measurements with
 EDI's own classes (loaded with `pkgload::load_all(compile = FALSE)`, no package code changed) plus a glm/Firth replica
@@ -13,7 +13,7 @@ quantification; `res_*.rds`, `res2_*.rds`: per-dataset p-values). Repro dataset:
 
 ## 1. What happens
 
-Setup (as in the v1.0.6-TODO-179 study): n = 80, `DesignFixedBernoulli`, x1, x2 ~ N(0, 1), y ~ Bernoulli(plogis(-0.4 +
+Setup (as in the v1.0.6-TODO-125 study): n = 80, `DesignFixedBernoulli`, x1, x2 ~ N(0, 1), y ~ Bernoulli(plogis(-0.4 +
 0.5 x1)), no treatment effect (event rate ~0.41). `compute_rr_resampling_pivot()` (`R/helper_gcomp.R`) draws B = 199
 subsamples of size b = floor(n^0.7) = 21 (m = 21 with replacement for m-out-of-n), forms
 `sqrt(b) * (log RR* - log RR_hat)`, and `resampling_centered_pval()` returns
@@ -34,7 +34,7 @@ Three facts turn this into a test that never rejects:
    then `mean(piv >= t_obs) >= a` whatever `t_obs` is, so `p >= 2a`. In the 11 null datasets with Wald p < 0.05 the
    floor `2a` was 0.01-0.32 for subsampling (median 0.09) and 0.00-0.37 for m-out-of-n (median 0.10); the observed
    p-values sat just above it (table in section 4).
-3. **Away from the tails nothing is wrong.** In the v1.0.6-TODO-179 data the subsampling and Wald p-values correlate
+3. **Away from the tails nothing is wrong.** In the v1.0.6-TODO-125 data the subsampling and Wald p-values correlate
    0.975 and have the same median (0.48). Only the lower tail of the p-value distribution is cut off (1 % quantile
    0.06-0.12 instead of 0.01), which is why the size is 0.000-0.005 rather than, say, 0.03. The CIs are wide for the
    same reason (the 2.5 % / 97.5 % quantiles land in the atoms).
@@ -116,7 +116,7 @@ Mapping to the four candidate explanations in the TODO:
 Section 2, citing BGvZ 1997). Ties are exactly what pushes a 21-out-of-80 resample into empty arms and separation more
 often than a subsample. More to the point, both papers say m < n is a remedy for **bootstrap failure**; log RR is a
 smooth function of means, the ordinary n-bootstrap works (EDI's own bootstrap paths have size 0.055-0.08 in the
-v1.0.6-TODO-179 study), and Bickel and Sakov's adaptive rule is shown to choose `m_hat/n -> 1` in that case
+v1.0.6-TODO-125 study), and Bickel and Sakov's adaptive rule is shown to choose `m_hat/n -> 1` in that case
 (Corollary 1). BGvZ's title states the trade-off: resampling fewer than n observations has "losses" when the
 bootstrap already works. The small m is pure loss here.
 
@@ -213,7 +213,7 @@ Remedy by remedy:
   full-sample SE at size b, which it does not at these b. Not recommended.
 - **Symmetric / two-sided pivot.** Does not help: `mean(abs(piv) >= abs(t_obs))` has the same floor `a`.
 - **Log-OR scale.** Same zero-cell degeneracy (log OR is infinite on the same events), so no help.
-- **RD scale.** The RD sibling is calibrated (0.065 / 0.070 in v1.0.6-TODO-179) because a zero-event arm gives a
+- **RD scale.** The RD sibling is calibrated (0.065 / 0.070 in v1.0.6-TODO-125) because a zero-event arm gives a
   finite RD. For delta = 1, H0: RR = 1 is the same null as RD = 0, so the p-value at delta = 1 could be taken from the
   RD subsampling distribution. It does not give RR intervals or tests of delta != 1, so it is at most a special case.
 
@@ -253,7 +253,7 @@ Remedy by remedy:
 
 The same mechanism should be checked (not verified here) in other subsampling / m-out-of-n paths whose estimator is
 infinite on a zero cell or zero-event arm: odds-ratio classes, the KK risk-ratio class (size 0.015 / 0.000 in
-v1.0.6-TODO-179), count rate ratios with an all-zero arm, and hazard ratios with no events in an arm.
+v1.0.6-TODO-125), count rate ratios with an all-zero arm, and hazard ratios with no events in an arm.
 
 ## Bibliography
 
