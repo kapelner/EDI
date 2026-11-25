@@ -6794,7 +6794,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   v1.0.6-TODO-301 cluster-check pattern); consider `ObservationalDesignMatching` too. Done when: the observational F9
   repro errors and a valid one-per-pair `w` is stored unchanged.
 
-- [ ] TODO-359 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the
+- [x] TODO-359 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401): **Blocking/BCa text in the *(ticked by the TODO audit 2026-11-25: R/EDI/R/design_fixed_blocking.R:222; R/EDI/R/design_fixed_blocking.R:91; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:351; R/EDI/vignettes/articles/analyzing-an-existing-experiment.Rmd:146)*
   existing-experiment article and `?DesignFixedBlocking` doesn't match the code.**
   Ids: ds-observational-44883784401-f10, ds-observational-44883784401-f11.
   With unequal strata and `equal_block_sizes = TRUE` the error comes at the first bootstrap/randomization call
@@ -6957,38 +6957,6 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   small-sample table, or keep it with a quantile-specific reason; reword the generic text so separation is one
   possible cause. Done when: the repro either doesn't offer the jackknife or warns without mentioning separation.
 
-- [x] TODO-404 (added 2026-11-22, done 2026-11-22, coordinator, owner request; docs-scenario free-text gaps): **Doc gaps
-  the docs-scenario agents noted outside their findings.** Sources: the "Not done / guesses", "Could not do" and
-  "Where I had to guess" parts of the area summaries of run 44883784401 (2026-11-21, this file's section) and run
-  44358267779 (2026-11-18, `audit-notes` branch). Docs-only, commit 2bc1e336 (roxygen edited, Rd not regenerated):
-  - simulation-framework: `simulations_framework.R`: `X_mat` makes `cov_draw_method` ignored (the code drops it; the
-    help said "must be NULL"); `keep_all_intermediate_data` refused with `num_cores > 1` or `Nrep_Y_w > 1`;
-    `y_linear_model` (and `betaT`) on the logit scale for incidence, and for proportion, whose `betaT` text said
-    additive. `simulation_framework_report.R`: `simulation_mode` values (`standard`, `custom_dgp`,
-    `crdg`/`catn`/`cte` joined by `+`), and that `summarize()` groups by it and classifies null cells by mean
-    `true_estimand` outside `standard`.
-  - count: `vignettes/cookbook-count.Rmd` (`ROADMAP.md`) and `vignettes/extending-edi.Rmd`
-    (`R/package_metadata/contracts/...`) link to GitHub (see v1.0.6-TODO-343). `get_matching_cluster_ids()`
-    `@R6method` blocks on `DesignSeqOneByOneKK14` (KK21 inherits), `DesignFixedBinaryMatch`,
-    `DesignFixedMatchingGreedyPairSwitching` and `ObservationalDesignMatching`.
-  - incidence / factorial: `inference_all_abstract_rand_ci.R` and the `randci-compute-rand-two-sided-pval-params`
-    template: `type` is `NULL` or `"Zhang"` (incidence on Bernoulli/matching designs) with
-    `args_for_type = list(Zhang = list(combination_method = ...))`; the randomization-CI `type` has no usable value.
-    `compute_exact_*()` `@R6method` blocks for ExactFisher (`"Fisher"`; CI from `fisher.test`/`mantelhaen.test`,
-    `pval_epsilon` ignored, premise held), ExactBinomial (`"Binomial"`; Clopper-Pearson, `pval_epsilon` ignored) and
-    ExactZhang's p-value.
-  - fixed-designs / clusters-blocking: `design_fixed_rerandomization.R`: choosing `obj_val_cutoff` for a target
-    rate (`a = qchisq(p_a, k) * n / (n_T n_C)` for `mahal_dist`, empirical quantile otherwise; `prop_acceptable` as
-    the direct route). `design_fixed_blocked_cluster.R`: `set_m()` does not change the randomization (draws use
-    `strata_cols`) and only changes what `get_block_ids()` reports.
-  - survival-censoring: `inference_all_abstract.R` `set_optimization_alg()`: `"newton_raphson"`, `"lbfgs"`, plus
-    `"irls"` when allowed, `match.arg` abbreviations, default from the optimization dispatch policy;
-    `inference_survival_weibull.R` constructor: `"lbfgs"` default, no IRLS.
-  Code issues seen, not fixed: in `InferenceRandCI$compute_rand_two_sided_pval()` the `type = "Zhang"` dispatch sits
-  inside `if (should_run_asserts())`, so with assertions off (e.g. `SimulationFramework`'s
-  `turn_off_asserts_for_speed`) `type` is silently ignored and the randomization-draw p-value is returned;
-  `DesignFixedBlockedCluster$set_m()` can record block ids that differ from the randomization strata.
-
 - [ ] TODO-373 (added 2026-11-21, agent; found by the v1.0.6-TODO-328 fix): **`InferenceIncidKKGEE` can never return a
   randomization p-value.** The KK GEE mixin's `compute_rand_two_sided_pval` override
   (`R/EDI/R/inference_mixin_kk_gee_shared.R` ~L125) stops with "not supported for incidence. Use Zhang method." unless
@@ -7018,6 +6986,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     `test-stereotype-logit-hessian-allocs.R` 18/18, `test-gaussian-lmm-hessian-prealloc.R` 19/19, and the three other
     files from the run 44749244495 failures pass. Still to confirm on CI after a push: R-CMD-check green on every leg, and
     the v1.0.6-TODO-322 (2) probes of the other kernels that share the finish.
+
 - [ ] TODO-375 (added 2026-11-21, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 24, confirmation pending): **`InferenceSurvivalWeibullRegr`: Wald / LR / gradient oversized at n = 1000 with `~1`, and score oversized at every n.**
   - Wald / LR / gradient, size and coverage: 4-5 cells each, all `~1`, n = 1000 (FixedBernoulli, FixediBCRD,
     FixedRerandomization at prob_T 0.5 and 0.2, SeqOneByOneRandomBlockSize); worst FixedRerandomization `~1` n = 1000:
@@ -7057,7 +7026,6 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     treated, and the 0/1 boundary of the proportion response.
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type proportion --design 'DesignFixedBernoulli@prob_T=0.2' --n 1000 --effect null --only InferencePropQuantileRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation decides the cell; if confirmed, fixed or accepted with rows citing this TODO.
-
 - [x] TODO-380 (added 2026-11-21, owner request; from the v1.0.6-TODO-327 decision): **A separate opt-in
   design-conservative Bartlett option, and "the testing type you ask for is the test you get".** (1) Owner 2026-11-21:
   `lik_ratio_bartlett_approx` stays the model-only Bartlett-corrected LR test on `InferenceCountKKCondPoissonOneLik`
@@ -7114,6 +7082,7 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
     405 s (+38%); the other legs' `tests_s` are back within budget. The source tarball grew to 3.07 MB (3.09 MB on
     Windows) from 2.80 MB at `01ee435d` (8-week median 2.75 MB): under the 4 MB warning, but find what added ~0.3 MB
     when looking at this TODO.
+
 - [ ] TODO-382 (added 2026-11-21, owner request; from the `ci-self-check` audit, issue #20): **Eight workflows now take
   1.6-3.4x their 8-week median.** calibration-study 384 vs 114 min (ci-self-check-m17a2fb9e), audit-results-freshness
   113 vs 56 (ci-self-check-m4736ea4b), audit-python-vulns 103 vs 54 (ci-self-check-med42e85a), audit-generated-drift
@@ -7130,7 +7099,6 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   `R/package_metadata/new_feature_plans/v1_0_5/algorithm_audit_runbook.md` for the row: check the change keeps the
   row's chosen algorithm and its comparator agreement, then update the row's `reviewed` date. Done when: the drift
   report lists no commits for row R.
-
 - [ ] TODO-384 (added 2026-11-21, coordinator; found by the rand warm-start chaining study, see
   `R/package_metadata/audits/research_findings/2026-11-21-rand-warm-start-chaining-timing.md`):
   **`InferenceIncidKKCondLogitGLMMOneLik` randomization replicates disagree with a fresh fit and go NA silently.**
@@ -7143,6 +7111,38 @@ ca01dd4b under v1.0.6-TODO-306; proportion f8, by design).
   the p-value moves (0.112 vs 0.102). Example: on the mirrored assignment `1 - w` the worker returns NA while a fresh
   fit gives -0.6247. Fix (1) first, then check whether (2) remains; the randomization p-value of this class is
   unreliable until then. Test: worker replicate equals a fresh fit on several permuted draws, and no silent NA.
+
+- [x] TODO-404 (added 2026-11-22, done 2026-11-22, coordinator, owner request; docs-scenario free-text gaps): **Doc gaps
+  the docs-scenario agents noted outside their findings.** Sources: the "Not done / guesses", "Could not do" and
+  "Where I had to guess" parts of the area summaries of run 44883784401 (2026-11-21, this file's section) and run
+  44358267779 (2026-11-18, `audit-notes` branch). Docs-only, commit 2bc1e336 (roxygen edited, Rd not regenerated):
+  - simulation-framework: `simulations_framework.R`: `X_mat` makes `cov_draw_method` ignored (the code drops it; the
+    help said "must be NULL"); `keep_all_intermediate_data` refused with `num_cores > 1` or `Nrep_Y_w > 1`;
+    `y_linear_model` (and `betaT`) on the logit scale for incidence, and for proportion, whose `betaT` text said
+    additive. `simulation_framework_report.R`: `simulation_mode` values (`standard`, `custom_dgp`,
+    `crdg`/`catn`/`cte` joined by `+`), and that `summarize()` groups by it and classifies null cells by mean
+    `true_estimand` outside `standard`.
+  - count: `vignettes/cookbook-count.Rmd` (`ROADMAP.md`) and `vignettes/extending-edi.Rmd`
+    (`R/package_metadata/contracts/...`) link to GitHub (see v1.0.6-TODO-343). `get_matching_cluster_ids()`
+    `@R6method` blocks on `DesignSeqOneByOneKK14` (KK21 inherits), `DesignFixedBinaryMatch`,
+    `DesignFixedMatchingGreedyPairSwitching` and `ObservationalDesignMatching`.
+  - incidence / factorial: `inference_all_abstract_rand_ci.R` and the `randci-compute-rand-two-sided-pval-params`
+    template: `type` is `NULL` or `"Zhang"` (incidence on Bernoulli/matching designs) with
+    `args_for_type = list(Zhang = list(combination_method = ...))`; the randomization-CI `type` has no usable value.
+    `compute_exact_*()` `@R6method` blocks for ExactFisher (`"Fisher"`; CI from `fisher.test`/`mantelhaen.test`,
+    `pval_epsilon` ignored, premise held), ExactBinomial (`"Binomial"`; Clopper-Pearson, `pval_epsilon` ignored) and
+    ExactZhang's p-value.
+  - fixed-designs / clusters-blocking: `design_fixed_rerandomization.R`: choosing `obj_val_cutoff` for a target
+    rate (`a = qchisq(p_a, k) * n / (n_T n_C)` for `mahal_dist`, empirical quantile otherwise; `prop_acceptable` as
+    the direct route). `design_fixed_blocked_cluster.R`: `set_m()` does not change the randomization (draws use
+    `strata_cols`) and only changes what `get_block_ids()` reports.
+  - survival-censoring: `inference_all_abstract.R` `set_optimization_alg()`: `"newton_raphson"`, `"lbfgs"`, plus
+    `"irls"` when allowed, `match.arg` abbreviations, default from the optimization dispatch policy;
+    `inference_survival_weibull.R` constructor: `"lbfgs"` default, no IRLS.
+  Code issues seen, not fixed: in `InferenceRandCI$compute_rand_two_sided_pval()` the `type = "Zhang"` dispatch sits
+  inside `if (should_run_asserts())`, so with assertions off (e.g. `SimulationFramework`'s
+  `turn_off_asserts_for_speed`) `type` is silently ignored and the randomization-draw p-value is returned;
+  `DesignFixedBlockedCluster$set_m()` can record block ids that differ from the randomization strata.
 - [x] TODO-407 (added 2026-11-22, coordinator, owner request; found by calibration campaign 2026-11-15-e36c7710 (simulated at e36c7710), screen flags after wave 27): **`InferenceOrdinalCloglogRegr`: every model-based test oversized in one cell, FixedBlocking prob_T 0.2, n = 1000.**
   - Wald / score / LR / gradient, size and coverage, all in FixedBlocking@0.2 `~.` n = 1000: size 0.075-0.078 (level
     0.05), coverage 0.922-0.925. No other Cloglog cell is flagged, and no calibration TODO covers the class.
@@ -7426,22 +7426,6 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   `info`) so the next failure names the error; (2) run the file alone and then directly after its shard neighbours (the
   shard-1 file list in the run log), with NOT_CRAN=true, to see whether the order triggers it; (3) fix the leaking
   state or the test. Done when the file passes in the shard on three consecutive bulk runs.
-- [ ] TODO-418 (added 2026-11-23, agent, owner request; code-duplication run 45037204796, issue #56): **Keep a
-  code-duplication family's id, verdict and TODO citation when its code is edited.** A family id (`dup-<12 hex>`,
-  `.github/scripts/audits/code_duplication.py` ~L341) hashes the two file paths and the normalized text of both
-  regions, and each region runs from the jscpd match out to `EXTEND_LINES` (20) past each end. So it survives a pure
-  move, but any edit inside or near either copy makes a new id. The family then comes back on issue #56 as a new
-  decision, is judged again by Claude (`verdicts.json` is keyed by the id), and needs a new citation in
-  v1.0.6-TODO-193. Evidence: the 2026-11-22 run listed 53 new decisions; 19 of them are on a file pair that
-  v1.0.6-TODO-193 already cited under an older id, e.g. `design_abstract.R` vs `design_fixed_abstract.R` was
-  `code-duplication-d6b10061f` (L405-498 / L90-191) and is now `code-duplication-dc6d70509` (L417-518 / L90-191).
-  Fix: when a new family overlaps an earlier one (same file pair and, say, at least half of each region's lines in
-  common), carry over the old family's verdict and decision id instead of minting new ones. Record the old-to-new id
-  mapping in `verdicts.json` so citations and dismissals keep working. Re-judge only when the overlap is small or
-  the structural differences changed. Alternatively, key families by file pair and the enclosing function or R6
-  method names. Test: in a fixture, edit one line inside a judged region; the next detect() gives the same decision id
-  and no new Claude batch.
-
 - [x] TODO-417 (added 2026-11-23, owner request; from DECISION-v1.0.6-TODO-380d): **Rank-test asymptotic p-values must
   not fall back to the bootstrap.** `InferenceSurvivalLogRank`'s p-value falls back to the bootstrap when its variance
   or the interval-censored p-value is missing (`R/EDI/R/inference_survival_log_rank.R` ~L181-187), and
@@ -7460,6 +7444,22 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
     KMDiff / RMST keep the bootstrap by design. Tests: 4 new blocks in
     `R/package_tests/testthat_bulk/test-wald-se-unavailable-returns-na-never-bootstrap.R` (63 pass); 9 related survival
     files pass. NEWS bullet added. Rd to regenerate: `InferenceSurvivalLogRank.Rd`, `InferenceSurvivalGehanWilcox.Rd`.
+
+- [ ] TODO-418 (added 2026-11-23, agent, owner request; code-duplication run 45037204796, issue #56): **Keep a
+  code-duplication family's id, verdict and TODO citation when its code is edited.** A family id (`dup-<12 hex>`,
+  `.github/scripts/audits/code_duplication.py` ~L341) hashes the two file paths and the normalized text of both
+  regions, and each region runs from the jscpd match out to `EXTEND_LINES` (20) past each end. So it survives a pure
+  move, but any edit inside or near either copy makes a new id. The family then comes back on issue #56 as a new
+  decision, is judged again by Claude (`verdicts.json` is keyed by the id), and needs a new citation in
+  v1.0.6-TODO-193. Evidence: the 2026-11-22 run listed 53 new decisions; 19 of them are on a file pair that
+  v1.0.6-TODO-193 already cited under an older id, e.g. `design_abstract.R` vs `design_fixed_abstract.R` was
+  `code-duplication-d6b10061f` (L405-498 / L90-191) and is now `code-duplication-dc6d70509` (L417-518 / L90-191).
+  Fix: when a new family overlaps an earlier one (same file pair and, say, at least half of each region's lines in
+  common), carry over the old family's verdict and decision id instead of minting new ones. Record the old-to-new id
+  mapping in `verdicts.json` so citations and dismissals keep working. Re-judge only when the overlap is small or
+  the structural differences changed. Alternatively, key families by file pair and the enclosing function or R6
+  method names. Test: in a fixture, edit one line inside a judged region; the next detect() gives the same decision id
+  and no new Claude batch.
 
 ### Follow-ups from the v1.0.6-TODO-410 measurement, 2026-11-23 (TODO-419..422)
 
