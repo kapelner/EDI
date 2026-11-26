@@ -157,6 +157,7 @@ R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-a
 R/package_tests/testthat_bulk/test-comprehensive-study-planner-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-timeout-resume-cache-classification-contracts.R,correctness,120,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-watchdog-restart-cap-counts-only-stalls.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,correctness,1.1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1965,6 +1966,7 @@ R/package_tests/testthat_bulk/test-comprehensive-slow-path-rules-naming-schema-a
 R/package_tests/testthat_bulk/test-comprehensive-study-planner-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-survival-ivwc-rand-selection-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-comprehensive-timeout-resume-cache-classification-contracts.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-comprehensive-watchdog-restart-cap-counts-only-stalls.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bayesian-bootstrap-distribution-with-reused-workers-dispatch-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-binary-match-structure-odd-rows-guard-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-compute-bootstrap-matching-stats-kernel-reservoir-pairs-and-column-pruning-reference.R,coverage,240,bootstrap
