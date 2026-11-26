@@ -1,1 +1,16 @@
-{}
+{
+ "readme-drift-d2796a227": {
+  "first_seen": "2026-11-26T17:06:35+00:00",
+  "key": "claim-drift",
+  "last_seen": "2026-11-26T17:06:35+00:00",
+  "text": "`R/EDI/vignettes/articles/planning-a-study.Rmd` (claim-drift): Line 60-61 says R = 250 to 500 trials per power point gives \"a half-width of 4 to 5 percentage points\". The reps-needed chunk (chunk 3) shows R = 246 gives half-width 0.05, R = 385 gives 0.04 and R = 683 gives 0.03. So R = 250 gives about 5 points, but R = 500 (used in examples 2 and the size check) gives about 3.5 points, between 0.03 and 0.04. The range should be roughly 3.5 to 5 points. This is a claim fix, not an automatic number fix, because the prose range is built from two values.",
+  "unit": "R/EDI/vignettes/articles/planning-a-study.Rmd"
+ },
+ "readme-drift-dda452c3c": {
+  "first_seen": "2026-11-26T17:06:35+00:00",
+  "key": "output-drift",
+  "last_seen": "2026-11-26T17:06:35+00:00",
+  "text": "`R/EDI/vignettes/articles/edi-from-python.Rmd` (output-drift): Line 357 says Python's `fast_gaussian_lmm` \"can fit the same model\" as the R `InferenceContinKKGLMM` chunk. The pasted Python output (lines 373-374) is 0.9924783774159754 with interval 0.3970216716546706 to 1.5879350831772803. Chunk 12 `kk-glmm` (line 349) prints `[1] 0.990712` and `2.5% 97.5%` of `0.3424443 1.6389797`. The estimate differs in the third decimal and the interval endpoints differ by about 0.05. The prose does not say the numbers match here (Tasks 2 and 4 do), so this may be an expected difference in the R class's model, such as its degrees of freedom or estimation method. Either the pasted Python block is stale or the prose should say the results differ slightly. The Python block was not rerun, so I cannot tell which.",
+  "unit": "R/EDI/vignettes/articles/edi-from-python.Rmd"
+ }
+}

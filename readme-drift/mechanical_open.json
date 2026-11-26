@@ -1,9 +1,1 @@
-{
- "readme-drift-ma357a968": {
-  "first_seen": "2026-11-19T12:51:35+00:00",
-  "key": "chunk-warning:`R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd` chunk # `cluster-warning` (line #): warning: InferenceAllSimpleAverageDiff on a cluster design: the Wald standard error, p-value and confidence interval treat subjects as independent, ignoring within-cluster correlation, so they may be too narrow (p-values too small). Cluster-aware alternatives: compute_rand_two_sided_pval() / compute_rand_confidence_interval(), compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval() (these resample whole clusters), or compute_jackknife_wald_two_sided_pval() / compute_jackknife_wald_confidence_interval() with unit = \"cluster\". Suppress with suppressWarnings(expr, classes = \"edi_cluster_independence_warning\").",
-  "last_seen": "2026-11-19T16:00:45+00:00",
-  "text": "`R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd` chunk 12 `cluster-warning` (line 196): warning: InferenceAllSimpleAverageDiff on a cluster design: the Wald standard error, p-value and confidence interval treat subjects as independent, ignoring within-cluster correlation, so they may be too narrow (p-values too small). Cluster-aware alternatives: compute_rand_two_sided_pval() / compute_rand_confidence_interval(), compute_bootstrap_two_sided_pval() / compute_bootstrap_confidence_interval() (these resample whole clusters), or compute_jackknife_wald_two_sided_pval() / compute_jackknife_wald_confidence_interval() with unit = \"cluster\". Suppress with suppressWarnings(expr, classes = \"edi_cluster_independence_warning\").",
-  "unit": "R/EDI/vignettes/articles/cluster-and-factorial-experiments.Rmd"
- }
-}
+{}
