@@ -14,8 +14,8 @@ library(EDI)
 #   4. An unreasonable fit (is_log_binomial_fit_reasonable() FALSE -- covers both a NULL/failed fit
 #      and a finite-but-implausible one, unlike the two-site guard on InferenceIncidModifiedPoisson)
 #      returns NA.
-# v1.0.6-TODO-209: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
-# reusable randomization worker uses, instead of its own warm-started refit (as v1.0.6-TODO-205 did for
+# v1.0.6-TODO-150: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
+# reusable randomization worker uses, instead of its own warm-started refit (as v1.0.6-TODO-146 did for
 # InferenceIncidBinomialIdentityRiskDiff). A draw loader resets the fit caches
 # (reset_reused_worker_private_caches()) before asking for the statistic, so the tests that change w or
 # the fit check clear them the same way.

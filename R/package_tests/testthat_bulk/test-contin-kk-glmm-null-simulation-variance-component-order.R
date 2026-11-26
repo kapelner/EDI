@@ -6,7 +6,7 @@
 # Where: R/EDI/R/inference_continuous_KK_glmm.R:503 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `sigma_e_hat` < 1.6. Actual comparison: 3.3
 # >= 1.6 Difference: 1.7 >= 0
-# Tracked by v1.0.6-TODO-56; fixed by v1.0.6-TODO-291 (2026-11-21), which also adds the end-to-end
+# Tracked by v1.0.6-TODO-20; fixed by v1.0.6-TODO-178 (2026-11-21), which also adds the end-to-end
 # parametric-bootstrap check below (docs-scenarios sequential-designs F4: replicate SD ~0.005 vs SE ~0.23).
 
 test_that("LMM null simulation uses log_sigma_e for the residual SD and log_sigma_b for the random intercept", {
@@ -40,7 +40,7 @@ test_that("LMM null simulation uses log_sigma_e for the residual SD and log_sigm
 		}
 })
 
-test_that("KK GLMM parametric-bootstrap replicates spread like the estimator (v1.0.6-TODO-291)", {
+test_that("KK GLMM parametric-bootstrap replicates spread like the estimator (v1.0.6-TODO-178)", {
 	set.seed(20261118)
 	n = 60
 	X = data.frame(age = round(rnorm(n, 55, 10)), severity = round(rnorm(n), 2))

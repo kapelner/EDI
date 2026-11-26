@@ -1,4 +1,4 @@
-# v1.0.6-TODO-128: InferenceSurvivalKKStratCoxPHIVWC's matched-pair stratified Cox fit
+# v1.0.6-TODO-82: InferenceSurvivalKKStratCoxPHIVWC's matched-pair stratified Cox fit
 # was given covariates that are constant within every pair (here a rare binary whose
 # carriers are not in the matched pairs, or are dropped by a bootstrap draw). The C++
 # fitter then returned a finite treatment coefficient with a NaN variance, so the
@@ -28,7 +28,7 @@ kk_strat_cox_draw_without_carriers = function(p){
 }
 
 # Draws that drop the reservoir's only treated subject leave an empty arm, which warns
-# (v1.0.6-TODO-133, owner decision 2026-11-18); these tests are about the matched half.
+# (v1.0.6-TODO-87, owner decision 2026-11-18); these tests are about the matched half.
 muffle_reservoir_dropped = function(expr) withCallingHandlers(expr, warning = function(w) {
 	if (inherits(w, "edi_kk_strat_cox_ivwc_reservoir_dropped_warning")) invokeRestart("muffleWarning")
 })

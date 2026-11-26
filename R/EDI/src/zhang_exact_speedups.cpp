@@ -150,7 +150,7 @@ inline double unfused(double x) {
 // constant cancels in that comparison, so it uses the log weights directly. Per
 // delta: one pass for the maximum, one for the exp sums. Sums are long double, as
 // in R's colSums(), so the result equals the R matrix version it replaced
-// (zhang_pval_exact_combined_vec(), v1.0.6-TODO-285) bit for bit. Two kinds of
+// (zhang_pval_exact_combined_vec(), v1.0.6-TODO-206) bit for bit. Two kinds of
 // term are skipped, both exactly: one with exp() below the smallest subnormal (0
 // there too), and, past the mode, the rest of the outcomes once a term is below
 // 2^-(LDBL_MANT_DIG + 6) times both running sums (see ldbl_sum_noop_factor()).
@@ -213,7 +213,7 @@ NumericVector zhang_minlike_pval_vec_cpp(const NumericVector& cj, int x, const N
 // Upper bound on one component's minimum-likelihood p-value at delta, valid going
 // outward in `direction` (+1 right, -1 left); see zhang_pval_exact_tail_bound() in
 // R for the argument. Same arithmetic as the R version it replaced
-// (v1.0.6-TODO-285): 1 while the mode of the weights is on x's own side, else
+// (v1.0.6-TODO-206): 1 while the mode of the weights is on x's own side, else
 // P(tail on x's side) * (1 + n_other (1 + 1e-7)) * (1 + 1e-6), capped at 1.
 namespace {
 
@@ -332,14 +332,14 @@ double zhang_minlike_tail_bound_cpp(const NumericVector& cj, int x, double delta
 }
 
 // The combined tail bound of zhang_pval_exact_tail_bound() at one delta
-// (v1.0.6-TODO-285). method: 0 Fisher, 1 Stouffer, 2 min_p.
+// (v1.0.6-TODO-206). method: 0 Fisher, 1 Stouffer, 2 min_p.
 // [[Rcpp::export]]
 double zhang_pval_exact_tail_bound_cpp(const NumericVector& cjM, int xM, const NumericVector& cjR, int xR,
                                        double delta, int direction, int method) {
   return combined_tail_bound(cjM, xM, cjR, xR, delta, direction, method);
 }
 
-// zhang_hull_scan_cut() in R with the bound above, in one call (v1.0.6-TODO-285):
+// zhang_hull_scan_cut() in R with the bound above, in one call (v1.0.6-TODO-206):
 // t_far when the bound there (b_far, or computed when NA) reaches pval_th, else
 // n_iter bisection steps between r and t_far on the nonincreasing bound, returning
 // the outer end, whose bound is below pval_th.

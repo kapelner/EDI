@@ -96,7 +96,7 @@ ROXYGEN2_REF_LINE = re.compile(r"^\s*ROXYGEN2_REF:\s*([\w.-]+/[\w.-]+@[0-9a-f]{4
 
 def pinned_roxygen2_ref(repo):
     """The roxygen2 commit the audits install (ROXYGEN2_REF in audit.yml, the one record of the pin;
-    v1.0.6-TODO-66), or None if the workflow or the line is missing."""
+    v1.0.6-TODO-30), or None if the workflow or the line is missing."""
     try:
         m = ROXYGEN2_REF_LINE.search((repo / AUDIT_WORKFLOW).read_text())
     except OSError:

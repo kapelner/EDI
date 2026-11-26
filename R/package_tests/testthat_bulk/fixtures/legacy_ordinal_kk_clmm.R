@@ -145,7 +145,7 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					j_T        = 0L,
 					link       = private$clmm_link(),
 					estimate_only = TRUE,
-					n_gh       = 60L, # v1.0.6-TODO-48 (owner 2026-11-24): mirrors the live class's KK_CLMM_N_GH
+					n_gh       = 60L, # v1.0.6-TODO-13 (owner 2026-11-24): mirrors the live class's KK_CLMM_N_GH
 					# 2026-10-22 (v1.0.5 TODO-31): was 1e-3 in the verbatim pre-migration
 					# snapshot. The live class now uses private$clmm_eps_g = 1e-6 (a deliberate
 					# accuracy fix, not a migration change), so this fixture mirrors it; with
@@ -290,7 +290,7 @@ InferenceAbstractKKOrdinalCLMMLegacyOrig = define_inference_class(
 					estimate_only = estimate_only,
 					warm_start_params = start,
 					warm_start_fisher_info = private$get_fit_warm_start_fisher(n_alpha + ncol(X_fit) + 1L),
-					n_gh          = 60L, # v1.0.6-TODO-48 (owner 2026-11-24): mirrors KK_CLMM_N_GH
+					n_gh          = 60L, # v1.0.6-TODO-13 (owner 2026-11-24): mirrors KK_CLMM_N_GH
 					eps_g         = 1e-12 # 2026-10-22: mirrors clmm_eps_g (TODO-31; 1e-3 -> 1e-6 -> 1e-12)
 				),
 				error = function(e) NULL

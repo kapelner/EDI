@@ -40,7 +40,7 @@ exact_incidence_baseline_public_methods = c(
 	"get_analysis_data",
 	"get_covariates",
 	"get_design_object",
-	# 2026-11-19 (v1.0.6-TODO-208 item (4)): root set_estimand() / get_estimand() /
+	# 2026-11-19 (v1.0.6-TODO-149 item (4)): root set_estimand() / get_estimand() /
 	# get_supported_estimands() on Inference (classed edi_estimand_not_supported error).
 	"get_estimand",
 	"get_model_formula",
@@ -118,7 +118,7 @@ exact_binomial_migrated_public_methods = c(
 	"get_analysis_data",
 	"get_covariates",
 	"get_design_object",
-	# 2026-11-19 (v1.0.6-TODO-208 item (4)): root set_estimand() / get_estimand() /
+	# 2026-11-19 (v1.0.6-TODO-149 item (4)): root set_estimand() / get_estimand() /
 	# get_supported_estimands() on Inference (classed edi_estimand_not_supported error).
 	"get_estimand",
 	"get_model_formula",
@@ -425,7 +425,7 @@ test_that("exact Zhang migration matches legacy outputs across supported fixture
 			alpha = 0.10,
 			pval_epsilon = 0.01,
 			# Was 0 (reservoir-only table; this fixture has no reservoir). Re-pinned
-			# 2026-11-19 to the pooled-table estimate (v1.0.6-TODO-147); p-value and CI unchanged.
+			# 2026-11-19 to the pooled-table estimate (v1.0.6-TODO-99); p-value and CI unchanged.
 			estimate = 1.69459572077441,
 			pval = 0.625,
 			ci = c(-0.751658555610134, 3.62346160483959)

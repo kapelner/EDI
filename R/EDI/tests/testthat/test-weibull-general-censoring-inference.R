@@ -146,7 +146,7 @@ test_that("guards fire with a clear message under general censoring and are abse
 	inf_gen = InferenceSurvivalWeibullRegr$new(setup_gen$des, verbose = FALSE)
 	expect_error(inf_gen$compute_bayesian_bootstrap_two_sided_pval(B = 11, show_progress = FALSE), "not yet supported")
 	expect_error(inf_gen$compute_lik_ratio_bartlett_approx_two_sided_pval(), "not yet supported|Bartlett")
-	# v1.0.6-TODO-143 follow-up: a nonzero delta now shifts y_L / y_R with y instead of erroring.
+	# v1.0.6-TODO-95 follow-up: a nonzero delta now shifts y_L / y_R with y instead of erroring.
 	expect_true(is.finite(inf_gen$compute_rand_two_sided_pval(r = 11, delta = 0.1, show_progress = FALSE)))
 	expect_no_error(inf_gen$compute_rand_two_sided_pval(r = 11, delta = 0, show_progress = FALSE))
 })

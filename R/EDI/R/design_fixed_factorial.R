@@ -72,7 +72,7 @@ DesignFixedFactorial = define_design_class(
 			if (should_run_asserts()) {
 				assertList(factors, types = "numeric", min.len = 1)
 			}
-			# v1.0.6-TODO-305: 2.5 levels ran as a two-level factor (1:2.5 is 1:2) and an unnamed
+			# v1.0.6-TODO-190: 2.5 levels ran as a two-level factor (1:2.5 is 1:2) and an unnamed
 			# list got the column name Var1. Checked even with asserts off: it decides the design.
 			nms = names(factors)
 			if (is.null(nms) || any(is.na(nms) | !nzchar(nms)) || anyDuplicated(nms)) {

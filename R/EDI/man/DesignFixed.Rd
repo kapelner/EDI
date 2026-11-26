@@ -24,12 +24,12 @@ des$assign_w_to_all_subjects()
     \item \href{#method-DesignFixed-initialize}{\code{DesignFixed$new()}}
     \item \href{#method-DesignFixed-assign_w_to_all_subjects}{\code{DesignFixed$assign_w_to_all_subjects()}}
     \item \href{#method-DesignFixed-add_all_subjects_to_experiment}{\code{DesignFixed$add_all_subjects_to_experiment()}}
-    \item \href{#method-DesignFixed-add_all_subject_responses}{\code{DesignFixed$add_all_subject_responses()}}
     \item \href{#method-DesignFixed-clone}{\code{DesignFixed$clone()}}
   }
 }
 \if{html}{\out{<details><summary>+ inherited public methods from Design</summary>
 <ul>
+  <li><a href='../../EDI/html/Design.html#method-Design-add_all_subject_responses'><code>Design$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>
@@ -168,41 +168,6 @@ costly allocation search, e.g. for \code{DesignFixedGreedy}).}
   }
   \subsection{Returns}{
     Invisibly returns the design object.
-  }
-}
-
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DesignFixed-add_all_subject_responses"></a>}}
-\if{latex}{\out{\hypertarget{method-DesignFixed-add_all_subject_responses}{}}}
-\subsection{\code{DesignFixed$add_all_subject_responses()}}{
-  Add all subject responses for a fixed design.
-  \subsection{Usage}{
-    \if{html}{\out{<div class="r">}}
-    \preformatted{DesignFixed$add_all_subject_responses(ys = NULL, y_Ls = NULL, y_Rs = NULL)}
-    \if{html}{\out{</div>}}
-  }
-  \subsection{Arguments}{
-    \if{html}{\out{<div class="arguments">}}
-    \describe{
-      \item{\code{ys}}{The exact responses as a numeric vector, \code{NA} for any
-subject whose response is censored (supply \code{y_Ls}/\code{y_Rs}
-for those instead).}
-      \item{\code{y_Ls}}{The censored-response lower bounds, \code{NA} for any
-subject with an exact response in \code{ys}. Right-censored:
-the last known event-free time (pair with \code{y_Rs = Inf}).
-Left-censored: \code{0}, stated explicitly. Interval-censored:
-the interval's lower bound. Storage accepts any well-formed
-left-/interval-censored value; whether a given \code{Inference}
-class can actually consume it depends on that class (most
-survival \code{Inference} classes still only accept exact/
-right-censored data and will reject construction with a clear
-error otherwise -- see individual class docs).}
-      \item{\code{y_Rs}}{The censored-response upper bounds, \code{NA} for any
-subject with an exact response in \code{ys}. Right-censored:
-\code{Inf}. Left-/interval-censored: the confirmed-by time /
-interval upper bound.}
-    }
-    \if{html}{\out{</div>}}
   }
 }
 

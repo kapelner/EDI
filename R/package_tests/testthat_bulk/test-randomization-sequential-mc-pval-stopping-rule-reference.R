@@ -120,7 +120,7 @@ test_that("min_draws delays the check: fewer valid draws than mc_min_draws never
 	expect_equal(out, ref_p(pool[seq_len(min(200L, calls() * 20L))], 8))
 })
 
-# v1.0.6-TODO-166: a prefix with too few finite draws is not a final answer, so the loop draws on to
+# v1.0.6-TODO-114: a prefix with too few finite draws is not a final answer, so the loop draws on to
 # all r draws (200 / 20 = 10 batches) and only then returns the NA p-value.
 test_that("with no valid draws the loop draws all r and returns NA", {
 	p <- fx(ctrl()); calls <- stub_prefix(p, rep(NA_real_, 200))

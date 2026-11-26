@@ -1,7 +1,7 @@
 """Input-validation gate for the Python kernels (edi_kernels._checks).
 
-v1.0.6-TODO-101: every exported kernel is a thin wrapper that checks its inputs
-before calling the pybind11 function. This file also closes v1.0.6-TODO-86: with
+v1.0.6-TODO-59: every exported kernel is a thin wrapper that checks its inputs
+before calling the pybind11 function. This file also closes v1.0.6-TODO-47: with
 y = [1, 2, 3.5, 4, 2.2, 3.1], every death observed and a 1/2- or -1/1-coded `w`,
 wilcox_hl_point_estimate, get_survival_stat_diff and fast_ridit_analysis
 silently returned nan and fast_logrank_stats flipped the sign of beta_hat. Now

@@ -28,7 +28,7 @@ each arm's RMST, combined across the two (independent) arms via
 unavailable or non-finite, \code{$compute_asymp_confidence_interval()} and
 \code{$compute_asymp_two_sided_pval()} return \code{NA}, with the reason
 recorded and an \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they
-fell back to a nonparametric bootstrap (v1.0.6-TODO-380). On left- or
+fell back to a nonparametric bootstrap (v1.0.6-TODO-225). On left- or
 interval-censored data, which have no analytic standard error, they return
 the nonparametric bootstrap interval and p-value.
 Randomization confidence intervals are not supported (the RMST-difference
@@ -288,7 +288,7 @@ to \eqn{\tau}.}
   documentation). \code{NA} (reason recorded, with an
   \code{edi_wald_unavailable_warning}) if that standard error is
   unavailable or non-finite; no bootstrap is substituted
-  (v1.0.6-TODO-380). On left- or interval-censored data, which have no
+  (v1.0.6-TODO-225). On left- or interval-censored data, which have no
   analytic standard error, the nonparametric bootstrap interval.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -320,7 +320,7 @@ interval is 1 - \code{alpha}. The default is 0.05.}
   estimate and its Greenwood-based standard error — see class
   documentation. \code{NA} (reason recorded, with an
   \code{edi_wald_unavailable_warning}) if that standard error is
-  unavailable (v1.0.6-TODO-380); the nonparametric bootstrap p-value on
+  unavailable (v1.0.6-TODO-225); the nonparametric bootstrap p-value on
   left- or interval-censored data.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

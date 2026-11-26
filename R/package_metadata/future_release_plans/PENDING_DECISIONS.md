@@ -13,7 +13,7 @@ ruling, the reasons and the date added; the TODO's pointer line becomes `  - Dec
 newest first, and within a release, TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-25.
+Last updated 2026-11-26.
 
 ## Summary
 
@@ -32,6 +32,8 @@ Last updated 2026-11-25.
 | [DECISION-v1.1.0-TODO-218](#DECISION-v1.1.0-TODO-218) | [v1.1.0-TODO-218](release_v1_1_0.md) | Should the stratified delete-1 jackknife replace leave-one-stratum-out for every `"block"` unit? |
 | [DECISION-v1.1.0-TODO-174b](#DECISION-v1.1.0-TODO-174b) | [v1.1.0-TODO-174](release_v1_1_0.md) | ZIP `~1`: make the robust score / LR / gradient its default too (reopens DECISION-v1.1.0-TODO-216)? |
 | [DECISION-v1.1.0-TODO-1](#DECISION-v1.1.0-TODO-1) | [v1.1.0-TODO-1](release_v1_1_0.md) | The v1.1.0 Phase 0 decision batch (ten cascading plan decisions) |
+| [DECISION-v1.0.7-TODO-188](#DECISION-v1.0.7-TODO-188) | [v1.0.7-TODO-188](release_v1_0_7.md#todo-188) | CoxPH: report the treatment estimate when only a nuisance coefficient diverges? |
+| [DECISION-v1.0.7-TODO-184](#DECISION-v1.0.7-TODO-184) | [v1.0.7-TODO-184](release_v1_0_7.md#todo-184) | Real-data crash corpus: raise the per-case limit from 60 s to 120 s once the imputation warm-up is in? |
 | [DECISION-v1.0.7-TODO-182](#DECISION-v1.0.7-TODO-182) | [v1.0.7-TODO-182](release_v1_0_7.md#todo-182) | NA warnings: once per call package-wide, or once per fit outside InferenceSurvivalKMDiff? |
 | [DECISION-v1.0.6-TODO-409a](#DECISION-v1.0.6-TODO-409a) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: keep halving a dead unit's shards below 4 replicates, or rely on the 180-minute timeout alone? |
 | [DECISION-v1.0.6-TODO-409b](#DECISION-v1.0.6-TODO-409b) | [v1.0.6-TODO-227](release_v1_0_6.md#todo-227) | Calibration planner: after three dead 1-replicate shards, abandon the whole unit or only those replicates? |
@@ -254,6 +256,47 @@ Last updated 2026-11-25.
 - **Raised:** release file scoping, 2026-08-18.
 
 ## v1.0.7
+
+<a id="DECISION-v1.0.7-TODO-188"></a>
+### DECISION-v1.0.7-TODO-188: CoxPH: report the treatment estimate when only a nuisance coefficient diverges?
+
+- **TODO:** [v1.0.7-TODO-188](release_v1_0_7.md#todo-188): **`InferenceSurvivalCoxPHRegr` returns NA for the treatment effect when only a nuisance covariate's coefficient diverges.**
+- **Context:** `cox_partial_likelihood_coefficients_extreme()` marks the whole fit non-estimable when any coefficient
+  is non-finite or beyond |20|. A covariate whose level has no events (a rare factor level, a missingness indicator)
+  has a monotone partial likelihood in its own coefficient, while the treatment coefficient stays well defined. The
+  same rule guards the bootstrap-weighted refit (`coxph_weighted_extreme_coefficients`).
+- **Options:** (a) keep NA for any diverged coefficient (now with a warning naming the column; current behavior);
+  (b) apply the rule to the treatment coefficient only, report the estimate and its Wald SE, and warn that a nuisance
+  coefficient diverged (what `survival::coxph` does); (c) drop the diverging covariate(s), refit, and report that
+  fit with a warning (the estimate then adjusts for fewer covariates).
+- **Evidence:** the real-data crash corpus, on HEAD 2026-11-26: `cgd` (treatment -1.27 from `survival::coxph`; EDI's
+  converged fit has a `hos.cat` level at 32.3), `supraclavicular` (-0.33 and 1.79; missingness indicators near
+  -22), `frailtypack::reduce` (0.08; `discharge` -20.4), `udca` `varices.dt` (`stage` -23.6). Under (a) all four
+  report NA. The SE under (b) comes from an information matrix that is nearly singular in the diverged direction; the
+  treatment block may still be usable, which (b) would need to check.
+- **Recommendation (agent):** (c), or (b) with a check that the treatment variance is finite and stable. Both keep a
+  well-defined treatment estimate.
+- **Raised:** 2026-11-26, by the agent triaging v1.0.7-TODO-183.
+
+<a id="DECISION-v1.0.7-TODO-184"></a>
+### DECISION-v1.0.7-TODO-184: Real-data crash corpus: raise the per-case limit from 60 s to 120 s once the imputation warm-up is in?
+
+- **TODO:** [v1.0.7-TODO-184](release_v1_0_7.md#todo-184): **107 real-data cases take over 60 s.**
+- **Context:** most small-trial timeouts come from re-running the covariate imputation (once per class in the corpus's
+  forked children, and once per rank-deficient bootstrap draw, v1.0.7-TODO-190). With the runner warming the imputation
+  in the parent and v1.0.7-TODO-190 fixed, what remains is per-fit cost of a few slow estimators at r = B = 49:
+  `InferenceIncidBinomialIdentityRiskDiff` ~88 s and `InferenceIncidLogBinomial` ~52 s at n = 2,000 (JC),
+  `InferenceSurvivalDepCensTransformRegr` ~60 s at n = 113, `InferenceOrdinalStereotypeLogitRegr` ~45 s at n = 233,
+  all measured alone on one core; a loaded CI runner adds noise, which already pushed 1-5 s cases past 60 s.
+- **Options:** (a) keep 60 s: these classes stay `timeout` rows citing v1.0.7-TODO-184 and the gate never sees their
+  rand / boot results on the big trials; (b) 120 s: they finish, at a cost of at most ~1 extra CPU-minute per such case
+  (a few dozen cases, so ~20-40 CPU-min over the ~166 CPU-min corpus, ~3-6 min wall across the 7 shards); (c) 120 s
+  plus a lower `--n-max` (e.g. 1,000) for the trials above 5,000 rows: halves the slow incidence fits again, but the
+  ruling of 2026-11-26 set 2,000.
+- **Evidence:** v1.0.7-TODO-184's timing note (2026-11-26); the coordinator's re-run of the trials above 5,000 rows at the
+  2,000 cap: 19 timeouts, all at n = 2,000).
+- **Recommendation (agent):** (b), after the warm-up lands; keep `--n-max 2000`.
+- **Raised:** 2026-11-26, by the agent on v1.0.7-TODO-184.
 
 <a id="DECISION-v1.0.7-TODO-182"></a>
 ### DECISION-v1.0.7-TODO-182: NA warnings: once per call package-wide, or once per fit outside InferenceSurvivalKMDiff?

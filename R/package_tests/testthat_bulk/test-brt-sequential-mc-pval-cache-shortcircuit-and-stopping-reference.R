@@ -102,7 +102,7 @@ test_that("a fully cached distribution short-circuits the batch loop using the k
 })
 
 test_that("the reusable-worker cache is cleared on exit; an all-NA pool draws every batch, then NA", {
-	# v1.0.6-TODO-166 (commit 3dabce47): a prefix with too few finite draws no longer ends the
+	# v1.0.6-TODO-114 (commit 3dabce47): a prefix with too few finite draws no longer ends the
 	# loop; the next batch is drawn, and only the full B draws give the (NA) answer.
 	p <- fx(ctrl()); tg <- stub_prefix(p, rep(NA_real_, 1000))
 	p$cached_values$reusable_bootstrap_worker <- list(stale = TRUE)
@@ -117,7 +117,7 @@ run_narm <- function(p, t, B, draws, na.rm, delta = 0) {
 		y0_full = numeric(0), draws = draws, zero_one_logit_clamp = 1e-12, na.rm = na.rm)
 }
 
-test_that("na.rm = FALSE: the first prefix with a non-finite draw ends the loop with a flagged NA (v1.0.6-TODO-214)", {
+test_that("na.rm = FALSE: the first prefix with a non-finite draw ends the loop with a flagged NA (v1.0.6-TODO-155)", {
 	set.seed(3)
 	pool <- rnorm(1000); pool[450] <- NA_real_
 	t_obs <- unname(quantile(pool, 0.975, na.rm = TRUE))   # ambiguous: would draw past 300

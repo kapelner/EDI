@@ -315,7 +315,7 @@ seq_des_inf$compute_estimate()
 of the Peto-Prentice weighted martingale residual mean difference. When the SE
 is unavailable the interval is \code{NA}, with the reason recorded and an
 \code{edi_wald_unavailable_warning}; no bootstrap interval is substituted
-(v1.0.6-TODO-380; call \code{compute_bootstrap_confidence_interval()} for one).
+(v1.0.6-TODO-225; call \code{compute_bootstrap_confidence_interval()} for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceSurvivalGehanWilcox$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -365,7 +365,7 @@ this is \code{interval::ictest()}'s p-value; when that is unavailable the
 p-value is \code{NA}, with the reason recorded under
 \code{procedure_failure_reason$rank_test} and an
 \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
-substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+substituted (v1.0.6-TODO-231; call \code{compute_bootstrap_two_sided_pval()}
 for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

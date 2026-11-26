@@ -1,4 +1,4 @@
-# v1.0.6-TODO-127: InferencePropGCompMeanDiff's load_bootstrap_sample_into_worker()
+# v1.0.6-TODO-81: InferencePropGCompMeanDiff's load_bootstrap_sample_into_worker()
 # called as.integer() on the whole draw. Blocked/matched jackknife deletions and every
 # exchangeable-unit draw (subsampling, m-out-of-n, on any design) arrive as
 # list(i_b = rows, m_vec_b = multiplicities), so as.integer() gave NA rows and every

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-106 (audit of checkmate defaults beyond any.missing): design
+# v1.0.6-TODO-60 (audit of checkmate defaults beyond any.missing): design
 # arguments that checkmate let through by default -- Inf (no finite = TRUE), a
 # vector where a scalar is meant (no len = 1), n = 0 (assertCount without
 # positive = TRUE), NA in character vectors (assertCharacter's any.missing

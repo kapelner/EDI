@@ -1,4 +1,4 @@
-# v1.0.6-TODO-75, v1.0.6-TODO-114, v1.0.6-TODO-92: the BCa bootstrap p-value (the default type)
+# v1.0.6-TODO-37, v1.0.6-TODO-68, v1.0.6-TODO-51: the BCa bootstrap p-value (the default type)
 # returned NA with no warning when the null value lay outside the bootstrap distribution, and also
 # when the BCa adjustment was on the boundary (where the BCa CI warns). It now returns the 2 / B
 # floor in the first case (as the percentile type does) and warns in the second. The boundary

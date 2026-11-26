@@ -7,7 +7,7 @@
 #' likelihood-backed inference. The information preference
 #' (\code{set_information_preference()}) drives the score (Rao) test and score
 #' CI only; Wald standard errors always use the observed information
-#' (v1.0.6-TODO-215, owner decision 2026-11-19, Efron and Hinkley 1978). Requires code{get_likelihood_test_spec()} and
+#' (v1.0.6-TODO-156, owner decision 2026-11-19, Efron and Hinkley 1978). Requires code{get_likelihood_test_spec()} and
 #' code{get_default_information_source()} private methods, as well as
 #' code{information_preference} and code{information_source_used} private
 #' fields, all provided by the host class.
@@ -23,7 +23,7 @@ InferenceExtInformationMatrix = list(
 		# `preference`: NULL (default) resolves the configured information
 		# preference (private$information_preference, "auto" -> the class
 		# default). The Wald SE path passes "observed" explicitly
-		# (v1.0.6-TODO-215).
+		# (v1.0.6-TODO-156).
 		get_information_matrix = function(spec = NULL, fit = NULL, preference = NULL){
 			if (is.null(spec)) {
 				spec = private$get_likelihood_test_spec()
@@ -135,7 +135,7 @@ InferenceExtInformationMatrix = list(
 		},
 
 		# Wald standard error of coefficient j from an information matrix at the
-		# MLE. v1.0.6-TODO-215 (owner decision 2026-11-19): Wald SEs always use
+		# MLE. v1.0.6-TODO-156 (owner decision 2026-11-19): Wald SEs always use
 		# the OBSERVED information (the negative Hessian of the log-likelihood at
 		# the MLE; Efron and Hinkley 1978), whatever set_information_preference()
 		# says -- the preference applies to score tests and score CIs only. A

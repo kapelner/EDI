@@ -39,7 +39,7 @@ InferenceExtMinimumVolatilitySelector = list(
 				res_k = tryCatch(evaluator(size_k), error = function(e) {
 					# Timeouts and other control conditions abort the whole selection instead of
 					# marking this candidate non-estimable (same rule as resampling_error_to_na;
-					# v1.0.6-TODO-196).
+					# v1.0.6-TODO-141).
 					if (private$is_resampling_control_condition(e)) stop(e)
 					list(
 						estimate = NA_real_,

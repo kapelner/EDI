@@ -1,11 +1,11 @@
 """Message argument audit: argument names quoted in stop() / warning() / message() strings must exist.
 
-Plan: v1.0.6-TODO-96 in R/package_metadata/future_release_plans/release_v1_0_6.md, following the
+Plan: v1.0.6-TODO-55 in R/package_metadata/future_release_plans/release_v1_0_6.md, following the
 framework in R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md. No Claude, no R:
 the R sources are read with a small tokenizer here.
 
 A message that tells the user to "set `equal_block_sizes = FALSE`" is wrong when the class they are
-using has no such argument (v1.0.6-TODO-73: DesignFixedBlockedCluster inherits that message from the
+using has no such argument (v1.0.6-TODO-36: DesignFixedBlockedCluster inherits that message from the
 BlockingStructure component, but its initialize() has no `equal_block_sizes`). This audit reads every
 string literal inside a stop(), warning() or message() call in R/EDI/R/*.R and picks out the argument
 names it quotes as `name = ...`:
@@ -27,7 +27,7 @@ Each name must be one of, for the code the message is in:
 - for code in a component source (the DESIGN_*_PUBLIC / _PRIVATE lists, an inference component's
   source class): the same, checked for every exported class that composes the component, directly,
   through a component dependency, or by inheritance. A name only some of those classes take is
-  reported with the classes that do not take it; that is the v1.0.6-TODO-73 case.
+  reported with the classes that do not take it; that is the v1.0.6-TODO-36 case.
 Code outside any class (a package-level helper) is checked against the formals of its own function
 chain and, failing that, of the package-level functions that call it by name, since helpers often
 validate an argument of their caller.
@@ -779,7 +779,7 @@ def apply(ctx, results, mech):
     summary = (f"Read the stop(), warning() and message() calls in {n_files} files under `{R_DIR}`: "
                f"{len(found)} quoted argument name(s) that the code reaching the message does not accept. "
                "A message that tells the user to set an argument the class does not take fails when they "
-               "follow it (v1.0.6-TODO-73). Nothing is edited. A false positive is dismissed by listing its "
+               "follow it (v1.0.6-TODO-36). Nothing is edited. A false positive is dismissed by listing its "
                "id in `R/package_metadata/audits/DISMISSED_DECISIONS.md` with the reason.")
     return {"summary": summary, "applied": [], "mechanical": [], "human": human, "proposed": []}
 

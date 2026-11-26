@@ -8,7 +8,7 @@
 # Where: R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:1094 (kind: core_count_dependence).
 # On commit 4fc58cd063bc this test failed with: Expected `r1$est` to be identical to `r2$est`.
 # Differences: Objects equal but not identical
-# Regression test for v1.0.6-TODO-64 (fixed 2026-11-19; the skip() was removed).
+# Regression test for v1.0.6-TODO-28 (fixed 2026-11-19; the skip() was removed).
 
 test_that("hurdle poisson bootstrap-weighted estimates do not depend on the core count", {
 		n = 200L

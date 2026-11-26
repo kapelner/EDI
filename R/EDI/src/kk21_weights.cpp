@@ -493,6 +493,34 @@ static double univariate_beta_tstat(
 	return std::fabs(beta(1) / se);
 }
 
+// One dispersion update shared by both NB covariate-weight fits.
+static bool kk21_negbin_theta_update(const Eigen::VectorXd& y, const Eigen::VectorXd& mu,
+                                    double theta, double& theta_new) {
+	const int n = y.size();
+	double score = 0.0;
+	double info = 0.0;
+	const double digamma_theta = fast_digamma(theta);
+	const double trigamma_theta = fast_trigamma(theta);
+	const double log_theta = std::log(theta);
+	const double inv_theta = 1.0 / theta;
+	const Eigen::ArrayXd trigamma_ypt = fast_trigamma_vec(y.array() + theta);
+	for (int i = 0; i < n; ++i) {
+		double yi = y[i];
+		double mui = mu[i];
+		score += fast_digamma(yi + theta) - digamma_theta
+				 + log_theta - std::log(theta + mui) + 1.0
+				 - (yi + theta) / (theta + mui);
+		info += -trigamma_ypt[i] + trigamma_theta
+				- inv_theta + 2.0 / (theta + mui)
+				- (yi + theta) / ((theta + mui) * (theta + mui));
+	}
+
+	if (std::fabs(info) < 1e-10) return false;
+	theta_new = theta - score / info;
+	theta_new = std::max(0.01, std::min(1000.0, theta_new));
+	return true;
+}
+
 // Helper: Univariate negative binomial regression for a single covariate
 // Returns t-statistic for the covariate, or -1 if fitting fails
 static double univariate_negbin_tstat(
@@ -548,27 +576,8 @@ static double univariate_negbin_tstat(
 		mu = eta.array().min(20.0).exp().matrix();
 
 		// M-step: update theta using one-step Newton-Raphson
-		double score = 0.0;
-		double info = 0.0;
-		const double digamma_theta = fast_digamma(theta);
-		const double trigamma_theta = fast_trigamma(theta);
-		const double log_theta = std::log(theta);
-		const double inv_theta = 1.0 / theta;
-		const Eigen::ArrayXd trigamma_ypt = fast_trigamma_vec(y.array() + theta);
-		for (int i = 0; i < n; ++i) {
-			double yi = y[i];
-			double mui = mu[i];
-			score += fast_digamma(yi + theta) - digamma_theta
-					 + log_theta - std::log(theta + mui) + 1.0
-					 - (yi + theta) / (theta + mui);
-			info += -trigamma_ypt[i] + trigamma_theta
-					- inv_theta + 2.0 / (theta + mui)
-					- (yi + theta) / ((theta + mui) * (theta + mui));
-		}
-
-		if (std::fabs(info) < 1e-10) break;
-		double theta_new = theta - score / info;
-		theta_new = std::max(0.01, std::min(1000.0, theta_new));
+		double theta_new = theta;
+		if (!kk21_negbin_theta_update(y, mu, theta, theta_new)) break;
 
 		if (std::fabs(theta_new - theta) < tol) {
 			theta = theta_new;
@@ -664,47 +673,31 @@ NumericVector kk21_beta_weights_cpp(const NumericMatrix& X,
 	return weights;
 }
 
-// [[Rcpp::export]]
-NumericVector kk21_negbin_weights_cpp(const NumericMatrix& X,
-										const NumericVector& y) {
-	int n = X.nrow();
-	int p = X.ncol();
-	NumericVector weights(p);
-	double eps = std::numeric_limits<double>::epsilon();
-
-	if (n < 3 || p == 0) {
-		std::fill(weights.begin(), weights.end(), eps);
-		return weights;
-	}
-
-	// Convert to Eigen
-	Eigen::MatrixXd X_map = as<Eigen::MatrixXd>(X);
-	Eigen::VectorXd y_vec = as<Eigen::VectorXd>(y);
-
-	// Pre-compute OLS quantities for fallback (using log(y+1))
-	Eigen::VectorXd log_y1(n);
-	for (int i = 0; i < n; ++i) {
-		log_y1[i] = std::log1p(y_vec[i]);
-	}
-	double sumy = log_y1.sum();
-	double sumy2 = log_y1.squaredNorm();
+template <typename ScoreColumn>
+static void kk21_model_weights_with_ols_fallback(
+    const Eigen::MatrixXd& X_map, const Eigen::VectorXd& response,
+    NumericVector& weights, double eps, ScoreColumn score_column) {
+	const int n = X_map.rows();
+	const int p = X_map.cols();
+	double sumy = response.sum();
+	double sumy2 = response.squaredNorm();
 	double ybar = sumy / n;
 
 	for (int j = 0; j < p; ++j) {
-		double tstat = univariate_negbin_tstat(y_vec, X_map.col(j));
+		double tstat = score_column(X_map.col(j));
 
 		if (tstat > 0 && std::isfinite(tstat)) {
 			weights[j] = tstat;
 			continue;
 		}
 
-		// Fall back to OLS on log(y+1)
+		// Use the transformed response for the OLS fallback.
 		double sumx = 0.0, sumx2 = 0.0, sumxy = 0.0;
 		for (int i = 0; i < n; ++i) {
 			double x = X_map(i, j);
 			sumx += x;
 			sumx2 += x * x;
-			sumxy += x * log_y1[i];
+			sumxy += x * response[i];
 		}
 		double xbar = sumx / n;
 		double varx = sumx2 - n * xbar * xbar;
@@ -733,6 +726,33 @@ NumericVector kk21_negbin_weights_cpp(const NumericMatrix& X,
 			weights[j] = std::fabs(b1 / se_b1);
 		}
 	}
+
+}
+
+// [[Rcpp::export]]
+NumericVector kk21_negbin_weights_cpp(const NumericMatrix& X,
+										const NumericVector& y) {
+	int n = X.nrow();
+	int p = X.ncol();
+	NumericVector weights(p);
+	double eps = std::numeric_limits<double>::epsilon();
+
+	if (n < 3 || p == 0) {
+		std::fill(weights.begin(), weights.end(), eps);
+		return weights;
+	}
+
+	// Convert to Eigen
+	Eigen::MatrixXd X_map = as<Eigen::MatrixXd>(X);
+	Eigen::VectorXd y_vec = as<Eigen::VectorXd>(y);
+
+	// Pre-compute OLS quantities for fallback (using log(y+1))
+	Eigen::VectorXd log_y1(n);
+	for (int i = 0; i < n; ++i) {
+		log_y1[i] = std::log1p(y_vec[i]);
+	}
+	kk21_model_weights_with_ols_fallback(X_map, log_y1, weights, eps,
+		[&](const auto& column) { return univariate_negbin_tstat(y_vec, column); });
 
 	return weights;
 }
@@ -837,54 +857,8 @@ NumericVector kk21_survival_weights_cpp(const NumericMatrix& X,
 	}
 
 	// Pre-compute OLS quantities for fallback
-	double sumy = log_y.sum();
-	double sumy2 = log_y.squaredNorm();
-	double ybar = sumy / n;
-
-	for (int j = 0; j < p; ++j) {
-		// Try Weibull first
-		double tstat = univariate_weibull_tstat(log_y, delta_vec, X_map.col(j));
-
-		if (tstat > 0 && std::isfinite(tstat)) {
-			weights[j] = tstat;
-			continue;
-		}
-
-		// Fall back to OLS on log(y)
-		double sumx = 0.0, sumx2 = 0.0, sumxy = 0.0;
-		for (int i = 0; i < n; ++i) {
-			double x = X_map(i, j);
-			sumx += x;
-			sumx2 += x * x;
-			sumxy += x * log_y(i);
-		}
-		double xbar = sumx / n;
-		double varx = sumx2 - n * xbar * xbar;
-
-		if (varx <= eps || n <= 2) {
-			weights[j] = eps;
-			continue;
-		}
-
-		double b1 = (sumxy - n * xbar * ybar) / varx;
-		double b0 = ybar - b1 * xbar;
-		double sse = sumy2 + n * b0 * b0 + b1 * b1 * sumx2 +
-					 2.0 * b0 * b1 * sumx - 2.0 * b0 * sumy - 2.0 * b1 * sumxy;
-
-		if (n <= 2 || sse <= 0) {
-			weights[j] = eps;
-			continue;
-		}
-
-		double sigma2 = sse / (n - 2);
-		double se_b1 = std::sqrt(sigma2 / varx);
-
-		if (!std::isfinite(se_b1) || se_b1 <= 0) {
-			weights[j] = eps;
-		} else {
-			weights[j] = std::fabs(b1 / se_b1);
-		}
-	}
+	kk21_model_weights_with_ols_fallback(X_map, log_y, weights, eps,
+		[&](const auto& column) { return univariate_weibull_tstat(log_y, delta_vec, column); });
 
 	return weights;
 }
@@ -1023,27 +997,8 @@ static double multivariate_negbin_tstat(
 		mu = eta.array().min(20.0).exp().matrix();
 
 		// Update theta using Newton-Raphson
-		double score = 0.0;
-		double info = 0.0;
-		const double digamma_theta = fast_digamma(theta);
-		const double trigamma_theta = fast_trigamma(theta);
-		const double log_theta = std::log(theta);
-		const double inv_theta = 1.0 / theta;
-		const Eigen::ArrayXd trigamma_ypt = fast_trigamma_vec(y.array() + theta);
-		for (int i = 0; i < n; ++i) {
-			double yi = y[i];
-			double mui = mu[i];
-			score += fast_digamma(yi + theta) - digamma_theta
-					 + log_theta - std::log(theta + mui) + 1.0
-					 - (yi + theta) / (theta + mui);
-			info += -trigamma_ypt[i] + trigamma_theta
-					- inv_theta + 2.0 / (theta + mui)
-					- (yi + theta) / ((theta + mui) * (theta + mui));
-		}
-
-		if (std::fabs(info) < 1e-10) break;
-		double theta_new = theta - score / info;
-		theta_new = std::max(0.01, std::min(1000.0, theta_new));
+		double theta_new = theta;
+		if (!kk21_negbin_theta_update(y, mu, theta, theta_new)) break;
 
 		if (std::fabs(theta_new - theta) < tol) {
 			theta = theta_new;
@@ -1067,129 +1022,76 @@ static double multivariate_negbin_tstat(
 	return std::fabs(beta(coef_idx) / se);
 }
 
+template <typename ScoreCandidate>
+static NumericVector kk21_stepwise_model_weights(
+    const NumericMatrix& X, const NumericVector& y, const NumericVector& w,
+    int intercept_columns, bool clamp_response, ScoreCandidate score_candidate) {
+    const int n = X.nrow();
+    const int p = X.ncol();
+    NumericVector weights(p, NA_REAL);
+    if (n == 0 || p == 0) return weights;
+
+    const Eigen::MatrixXd covariates = as<Eigen::MatrixXd>(X);
+    Eigen::VectorXd response = as<Eigen::VectorXd>(y);
+    const Eigen::VectorXd assignment = as<Eigen::VectorXd>(w);
+    if (clamp_response) {
+        for (int i = 0; i < n; ++i) {
+            response[i] = std::max(1e-10, std::min(1.0 - 1e-10, response[i]));
+        }
+    }
+
+    std::vector<int> selected;
+    selected.reserve(p);
+    std::vector<bool> used(p, false);
+    for (int step = 0; step < p; ++step) {
+        double best_stat = -1.0;
+        int best_column = -1;
+        const int n_selected = static_cast<int>(selected.size());
+        for (int column = 0; column < p; ++column) {
+            if (used[column]) continue;
+
+            Eigen::MatrixXd candidate(n, n_selected + 2 + intercept_columns);
+            if (intercept_columns) candidate.col(0).setConstant(1.0);
+            candidate.col(intercept_columns) = covariates.col(column);
+            for (int j = 0; j < n_selected; ++j) {
+                candidate.col(intercept_columns + 1 + j) = covariates.col(selected[j]);
+            }
+            candidate.col(intercept_columns + 1 + n_selected) = assignment;
+            const auto score = score_candidate(candidate, response);
+            if (!score) continue;
+            const double stat = R_finite(*score) && *score >= 0.0 ? *score : 0.0;
+            if (stat > best_stat) {
+                best_column = column;
+                best_stat = stat;
+            }
+        }
+
+        if (best_column < 0) break;
+        weights[best_column] = best_stat;
+        used[best_column] = true;
+        selected.push_back(best_column);
+    }
+    return weights;
+}
+
 // [[Rcpp::export]]
 NumericVector kk21_stepwise_beta_weights_cpp(const NumericMatrix& X,
 											 const NumericVector& y,
 											 const NumericVector& w) {
-	int n = X.nrow();
-	int p = X.ncol();
-	NumericVector weights(p, NA_REAL);
-
-	if (n == 0 || p == 0) {
-		return weights;
-	}
-
-	Eigen::MatrixXd X_map = as<Eigen::MatrixXd>(X);
-	Eigen::VectorXd y_vec = as<Eigen::VectorXd>(y);
-	Eigen::VectorXd w_vec = as<Eigen::VectorXd>(w);
-
-	// Clamp y to (0,1)
-	for (int i = 0; i < n; ++i) {
-		y_vec[i] = std::max(1e-10, std::min(1.0 - 1e-10, y_vec[i]));
-	}
-
-	std::vector<int> selected;
-	selected.reserve(p);
-	std::vector<bool> used(p, false);
-
-	for (int step = 0; step < p; ++step) {
-		double best_stat = -1.0;
-		int best_j = -1;
-		int k = static_cast<int>(selected.size());
-
-		for (int j = 0; j < p; ++j) {
-			if (used[j]) {
-				continue;
-			}
-
-			// Build design matrix: [1, x_j, selected_covs..., w]
-			Eigen::MatrixXd X(n, k + 3);
-			X.col(0).setConstant(1.0);
-			X.col(1) = X_map.col(j);
-			for (int idx = 0; idx < k; ++idx) {
-			        X.col(2 + idx) = X_map.col(selected[idx]);
-			}
-			X.col(k + 2) = w_vec;
-			double stat = multivariate_beta_tstat(X, y_vec, 1);
-			if (!R_finite(stat) || stat < 0) {
-				stat = 0.0;
-			}
-			if (stat > best_stat) {
-				best_stat = stat;
-				best_j = j;
-			}
-		}
-
-		if (best_j < 0) {
-			break;
-		}
-
-		weights[best_j] = best_stat;
-		used[best_j] = true;
-		selected.push_back(best_j);
-	}
-
-	return weights;
+    return kk21_stepwise_model_weights(X, y, w, 1, true,
+        [](const Eigen::MatrixXd& candidate, const Eigen::VectorXd& response) -> std::optional<double> {
+            return multivariate_beta_tstat(candidate, response, 1);
+        });
 }
 
 // [[Rcpp::export]]
 NumericVector kk21_stepwise_negbin_weights_cpp(const NumericMatrix& X,
 												 const NumericVector& y,
 												 const NumericVector& w) {
-	int n = X.nrow();
-	int p = X.ncol();
-	NumericVector weights(p, NA_REAL);
-
-	if (n == 0 || p == 0) {
-		return weights;
-	}
-
-	Eigen::MatrixXd X_map = as<Eigen::MatrixXd>(X);
-	Eigen::VectorXd y_vec = as<Eigen::VectorXd>(y);
-	Eigen::VectorXd w_vec = as<Eigen::VectorXd>(w);
-
-	std::vector<int> selected;
-	selected.reserve(p);
-	std::vector<bool> used(p, false);
-
-	for (int step = 0; step < p; ++step) {
-		double best_stat = -1.0;
-		int best_j = -1;
-		int k = static_cast<int>(selected.size());
-
-		for (int j = 0; j < p; ++j) {
-			if (used[j]) {
-				continue;
-			}
-
-			// Build design matrix: [1, x_j, selected_covs..., w]
-			Eigen::MatrixXd X(n, k + 3);
-			X.col(0).setConstant(1.0);
-			X.col(1) = X_map.col(j);
-			for (int idx = 0; idx < k; ++idx) {
-			        X.col(2 + idx) = X_map.col(selected[idx]);
-			}
-			X.col(k + 2) = w_vec;
-			double stat = multivariate_negbin_tstat(X, y_vec, 1);
-			if (!R_finite(stat) || stat < 0) {
-				stat = 0.0;
-			}
-			if (stat > best_stat) {
-				best_stat = stat;
-				best_j = j;
-			}
-		}
-
-		if (best_j < 0) {
-			break;
-		}
-
-		weights[best_j] = best_stat;
-		used[best_j] = true;
-		selected.push_back(best_j);
-	}
-
-	return weights;
+    return kk21_stepwise_model_weights(X, y, w, 1, false,
+        [](const Eigen::MatrixXd& candidate, const Eigen::VectorXd& response) -> std::optional<double> {
+            return multivariate_negbin_tstat(candidate, response, 1);
+        });
 }
 
 // Helper for ordinal t-stat
@@ -1241,62 +1143,12 @@ NumericVector kk21_ordinal_weights_cpp(const NumericMatrix& X,
 NumericVector kk21_stepwise_ordinal_weights_cpp(const NumericMatrix& X,
                                                  const NumericVector& y,
                                                  const NumericVector& w) {
-    int n = X.nrow();
-    int p = X.ncol();
-    NumericVector weights(p, NA_REAL);
-
-    if (n == 0 || p == 0) {
-        return weights;
-    }
-
-    Eigen::MatrixXd X_map = as<Eigen::MatrixXd>(X);
-    Eigen::VectorXd y_vec = as<Eigen::VectorXd>(y);
-    Eigen::VectorXd w_vec = as<Eigen::VectorXd>(w);
-
-    std::vector<int> selected;
-    selected.reserve(p);
-    std::vector<bool> used(p, false);
-
-    for (int step = 0; step < p; ++step) {
-        double best_stat = -1.0;
-        int best_j = -1;
-        int k = static_cast<int>(selected.size());
-
-        for (int j = 0; j < p; ++j) {
-            if (used[j]) {
-                continue;
-            }
-
-            // Build design matrix: [x_j, selected_covs..., w]
-            Eigen::MatrixXd X(n, k + 2);
-            X.col(0) = X_map.col(j);
-            for (int idx = 0; idx < k; ++idx) {
-                X.col(1 + idx) = X_map.col(selected[idx]);
-            }
-            X.col(k + 1) = w_vec;
-
+    return kk21_stepwise_model_weights(X, y, w, 0, false,
+        [](const Eigen::MatrixXd& candidate, const Eigen::VectorXd& response) -> std::optional<double> {
             try {
-                double stat = multivariate_ordinal_tstat(X, y_vec, 1);
-                if (!R_finite(stat) || stat < 0) {
-                    stat = 0.0;
-                }
-                if (stat > best_stat) {
-                    best_stat = stat;
-                    best_j = j;
-                }
+                return multivariate_ordinal_tstat(candidate, response, 1);
             } catch (...) {
-                continue;
+                return std::nullopt;
             }
-        }
-
-        if (best_j < 0) {
-            break;
-        }
-
-        weights[best_j] = best_stat;
-        used[best_j] = true;
-        selected.push_back(best_j);
-    }
-
-	return weights;
+        });
 }

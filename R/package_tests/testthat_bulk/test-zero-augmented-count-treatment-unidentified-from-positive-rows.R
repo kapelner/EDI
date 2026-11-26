@@ -1,4 +1,4 @@
-# v1.0.6-TODO-186: hurdle / zero-inflated count models learn the count-part
+# v1.0.6-TODO-132: hurdle / zero-inflated count models learn the count-part
 # treatment coefficient from the positive rows only. When those rows do not
 # identify it (here a single positive count against a 7-column count design),
 # the likelihood is flat along the treatment direction and the optimizer just

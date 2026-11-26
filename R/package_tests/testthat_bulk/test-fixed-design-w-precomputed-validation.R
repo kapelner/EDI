@@ -1,9 +1,9 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-300 (docs-scenarios clusters-blocking F4): assign_w_to_all_subjects(w_precomputed = )
+# v1.0.6-TODO-187 (docs-scenarios clusters-blocking F4): assign_w_to_all_subjects(w_precomputed = )
 # stored as.numeric(w_precomputed) unchecked, so a 1/2-coded vector was kept and
-# InferenceAllSimpleAverageDiff returned NA. v1.0.6-TODO-301 (clusters-blocking F6): the cluster
+# InferenceAllSimpleAverageDiff returned NA. v1.0.6-TODO-188 (clusters-blocking F6): the cluster
 # designs accepted an assignment that varies within clusters.
 
 wpre_cluster_design = function(cls = "DesignFixedCluster", seed = 1) {

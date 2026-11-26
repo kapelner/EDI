@@ -1,6 +1,6 @@
 # Sweep: call every exported Inference class's compute_*confidence_interval /
 # compute_*pval method with alpha, delta or pval_epsilon = NA and record whether
-# it errors (good) or returns (an unguarded argument). v1.0.6-TODO-105.
+# it errors (good) or returns (an unguarded argument). v1.0.7-TODO-45.
 # Run from the repo root:  Rscript R/package_tests/sweep_na_argument_guards.R
 # Output CSV: $EDI_NA_SWEEP_OUT (default: a file in tempdir()). Uses
 # pkgload::load_all(compile = FALSE); takes a few minutes.

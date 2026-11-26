@@ -154,71 +154,8 @@ InferenceContinOLS = define_inference_class(
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			X_full = private$create_design_matrix()
-			keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
-			if (!any(keep)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			w_eff = as.numeric(row_weights[keep])
-			X_sub = X_full[keep, , drop = FALSE]
-			y_sub = as.numeric(private$y[keep])
-			# Positive row weights preserve the design's rank under sqrt-weight
-			# scaling. Use the existing native OLS solve on full-rank draws; keep
-			# lm.wfit as the compatibility fallback for aliased or failed fits.
-			sqrt_w = sqrt(w_eff)
-			X_weighted = X_sub * sqrt_w
-			y_weighted = y_sub * sqrt_w
-			beta_native = tryCatch({
-				if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
-					fit_native = fast_ols_cpp(X_weighted, y_weighted)
-					beta = as.numeric(fit_native$b)
-					if (length(beta) == ncol(X_sub) && all(is.finite(beta))) beta else NULL
-				} else {
-					NULL
-				}
-			}, error = function(e) NULL)
-			fit = NULL
-			if (is.null(beta_native)) {
-				fit = tryCatch(
-					stats::lm.wfit(x = X_sub, y = y_sub, w = w_eff),
-					error = function(e) NULL
-				)
-			}
-			coef_hat = if (!is.null(beta_native)) {
-				beta_native
-			} else if (!is.null(fit)) {
-				as.numeric(stats::coef(fit))
-			} else {
-				numeric(0)
-			}
-			if (length(coef_hat) < 2L || !is.finite(coef_hat[2L])) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = coef_hat[2L]
-			if (!estimate_only) {
-				df = sum(keep) - length(coef_hat)
-				se = if (df > 0L) {
-					residuals = if (!is.null(beta_native)) {
-						y_sub - as.numeric(X_sub %*% coef_hat)
-					} else {
-						fit$residuals
-					}
-					sigma2_w = sum(w_eff * residuals^2) / df
-					var_j = tryCatch(solve(crossprod(X_sub * sqrt(w_eff)))[2L, 2L], error = function(e) NA_real_)
-					if (is.finite(var_j) && var_j > 0) sqrt(sigma2_w * var_j) else NA_real_
-				} else NA_real_
-				private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
-				private$cached_values$df = df
-			} else {
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-			}
-			private$cached_values$beta_hat_T
+			weighted_linear_bootstrap_estimate(private, X_full, 2L, row_weights,
+				estimate_only, as.numeric)
 		},
 		#' @description Uses the shared asymptotic confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -234,7 +171,10 @@ InferenceContinOLS = define_inference_class(
 			se = cv$s_beta_hat_T
 			df = cv$df
 			if (is.null(df)) df = NA_real_
-			if (length(est) != 1L || !is.finite(est) || !is.finite(se) || se <= 0) return(c(NA_real_, NA_real_))
+			# v1.0.7-TODO-181: NA with a warning (e.g. no residual degrees of freedom), never a silent NA.
+			if (length(est) != 1L || !is.finite(est) || !is.finite(se) || se <= 0) {
+				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = edi_wald_se_na_reason(private), once = FALSE))
+			}
 			mult = if (!is.finite(df)) stats::qnorm(1 - alpha / 2) else stats::qt(1 - alpha / 2, df = df)
 			ci = c(est - mult * se, est + mult * se)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
@@ -253,7 +193,9 @@ InferenceContinOLS = define_inference_class(
 			se = cv$s_beta_hat_T
 			df = cv$df
 			if (is.null(df)) df = NA_real_
-			if (length(est) != 1L || !is.finite(est) || !is.finite(se) || se <= 0) return(NA_real_)
+			if (length(est) != 1L || !is.finite(est) || !is.finite(se) || se <= 0) {
+				return(edi_wald_unavailable_na(self, private, reason = edi_wald_se_na_reason(private), once = FALSE))
+			}
 			val = (est - delta) / se
 			if (is.finite(df)) 2 * stats::pt(-abs(val), df = df) else 2 * stats::pnorm(-abs(val))
 		}
@@ -479,21 +421,8 @@ InferenceContinOLS = define_inference_class(
 			full_fit_boot = fast_ols_cpp(X_fit, y_sim)
 			
 			sig2 = spec$full_fit$sigma2_hat
-			list(
-				full_fit = full_fit_boot,
-				fit_null = function(d, start = NULL){
-					y_null = y_sim - as.numeric(X_fit[, j] * d)
-					res = fast_ols_cpp(X_fit[, -j, drop = FALSE], y_null)
-					b_full = numeric(ncol(X_fit))
-					b_full[j] = d
-					b_full[-j] = as.numeric(res$b)
-					list(b = b_full, rss = sum((y_null - as.numeric(X_fit[, -j, drop = FALSE] %*% res$b))^2))
-				},
-				neg_loglik = function(fit){
-					rss = if (!is.null(fit$rss)) fit$rss else sum((y_sim - as.numeric(X_fit %*% as.numeric(fit$b)))^2)
-					0.5 * rss / sig2
-				}
-			)
+			linear_bootstrap_likelihood_spec(X_fit, y_sim, j, full_fit_boot, sig2,
+				linear_native_coefficients)
 		},
 		get_likelihood_test_spec = function(){
 			private$shared(estimate_only = FALSE)
@@ -503,29 +432,115 @@ InferenceContinOLS = define_inference_class(
 			y = as.numeric(private$y)
 			j_treat = as.integer(ctx$j_treat)
 			sig2 = private$cached_mod$sigma2_hat
-			list(
-				X = X_fit,
-				y = y,
-				j = j_treat,
-				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					y_null = y - as.numeric(X_fit[, j_treat] * delta)
-					res = fast_ols_cpp(X_fit[, -j_treat, drop = FALSE], y_null)
-					b_full = numeric(ncol(X_fit))
-					b_full[j_treat] = delta
-					b_full[-j_treat] = as.numeric(res$b)
-					list(b = b_full, rss = sum((y_null - as.numeric(X_fit[, -j_treat, drop = FALSE] %*% res$b))^2))
-				},
-				score = function(fit){
-					as.numeric(t(X_fit) %*% (y - X_fit %*% as.numeric(fit$b)) / sig2)
-				},
-				observed_information = function(fit) (t(X_fit) %*% X_fit) / sig2,
-				fisher_information   = function(fit) (t(X_fit) %*% X_fit) / sig2,
-				neg_loglik = function(fit){
-					if (!is.null(fit$rss)) return(0.5 * fit$rss / sig2)
-					0.5 * sum((y - as.numeric(X_fit %*% as.numeric(fit$b)))^2) / sig2
-				}
-			)
+			linear_likelihood_test_spec(X_fit, y, j_treat, private$cached_mod, sig2,
+				linear_native_coefficients)
 		}
 	)
 )
+
+weighted_linear_bootstrap_estimate = function(private, X_fit, j_treat, row_weights,
+		estimate_only, as_response, validate_design = FALSE) {
+	keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
+	if ((validate_design && (is.null(X_fit) || !is.finite(j_treat))) || !any(keep)) {
+		private$cached_values$beta_hat_T = NA_real_
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values$df = NA_real_
+		return(NA_real_)
+	}
+	w_eff = as.numeric(row_weights[keep])
+	X_sub = X_fit[keep, , drop = FALSE]
+	y_sub = as.numeric(private$y[keep])
+	# Positive weights preserve rank under sqrt-weight scaling. Use the
+	# existing native OLS solve for full-rank draws; retain lm.wfit's alias
+	# behavior and retry path whenever the native route is inapplicable.
+	sqrt_w = sqrt(w_eff)
+	X_weighted = X_sub * sqrt_w
+	y_weighted = y_sub * sqrt_w
+	beta_native = tryCatch({
+		if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
+			fit_native = fast_ols_cpp(X_weighted, y_weighted)
+			beta = as.numeric(fit_native$b)
+			if (length(beta) == ncol(X_sub) && all(is.finite(beta))) beta else NULL
+		} else {
+			NULL
+		}
+	}, error = function(e) NULL)
+	fit = NULL
+	if (is.null(beta_native)) {
+		fit = tryCatch(
+			stats::lm.wfit(x = X_sub, y = y_sub, w = w_eff),
+			error = function(e) NULL
+		)
+	}
+	coef_hat = if (!is.null(beta_native)) {
+		beta_native
+	} else if (!is.null(fit)) {
+		as.numeric(stats::coef(fit))
+	} else {
+		numeric(0)
+	}
+	if (length(coef_hat) < j_treat || !is.finite(coef_hat[j_treat])) {
+		private$cached_values$beta_hat_T = NA_real_
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values$df = NA_real_
+		return(NA_real_)
+	}
+	private$cached_values$beta_hat_T = coef_hat[j_treat]
+	if (!estimate_only) {
+		df = sum(keep) - length(coef_hat)
+		se = if (df > 0L) {
+			residuals = if (!is.null(beta_native)) y_sub - as_response(X_sub %*% beta_native) else fit$residuals
+			sigma2_w = sum(w_eff * residuals^2) / df
+			var_j = tryCatch(solve(crossprod(X_sub * sqrt(w_eff)))[j_treat, j_treat], error = function(e) NA_real_)
+			if (is.finite(var_j) && var_j > 0) sqrt(sigma2_w * var_j) else NA_real_
+		} else NA_real_
+		private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
+		private$cached_values$df = df
+	} else {
+		private$cached_values$s_beta_hat_T = NA_real_
+		private$cached_values$df = NA_real_
+	}
+	private$cached_values$beta_hat_T
+}
+
+linear_lm_coefficients = function(X, y) stats::lm.fit(X, y)$coefficients
+
+linear_native_coefficients = function(X, y) fast_ols_cpp(X, y)$b
+
+linear_null_fit = function(X, y, j, delta, fit_coefficients) {
+	X_null = X[, -j, drop = FALSE]
+	y_null = y - as.numeric(X[, j] * delta)
+	coef_null = fit_coefficients(X_null, y_null)
+	b = numeric(ncol(X))
+	b[j] = delta
+	b[-j] = as.numeric(coef_null)
+	list(b = b, rss = sum((y_null - as.numeric(X_null %*% coef_null))^2))
+}
+
+linear_bootstrap_likelihood_spec = function(X, y, j, full_fit, sig2, fit_coefficients) {
+	list(
+		full_fit = full_fit,
+		fit_null = function(d, start = NULL) linear_null_fit(X, y, j, d, fit_coefficients),
+		neg_loglik = function(fit) {
+			rss = if (!is.null(fit$rss)) fit$rss else sum((y - as.numeric(X %*% as.numeric(fit$b)))^2)
+			0.5 * rss / sig2
+		}
+	)
+}
+
+linear_likelihood_test_spec = function(X, y, j, full_fit, sig2, fit_coefficients) {
+	list(
+		X = X,
+		y = y,
+		j = j,
+		full_fit = full_fit,
+		fit_null = function(delta, start = NULL) linear_null_fit(X, y, j, delta, fit_coefficients),
+		score = function(fit) as.numeric(t(X) %*% (y - X %*% as.numeric(fit$b)) / sig2),
+		observed_information = function(fit) (t(X) %*% X) / sig2,
+		fisher_information = function(fit) (t(X) %*% X) / sig2,
+		neg_loglik = function(fit) {
+			if (!is.null(fit$rss)) return(0.5 * fit$rss / sig2)
+			0.5 * sum((y - as.numeric(X %*% as.numeric(fit$b)))^2) / sig2
+		}
+	)
+}

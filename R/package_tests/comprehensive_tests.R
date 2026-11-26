@@ -2193,7 +2193,7 @@ run_inference_checks_impl = function(seq_des_inf, response_type, design_type, da
 	# (2026-09-13, fix_custom_randomization_statistic.md TODO-10): it runs on a
 	# standalone InferenceRandCustom (its own dedicated fast kernel), not as a
 	# method call on seq_des_inf, so seq_des_inf's own slow-path status is not
-	# relevant to its cost. Since v1.0.6-TODO-81/-110 it also runs on incidence:
+	# relevant to its cost. Since v1.0.6-TODO-42 / v1.0.6-TODO-64 it also runs on incidence:
 	# compute_rand_two_sided_pval() accepts delta = 0 on incidence for every
 	# statistic form (built-in, custom R function, custom C++) and refuses a
 	# nonzero delta for every form, so the incidence-only exclusion that used to
@@ -2295,7 +2295,7 @@ supports_direct_testing_type = function(testing_type){
 	should_record_nonestimable_as_missing = function(obj, label, result = NULL){
 		# "(custom)" calls run on a standalone InferenceRandCustom, not on obj
 		# (= seq_des_inf), so obj's non-estimable state says nothing about them.
-		# Found 2026-11-18 (v1.0.6-TODO-81/110 harness widening): the incidence
+		# Found 2026-11-18 (v1.0.6-TODO-42 / v1.0.6-TODO-64 harness widening): the incidence
 		# custom delta = 0.5 refusal on KKCondLogitGLMMOneLik (~., FixedBinaryMatch)
 		# was recorded as "Explicitly non-estimable ... ok" instead of the error.
 		if (grepl("(custom)", label, fixed = TRUE)) return(FALSE)
@@ -2358,7 +2358,7 @@ safe_call = function(label, expr){
 		message("          Skipping ", label, " (COMPREHENSIVE_SKIP_FUNCTIONS)")
 		return(invisible(NULL))
 	}
-	# v1.0.6-TODO-95: record the class of every warning the call raises (without
+	# v1.0.6-TODO-54: record the class of every warning the call raises (without
 	# muffling it), so an NA/NaN/Inf result is written with "; warnings=<classes>"
 	# or "; warnings=none". The NA audit gate (na_audit_gate.R) fails a silent NA
 	# and needs this to tell it from one the package warned about.
@@ -3423,7 +3423,7 @@ call_direct_asymp = function(method_name, testing_type, ...){
 		)
 		if (!skip_slow){
 			safe_call("compute_rand_two_sided_pval(custom)", custom_inf$compute_rand_two_sided_pval(r = r, show_progress = FALSE))
-			# v1.0.6-TODO-81/-110: on incidence a nonzero delta is refused for every
+			# v1.0.6-TODO-42 / v1.0.6-TODO-64: on incidence a nonzero delta is refused for every
 			# statistic form ("randomization tests with delta nonzero not supported
 			# for incidence"). This call pins that refusal: it is expected to be
 			# recorded as status = "error", like the plain
@@ -5013,7 +5013,7 @@ write_comprehensive_run_provenance(
 )
 
 # Refresh the committed NA-gate digest (comprehensive_suite_na_audit.csv,
-# v1.0.6-TODO-95) from the per-response results this run just wrote, as the
+# v1.0.6-TODO-54) from the per-response results this run just wrote, as the
 # other committed comprehensive_suite_*.csv files are refreshed with a
 # regeneration. Only unfiltered runs: a filtered run writes its own
 # _filtered_ file, which the digest does not read. A failure here is reported

@@ -96,7 +96,7 @@ DesignFixediBCRD = define_design_class(
 	private = list(
 		draw_ws_raw = function(r){
 			private$maybe_set_seed()
-			# v1.0.6-TODO-234: n_T is R's round(n * prob_T) (half to even), the count
+			# v1.0.6-TODO-168: n_T is R's round(n * prob_T) (half to even), the count
 			# DesignSeqOneByOneiBCRD targets. The kernel rounds with std::round (half away
 			# from zero), so hand it n_T / n: std::round(n * (n_T / n)) lands exactly on n_T.
 			n = as.integer(self$get_n())

@@ -186,13 +186,8 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 				"wald"
 			},
 			is_modified_poisson_fit_reasonable = function(mod, X_fit = NULL, j_treat = 2L){
-				if (is.null(mod) || is.null(mod$b)) return(FALSE)
-				j_treat = as.integer(j_treat %||% mod$j_treat %||% 2L)
-				if (length(j_treat) != 1L || !is.finite(j_treat) || j_treat < 1L) return(FALSE)
-				b = as.numeric(mod$b)
-				if (length(b) < j_treat || any(!is.finite(b))) return(FALSE)
-				if (any(abs(b) > private$max_abs_reasonable_coef)) return(FALSE)
-				if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
+				b = edi_reasonable_glm_coefficients(mod, j_treat, private$max_abs_reasonable_coef)
+				if (is.null(b)) return(FALSE)
 				if (!is.null(X_fit)) {
 					eta = tryCatch(as.numeric(as.matrix(X_fit) %*% b), error = function(e) NA_real_)
 					if (any(!is.finite(eta))) return(FALSE)
@@ -436,13 +431,13 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @section Subsampling and m-out-of-n:
-#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' (v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 #' \emph{degenerate}: a treatment arm with no events. Its log risk ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 #' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 #' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
@@ -454,43 +449,8 @@ IncidenceModifiedPoissonLikelihoodSource = list(
 #' after): Wald 0.060; subsampling 0.005 to 0.020, m-out-of-n 0.000 to 0.015; intervals that were \code{NA} (17\% and 37\% of data sets) are now finite. The ordinary bootstrap is the better resampling method for this estimand.
 #' @eval rd_small_sample_section("InferenceIncidModifiedPoisson")
 #' @export
-InferenceIncidModifiedPoisson = define_inference_class(
-	classname = "InferenceIncidModifiedPoisson",
-	inherit = Inference,
-	components = c(
-		"RandomizationCI",
-		"RandomizationBootstrapCI",
-		"BayesianBootstrap",
-		"Jackknife",
-		"ParametricLikelihoodBootstrap",
-		"IncidenceModifiedPoissonLikelihood"
-	),
-	metadata = list(likelihood_tier = "full"),
-	overrides = list(
-		public = c(
-			"compute_estimate", "compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
-		),
-		private = c(
-			"compute_treatment_estimate_during_randomization_inference",
-			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec", "apply_robust_sandwich_variance",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
-			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
-			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
-			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "supports_fisher_information"
-		)
-	),
-	public = list(
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
-	)
+InferenceIncidModifiedPoisson = define_incidence_likelihood_class(
+	"InferenceIncidModifiedPoisson", "IncidenceModifiedPoissonLikelihood", "apply_robust_sandwich_variance"
 )
 
 

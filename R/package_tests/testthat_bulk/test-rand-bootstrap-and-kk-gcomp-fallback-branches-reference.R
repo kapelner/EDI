@@ -176,7 +176,7 @@ test_that("KK g-computation marks the estimate nonestimable after a failed fit a
 		priv = inf$.__enclos_env__$private
 		replace_method(priv, "fit_logistic_with_sandwich", function(X, estimate_only = FALSE) NULL)
 		expect_true(is.na(suppressWarnings(inf$compute_estimate())))
-		skip("v1.0.6-TODO-260: a failed KK g-comp working-model fit gives NA but is_nonestimable('estimate') stays FALSE with no reason; a design with all subjects treated gives a finite estimate")
+		skip("v1.0.7-TODO-114: a failed KK g-comp working-model fit gives NA but is_nonestimable('estimate') stays FALSE with no reason; a design with all subjects treated gives a finite estimate")
 		expect_true(inf$is_nonestimable("estimate"))
 		expect_false(is.null(inf$get_nonestimable_reason()))
 	}

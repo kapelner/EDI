@@ -1,4 +1,4 @@
-# v1.0.6-TODO-345 (2026-11-24): when a cell has no events (e.g. every control
+# v1.0.6-TODO-216 (2026-11-24): when a cell has no events (e.g. every control
 # count is 0) the Poisson log-link MLE does not exist; IRLS stops on the
 # separation boundary with coefficients around +-20 (the observed fit was
 # -22.0 / +23.1). A fit warm-started there cannot move (fitted means ~1e-10,
@@ -58,7 +58,7 @@ edi_poisson_warm_start_on_boundary = function(start) {
 #' (the larger of the model-only Bartlett p-value and the design jackknife-Wald
 #' p-value, the union of the two intervals). Before EDI 1.0.6,
 #' \code{"lik_ratio_bartlett_approx"} itself returned the design-conservative
-#' result (v1.0.6-TODO-380).
+#' result (v1.0.6-TODO-225).
 #' Generic estimate-resampling intervals (Bayesian bootstrap, ordinary
 #' bootstrap, and the direct parametric-bootstrap estimate interval) retain
 #' their standard component definitions and are not unioned with a second
@@ -85,7 +85,7 @@ edi_poisson_warm_start_on_boundary = function(start) {
 #' \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}} and current
 #' \code{DesignSeqOneByOneRandomBlockSize} objects the automatic unit is the permuted
 #' block, or this same within-stratum jackknife when any stratum has fewer than 10
-#' permuted blocks (v1.0.6-TODO-270), so no fallback is needed there.
+#' permuted blocks (v1.0.7-TODO-122), so no fallback is needed there.
 #'
 #' \strong{Estimand.} Composes
 #' \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
@@ -152,13 +152,13 @@ edi_poisson_warm_start_on_boundary = function(start) {
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @section Subsampling and m-out-of-n:
-#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' (v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 #' \emph{degenerate}: a treatment arm whose counts are all zero. Its log rate ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 #' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 #' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
@@ -299,11 +299,11 @@ InferenceCountPoisson = define_inference_class(
 				score = self$compute_score_confidence_interval(alpha = alpha),
 				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
+				# v1.0.6-TODO-208: listed by get_supported_testing_types() but had no
 				# branch here, so the CI came back NULL. Same public method a direct
-				# call reaches; model-only since v1.0.6-TODO-380.
+				# call reaches; model-only since v1.0.6-TODO-225.
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
-				# v1.0.6-TODO-380: what "lik_ratio_bartlett_approx" returned before 1.0.6.
+				# v1.0.6-TODO-225: what "lik_ratio_bartlett_approx" returned before 1.0.6.
 				lik_ratio_bartlett_approx_design_conservative = private$design_conservative_ci(
 					self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha), alpha = alpha),
 				stop("Unsupported testing_type: ", private$testing_type)
@@ -326,9 +326,9 @@ InferenceCountPoisson = define_inference_class(
 				score = self$compute_score_two_sided_pval(delta = delta),
 				gradient = self$compute_gradient_two_sided_pval(delta = delta),
 				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
+				# v1.0.6-TODO-208: see compute_asymp_confidence_interval().
 				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
-				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
+				# v1.0.6-TODO-225: see compute_asymp_confidence_interval().
 				lik_ratio_bartlett_approx_design_conservative = private$design_conservative_pval(
 					self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta), delta = delta),
 				stop("Unsupported testing_type: ", private$testing_type)
@@ -342,12 +342,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   for the underlying Wald contract.
 		#' @param alpha Significance level. Default 0.05.
 		compute_wald_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = private$compute_wald_confidence_interval_impl(alpha)
-			private$design_conservative_ci(ci_model, alpha = alpha)
+			count_design_conservative_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha))
 		},
 		#' @description Wald test of \eqn{H_0: \beta_T = \code{delta}} using the
 		#'   fitted Poisson model's Fisher-information-based standard error, taking
@@ -356,12 +351,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_wald_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = private$compute_wald_two_sided_pval_impl(delta)
-			private$design_conservative_pval(p_model, delta = delta)
+			count_design_conservative_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta))
 		},
 		#' @description Score-test confidence interval for \eqn{\beta_T} (inverting
 		#'   the Poisson score test at each candidate null, no full re-fit needed at
@@ -373,12 +363,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   the observed information.
 		#' @param alpha Significance level. Default 0.05.
 		compute_score_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = private$compute_score_confidence_interval_impl(alpha)
-			private$design_conservative_ci(ci_model, alpha = alpha)
+			count_design_conservative_ci(private, alpha, private$compute_score_confidence_interval_impl(alpha))
 		},
 		#' @description Score test of \eqn{H_0: \beta_T = \code{delta}}, taking the
 		#'   max with the design-based jackknife-Wald p-value; see
@@ -386,12 +371,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_score_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = private$compute_score_two_sided_pval_impl(delta)
-			private$design_conservative_pval(p_model, delta = delta)
+			count_design_conservative_pval(private, delta, private$compute_score_two_sided_pval_impl(delta))
 		},
 		#' @description Likelihood-ratio-test confidence interval for \eqn{\beta_T}
 		#'   (test inversion, requiring a null refit at each candidate value),
@@ -400,12 +380,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = private$compute_lik_ratio_confidence_interval_impl(alpha)
-			private$design_conservative_ci(ci_model, alpha = alpha)
+			count_design_conservative_ci(private, alpha, private$compute_lik_ratio_confidence_interval_impl(alpha))
 		},
 		#' @description Likelihood-ratio test of \eqn{H_0: \beta_T = \code{delta}},
 		#'   taking the max with the design-based jackknife-Wald p-value; see
@@ -413,16 +388,11 @@ InferenceCountPoisson = define_inference_class(
 		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = private$compute_lik_ratio_two_sided_pval_impl(delta)
-			private$design_conservative_pval(p_model, delta = delta)
+			count_design_conservative_pval(private, delta, private$compute_lik_ratio_two_sided_pval_impl(delta))
 		},
 		#' @description Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
 		#'   confidence interval: the model-only test, not unioned with the
-		#'   design-based jackknife-Wald interval (v1.0.6-TODO-380; it was unioned
+		#'   design-based jackknife-Wald interval (v1.0.6-TODO-225; it was unioned
 		#'   before EDI 1.0.6). For the union use
 		#'   \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
 		#'   and \code{compute_asymp_confidence_interval()}.
@@ -437,7 +407,7 @@ InferenceCountPoisson = define_inference_class(
 		},
 		#' @description Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
 		#'   p-value: the model-only test, not combined with the design-based
-		#'   jackknife-Wald p-value (v1.0.6-TODO-380). For the larger of the two use
+		#'   jackknife-Wald p-value (v1.0.6-TODO-225). For the larger of the two use
 		#'   \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
 		#'   and \code{compute_asymp_two_sided_pval()}.
 		#' @param delta Null treatment effect. Default 0.
@@ -449,7 +419,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @description Best-available Bartlett-corrected likelihood-ratio confidence
 		#'   interval (the approximate correction for this class): model-only, like
 		#'   \code{compute_lik_ratio_bartlett_approx_confidence_interval()}
-		#'   (v1.0.6-TODO-380).
+		#'   (v1.0.6-TODO-225).
 		#' @param alpha Significance level. Default 0.05.
 		#' @param B Number of Monte-Carlo replicates when the approximate correction is used.
 		compute_lik_ratio_bartlett_confidence_interval = function(alpha = 0.05, B = 99){
@@ -461,7 +431,7 @@ InferenceCountPoisson = define_inference_class(
 		},
 		#' @description Best-available Bartlett-corrected likelihood-ratio p-value:
 		#'   model-only, like \code{compute_lik_ratio_bartlett_approx_two_sided_pval()}
-		#'   (v1.0.6-TODO-380).
+		#'   (v1.0.6-TODO-225).
 		#' @param delta Null treatment effect. Default 0.
 		#' @param B Number of Monte-Carlo replicates when the approximate correction is used.
 		compute_lik_ratio_bartlett_two_sided_pval = function(delta = 0, B = 99){
@@ -475,12 +445,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   the combination rule.
 		#' @param alpha Significance level. Default 0.05.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			ci_model = private$compute_gradient_confidence_interval_impl(alpha)
-			private$design_conservative_ci(ci_model, alpha = alpha)
+			count_design_conservative_ci(private, alpha, private$compute_gradient_confidence_interval_impl(alpha))
 		},
 		#' @description Gradient test of \eqn{H_0: \beta_T = \code{delta}}, taking
 		#'   the max with the design-based jackknife-Wald p-value; see
@@ -488,12 +453,7 @@ InferenceCountPoisson = define_inference_class(
 		#'   combination rule.
 		#' @param delta Null treatment effect. Default 0.
 		compute_gradient_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			p_model = private$compute_gradient_two_sided_pval_impl(delta)
-			private$design_conservative_pval(p_model, delta = delta)
+			count_design_conservative_pval(private, delta, private$compute_gradient_two_sided_pval_impl(delta))
 		},
 		#' @description Parametric-likelihood-bootstrap-calibrated likelihood-ratio
 		#'   test of \eqn{H_0: \beta_T = \code{delta}} (simulating new Poisson
@@ -509,7 +469,7 @@ InferenceCountPoisson = define_inference_class(
 		#' @param max_attempts_per_replicate Maximum attempts per replicate.
 		compute_lik_ratio_bootstrap_two_sided_pval = function(delta = 0, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L){
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			# Hold the model p-value's NA warning (v1.0.6-TODO-207): it is shown only when the
+			# Hold the model p-value's NA warning (v1.0.6-TODO-148): it is shown only when the
 			# design-based fallback is NA too.
 			held = edi_hold_procedure_na_warnings(private$param_boot_compute_lik_ratio_bootstrap_two_sided_pval(
 				delta = delta,
@@ -539,10 +499,10 @@ InferenceCountPoisson = define_inference_class(
 		#' @param root_tolerance Root tolerance.
 		#' @param max_root_iterations Maximum root iterations.
 		compute_lik_ratio_bootstrap_confidence_interval = function(alpha = 0.05, B = 199, show_progress = FALSE, min_number_usable_samples = 5L, max_attempts_per_replicate = 2L, root_tolerance = NULL, max_root_iterations = 8L){
-			# B too small for alpha errors up front (v1.0.6-TODO-210), before the design-based fallback.
+			# B too small for alpha errors up front (v1.0.6-TODO-151), before the design-based fallback.
 			edi_assert_lik_ratio_bootstrap_ci_B(B, alpha)
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
-			# Hold the model interval's NA warning (v1.0.6-TODO-207): it is shown only when the
+			# Hold the model interval's NA warning (v1.0.6-TODO-148): it is shown only when the
 			# design-based fallback leaves the interval NA too.
 			held = edi_hold_procedure_na_warnings(private$param_boot_compute_lik_ratio_bootstrap_confidence_interval(
 				alpha = alpha,
@@ -624,7 +584,7 @@ InferenceCountPoisson = define_inference_class(
 		}
 	),
 	private = list(
-		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# v1.0.6-TODO-216: never warm-start from a separated fit (see
 		# edi_poisson_warm_start_on_boundary()).
 		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		cached_mod = NULL,
@@ -704,20 +664,20 @@ InferenceCountPoisson = define_inference_class(
 		get_complexity_tier = function() "medium",
 		# v1.1.0-TODO-218: the design-based half of the design-conservative rule. The automatic jackknife is
 		# tried first. On a blocking design whose automatic deletion unit is still the whole block (= stratum;
-		# every blocking design except DesignFixedBlocking and DesignSeqOneByOneSPBR, which v1.0.6-TODO-4 moved
+		# every blocking design except DesignFixedBlocking and DesignSeqOneByOneSPBR, which v1.0.6-TODO-1 moved
 		# to within-stratum units), that jackknife is NA with fewer than EDI_JACKKNIFE_MIN_DELETION_UNITS
-		# blocks (v1.0.6-TODO-135). Without a fallback the class then reported the raw Poisson test alone,
+		# blocks (v1.0.6-TODO-89). Without a fallback the class then reported the raw Poisson test alone,
 		# which is anti-conservative under overdispersion (calibration: size 0.08-0.19 with ~1 on
 		# DesignSeqOneByOneRandomBlockSize with 4 strata). The fallback is the stratified delete-1 ("JKn")
 		# jackknife, unit = "observation_within_block" (Wolter 2007, Sec. 4.5; see InferenceJackknife), the
 		# same estimator DesignFixedBlocking uses automatically: strata are fixed by the design, so one subject
 		# at a time is deleted and only the within-stratum spread enters the variance.
-		# Since v1.0.6-TODO-231 / v1.0.6-TODO-270 SPBR and RandomBlockSize resolve "auto" to "permuted_block"
+		# Since v1.0.6-TODO-165 / v1.0.7-TODO-122 SPBR and RandomBlockSize resolve "auto" to "permuted_block"
 		# or, with fewer than EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM blocks in a stratum, to
 		# "observation_within_block" itself, so the fallback (which needs "block") does not fire on them.
 		design_jackknife_pval = function(delta = 0){
 			jackknife_p = function(unit) tryCatch({
-				# An NA here falls back to the model result, so its v1.0.6-TODO-113 warning is noise.
+				# An NA here falls back to the model result, so its v1.0.6-TODO-67 warning is noise.
 				p = suppressWarnings(self$compute_jackknife_wald_two_sided_pval(delta = delta, unit = unit), classes = "edi_procedure_na_warning")
 				p = as.numeric(p)[1L]
 				if (is.finite(p) && p >= 0 && p <= 1) p else NA_real_
@@ -748,7 +708,7 @@ InferenceCountPoisson = define_inference_class(
 			isTRUE(des$is_blocking_design()) && identical(private$resolve_jackknife_unit("auto"), "block") &&
 				length(unique(stats::na.omit(des$get_block_ids()))) >= 2L
 		},
-		# v1.0.6-TODO-380: the base set plus the design-conservative Bartlett option
+		# v1.0.6-TODO-225: the base set plus the design-conservative Bartlett option
 		# (get_supported_testing_types_with_bartlett() appends "lik_ratio_bartlett_approx").
 		get_supported_testing_types_impl = function(){
 			types = if (isTRUE(private$supports_likelihood_tests())) c("wald", "score", "gradient", "lik_ratio") else "wald"
@@ -814,7 +774,7 @@ InferenceCountPoisson = define_inference_class(
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$b, "beta", fisher = res$XtWX)
-			# v1.0.6-TODO-189: under a marginal estimand return the g-computed
+			# v1.0.6-TODO-135: under a marginal estimand return the g-computed
 			# functional, the scale compute_estimate() and the reused worker use.
 			estimand = self$get_estimand()
 			if (identical(estimand, "conditional")) return(as.numeric(res$b[2]))
@@ -1005,9 +965,8 @@ InferenceCountPoisson = define_inference_class(
 				},
 				fit_ok = function(mod, X_fit, keep){
 					if (is.null(mod)) return(FALSE)
-					j_treat = mod$j_treat
-					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
-					# v1.0.6-TODO-394: an unconverged IRLS fit (e.g. stuck at the zero start for
+					if (!fit_has_finite_treatment_coefficient(mod)) return(FALSE)
+					# v1.0.6-TODO-199: an unconverged IRLS fit (e.g. stuck at the zero start for
 					# large counts) is not an estimate.
 					if (isFALSE(mod$converged)) return(FALSE)
 					if (estimate_only) return(TRUE)
@@ -1038,3 +997,26 @@ InferenceCountPoisson = define_inference_class(
 		}
 	)
 )
+
+fit_has_finite_treatment_coefficient = function(mod) {
+	j_treat = mod$j_treat
+	!is.null(mod) && length(mod$b) >= j_treat && is.finite(mod$b[j_treat])
+}
+
+count_design_conservative_ci = function(private, alpha, model_result) {
+	if (should_run_asserts()) {
+		assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+	}
+	if (private$mark_count_likelihood_block_asymp_nonestimable()) return(private$count_likelihood_missing_ci(alpha))
+	force(model_result)
+	private$design_conservative_ci(model_result, alpha = alpha)
+}
+
+count_design_conservative_pval = function(private, delta, model_result) {
+	if (should_run_asserts()) {
+		assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
+	}
+	if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+	force(model_result)
+	private$design_conservative_pval(model_result, delta = delta)
+}

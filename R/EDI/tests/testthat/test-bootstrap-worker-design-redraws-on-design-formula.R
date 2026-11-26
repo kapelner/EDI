@@ -1,4 +1,4 @@
-# v1.0.6-TODO-130: the reusable bootstrap worker used to copy the INFERENCE's model-formula
+# v1.0.6-TODO-84: the reusable bootstrap worker used to copy the INFERENCE's model-formula
 # matrix into the worker design's private$X on full-rank draws, so covariate-aware redraws
 # (greedy, rerandomization, Atkinson, KK21stepwise exact replay) balanced on the inference's
 # columns instead of the design_formula's. On rank-deficient draws the worker inference also

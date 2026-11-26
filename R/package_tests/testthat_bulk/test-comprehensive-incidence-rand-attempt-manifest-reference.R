@@ -30,7 +30,7 @@ test_that("incidence rand expected keys distinguish rejected from skipped delta 
 	# attempted call with runtime status left open; nonzero delta is an expected
 	# safe_call error for the standard statistic, but is absent entirely when
 	# the runner's delta slow-path flag skips the call. Custom statistics hit
-	# the same guard (v1.0.6-TODO-81/110). The rand_custom family (standalone
+	# the same guard (v1.0.6-TODO-42 / v1.0.6-TODO-64). The rand_custom family (standalone
 	# InferenceRandCustom) adds its delta = 0 p-value (status open) and its
 	# delta = 0.5 p-value (expected error) for every case it runs on; it does
 	# not depend on the plain-rand skip flags (case 3), only on the family

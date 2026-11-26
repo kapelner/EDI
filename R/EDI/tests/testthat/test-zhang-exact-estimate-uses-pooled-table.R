@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-147: InferenceIncidExactZhang's point estimate is the Haldane-Anscombe log
+# v1.0.6-TODO-99: InferenceIncidExactZhang's point estimate is the Haldane-Anscombe log
 # odds ratio of the pooled 2x2 table over all subjects (matched and reservoir together),
 # as documented. It used the reservoir-only table, so on a KK design with every subject
 # matched it was identically 0. The exact test (matched-pair binomial + reservoir Fisher,

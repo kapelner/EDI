@@ -6,7 +6,7 @@ Static checks over R/EDI/tests/testthat and R/package_tests/testthat_bulk:
 
 - test_that() blocks that call no expectation, directly or through a helper that does;
 - skip() calls that nothing can stop from running (the test or the rest of the file never runs),
-  except a skip whose message cites an open release TODO (`v1.0.6-TODO-51`): a known bug kept as a
+  except a skip whose message cites an open release TODO (`v1.0.6-TODO-16`): a known bug kept as a
   failing test until that TODO is done;
 - skip_if() / skip_if_not() / skip_on_os() calls whose literal arguments mean they never lift;
 - test files whose names carry a TODO number (forbidden by CLAUDE.md);

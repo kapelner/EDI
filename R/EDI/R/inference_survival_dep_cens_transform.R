@@ -41,7 +41,7 @@ SurvivalDepCensTransformSource = list(
 		#'   unavailable for this model. The joint dependent-censoring likelihood
 		#'   takes no observation weights, and the weighted Cox fit formerly used in
 		#'   its place estimates a log hazard ratio under independent censoring, a
-		#'   different quantity from this class's log time ratio (v1.0.6-TODO-326).
+		#'   different quantity from this class's log time ratio (v1.0.6-TODO-176).
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights (unused).
 		#' @param estimate_only Unused; accepted for the shared signature.
@@ -142,7 +142,7 @@ SurvivalDepCensTransformSource = list(
 		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"};
 		#'   accepted for the shared signature (the result is \code{NA} for every value).
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
-			# v1.0.6-TODO-328: accept (and validate) `alternative` like InferenceRand's method.
+			# v1.0.6-TODO-209: accept (and validate) `alternative` like InferenceRand's method.
 			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
 			tryCatch(self$compute_estimate(estimate_only = TRUE), error = function(e) NA_real_)
 			private$signal_unsupported_procedure("dep_cens_transform_randomization_not_supported")
@@ -169,7 +169,11 @@ SurvivalDepCensTransformSource = list(
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
 		#' @param type Optional bootstrap CI type. Default NULL.
-		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, type = NULL){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+		#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
+		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, type = NULL, reimpute_missing_vals_each_resample = FALSE){
+			reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 			# 2026-08-20 (fix_inference_hierarchy.md "Base Deletion" / per-class
 			# migration ladders): was `super$compute_bootstrap_confidence_interval(...)`,
 			# relying on classic R6 inheritance reaching NonparametricBootstrap's
@@ -187,7 +191,8 @@ SurvivalDepCensTransformSource = list(
 			ci = private$dep_cens_validate_bootstrap_ci(
 				private$nonparam_boot_compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress, na.rm = na.rm, type = type
+					show_progress = show_progress, na.rm = na.rm, type = type,
+					reimpute_missing_vals_each_resample = reimpute
 				),
 				alpha = alpha
 			)
@@ -195,7 +200,7 @@ SurvivalDepCensTransformSource = list(
 				(length(ci) < 2L || !all(is.finite(as.numeric(ci[1:2]))))) {
 				ci = private$dep_cens_percentile_bootstrap_ci(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress
+					show_progress = show_progress, reimpute_missing_vals_each_resample = reimpute
 				)
 			}
 			ci
@@ -206,7 +211,12 @@ SurvivalDepCensTransformSource = list(
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_basic = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+		#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
+		compute_bootstrap_confidence_interval_basic = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL when the caller left it out, so an enclosing call's setting holds.
+			reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 			# `super$compute_bootstrap_confidence_interval_basic()`/`_bca()` were
 			# pre-existing, genuinely broken calls: no class anywhere in the
 			# package -- classic ladder or composed -- has ever defined those two
@@ -221,18 +231,18 @@ SurvivalDepCensTransformSource = list(
 			# the evident intent (validate a real basic/BCa bootstrap CI for this
 			# model) rather than perpetuating the crash.
 			# An NA basic interval falls back to percentile below, so its
-			# v1.0.6-TODO-113 NA warning is noise here.
+			# v1.0.6-TODO-67 NA warning is noise here.
 			ci = private$dep_cens_validate_bootstrap_ci(
 				suppressWarnings(self$compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, type = "basic", min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress, na.rm = na.rm
+					show_progress = show_progress, na.rm = na.rm, reimpute_missing_vals_each_resample = reimpute
 				), classes = "edi_procedure_na_warning"),
 				alpha = alpha
 			)
 			if (length(ci) < 2L || !all(is.finite(as.numeric(ci[1:2])))) {
 				ci = private$dep_cens_percentile_bootstrap_ci(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress
+					show_progress = show_progress, reimpute_missing_vals_each_resample = reimpute
 				)
 			}
 			ci
@@ -243,11 +253,16 @@ SurvivalDepCensTransformSource = list(
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_bca = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+		#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
+		compute_bootstrap_confidence_interval_bca = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL when the caller left it out, so an enclosing call's setting holds.
+			reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 			private$dep_cens_validate_bootstrap_ci(
 				self$compute_bootstrap_confidence_interval(
 					alpha = alpha, B = B, type = "bca", min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress, na.rm = na.rm
+					show_progress = show_progress, na.rm = na.rm, reimpute_missing_vals_each_resample = reimpute
 				),
 				alpha = alpha
 			)
@@ -260,11 +275,21 @@ SurvivalDepCensTransformSource = list(
 		#' @param min_number_usable_samples Minimum number of usable bootstrap samples. Default 10.
 		#' @param show_progress Whether to show a progress bar.
 		#' @param na.rm Whether to remove non-finite bootstrap replicates.
-		compute_bootstrap_confidence_interval_studentized = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+		#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
+		compute_bootstrap_confidence_interval_studentized = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE, na.rm = TRUE, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL when the caller left it out, so an enclosing call's setting holds.
+			reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
+			# The tryCatch below turns errors into NA; a refused TRUE must still reach the caller.
+			if (isTRUE(reimpute) && !identical(private$des_obj_priv_int$missingness_method, "error") &&
+					edi_bootstrap_covariates_have_missingness(private)) {
+				edi_assert_bootstrap_reimpute_supported(private)
+			}
 			ci = tryCatch(
 				self$compute_bootstrap_confidence_interval_basic(
 					alpha = alpha, B = B, min_number_usable_samples = min_number_usable_samples,
-					show_progress = show_progress, na.rm = na.rm
+					show_progress = show_progress, na.rm = na.rm, reimpute_missing_vals_each_resample = reimpute
 				),
 				error = function(e) c(NA_real_, NA_real_)
 			)
@@ -368,9 +393,11 @@ SurvivalDepCensTransformSource = list(
 		# explanation. cached_vc_params was previously undeclared entirely.
 		cached_mod = NULL,
 		max_abs_reasonable_coef = 1e4,
-		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE){
+		dep_cens_percentile_bootstrap_ci = function(alpha = 0.05, B = 501, min_number_usable_samples = 10, show_progress = TRUE,
+				reimpute_missing_vals_each_resample = NULL){
 			theta = tryCatch(
-				self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress),
+				self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress,
+					reimpute_missing_vals_each_resample = reimpute_missing_vals_each_resample),
 				error = function(e) numeric()
 			)
 			theta = as.numeric(theta)

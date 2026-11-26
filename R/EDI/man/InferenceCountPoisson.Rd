@@ -46,7 +46,7 @@ the separate testing type \code{"lik_ratio_bartlett_approx_design_conservative"}
 (the larger of the model-only Bartlett p-value and the design jackknife-Wald
 p-value, the union of the two intervals). Before EDI 1.0.6,
 \code{"lik_ratio_bartlett_approx"} itself returned the design-conservative
-result (v1.0.6-TODO-380).
+result (v1.0.6-TODO-225).
 Generic estimate-resampling intervals (Bayesian bootstrap, ordinary
 bootstrap, and the direct parametric-bootstrap estimate interval) retain
 their standard component definitions and are not unioned with a second
@@ -73,7 +73,7 @@ against about 3-5\% with the fallback. On
 \code{\link[EDI:DesignSeqOneByOneSPBR]{DesignSeqOneByOneSPBR}} and current
 \code{DesignSeqOneByOneRandomBlockSize} objects the automatic unit is the permuted
 block, or this same within-stratum jackknife when any stratum has fewer than 10
-permuted blocks (v1.0.6-TODO-270), so no fallback is needed there.
+permuted blocks (v1.0.7-TODO-122), so no fallback is needed there.
 
 \strong{Estimand.} Composes
 \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}}
@@ -111,13 +111,13 @@ post-fit transform, never a refit.
 }
 \section{Subsampling and m-out-of-n}{
 
-(v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+(v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 \emph{degenerate}: a treatment arm whose counts are all zero. Its log rate ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 \code{approximate_subsampling_distribution_beta_hat_T()} and
 \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
@@ -576,7 +576,7 @@ bootstrap resampling paths.}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_confidence_interval()}}{
   Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
   confidence interval: the model-only test, not unioned with the
-  design-based jackknife-Wald interval (v1.0.6-TODO-380; it was unioned
+  design-based jackknife-Wald interval (v1.0.6-TODO-225; it was unioned
   before EDI 1.0.6). For the union use
   \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
   and \code{compute_asymp_confidence_interval()}.
@@ -604,7 +604,7 @@ bootstrap resampling paths.}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_approx_two_sided_pval()}}{
   Approximate (Monte-Carlo) Bartlett-corrected likelihood-ratio
   p-value: the model-only test, not combined with the design-based
-  jackknife-Wald p-value (v1.0.6-TODO-380). For the larger of the two use
+  jackknife-Wald p-value (v1.0.6-TODO-225). For the larger of the two use
   \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}
   and \code{compute_asymp_two_sided_pval()}.
   \subsection{Usage}{
@@ -632,7 +632,7 @@ bootstrap resampling paths.}
   Best-available Bartlett-corrected likelihood-ratio confidence
   interval (the approximate correction for this class): model-only, like
   \code{compute_lik_ratio_bartlett_approx_confidence_interval()}
-  (v1.0.6-TODO-380).
+  (v1.0.6-TODO-225).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_confidence_interval(
@@ -657,7 +657,7 @@ bootstrap resampling paths.}
 \subsection{\code{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval()}}{
   Best-available Bartlett-corrected likelihood-ratio p-value:
   model-only, like \code{compute_lik_ratio_bartlett_approx_two_sided_pval()}
-  (v1.0.6-TODO-380).
+  (v1.0.6-TODO-225).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceCountPoisson$compute_lik_ratio_bartlett_two_sided_pval(

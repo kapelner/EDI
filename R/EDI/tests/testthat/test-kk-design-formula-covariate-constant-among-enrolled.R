@@ -1,4 +1,4 @@
-# v1.0.6-TODO-107: KK14/KK21/KK21stepwise crashed ("object 'g' not found") when
+# v1.0.6-TODO-61: KK14/KK21/KK21stepwise crashed ("object 'g' not found") when
 # design_formula named a covariate that was still constant among the subjects
 # enrolled so far, because constant columns were dropped before the formula was
 # applied. A formula whose only covariate first varies at the current subject
@@ -23,7 +23,7 @@ test_that("KK designs assign when a formula-named factor is constant among the f
 	set.seed(1)
 	X = data.frame(x1 = rnorm(20), x2 = rnorm(20), g = factor(rep(c("a", "b"), each = 10)))
 	# Two varying covariates besides g: with a single one, KK21stepwise hits a separate
-	# all-zero-weights NaN crash (reported with v1.0.6-TODO-107, not fixed here).
+	# all-zero-weights NaN crash (reported with v1.0.6-TODO-61, not fixed here).
 	for (cls in kk_formula_classes){
 		for (fml in list(~ x1 + x2 + g, ~ x1 * g + x2, ~ g)){
 			d = run_kk_formula_design(cls, X, fml)

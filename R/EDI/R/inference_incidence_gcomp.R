@@ -34,25 +34,31 @@ incidence_gcomp_generic_alias_overrides = list(
 	# Uses the shared nonparametric bootstrap distribution contract; see
 	# InferenceNonParamBootstrap. Documented via @R6method (see
 	# gcomp-bootstrap-distribution-beta-hat-t template).
-	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type)
+	approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, reimpute_missing_vals_each_resample = FALSE){
+		self$approximate_bootstrap_distribution_beta_hat_T_generic(B, show_progress, debug, bootstrap_type,
+			reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample)))
 	},
 	# Computes a bootstrap confidence interval for the treatment effect.
 	# Documented via @R6method (see gcomp-bootstrap-confidence-interval template).
-	compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
+	compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, reimpute_missing_vals_each_resample = FALSE){
+		reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 		type_resolved = tolower(type %||% "percentile")
 		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
-			return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples))
+			return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples,
+				reimpute_missing_vals_each_resample = reimpute))
 		}
-		self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+		self$compute_bootstrap_confidence_interval_generic(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples,
+			reimpute_missing_vals_each_resample = reimpute)
 	},
 	# Computes a bootstrap two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-bootstrap-two-sided-pval template).
-	compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
+	compute_bootstrap_two_sided_pval = function(delta = NULL, B = 501, type = "symmetric", na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95, reimpute_missing_vals_each_resample = FALSE){
+		reimpute = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 		if (is.null(delta)){
 			delta = private$default_null_value()
 		}
-		self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
+		self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples,
+			reimpute_missing_vals_each_resample = reimpute)
 	},
 	# Computes a Bayesian-bootstrap two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-bayesian-bootstrap-two-sided-pval template).
@@ -66,7 +72,7 @@ incidence_gcomp_generic_alias_overrides = list(
 	# Documented via @R6method (see gcomp-bayesian-bootstrap-confidence-interval template).
 	compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
 		type_resolved = tolower(type %||% "percentile")
-		# v1.0.6-TODO-168 (a): symmetric studentized interval on log(RR) (RR classes only).
+		# v1.0.6-TODO-116 (a): symmetric studentized interval on log(RR) (RR classes only).
 		if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
 			return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
 		}
@@ -96,8 +102,12 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes a PRW subsampling two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-subsampling-two-sided-pval template).
-	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
-		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
+	compute_subsampling_two_sided_pval = function(delta = NULL, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+		# v1.0.7-TODO-190: both branches reach the base resampling methods, which inherit this.
+		prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+		on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+		if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
+		# v1.0.6-TODO-137: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (is.null(delta)){
 			delta = private$default_null_value()
@@ -109,8 +119,12 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes a PRW subsampling confidence interval for the treatment effect.
 	# Documented via @R6method (see gcomp-subsampling-confidence-interval template).
-	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
-		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
+	compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+		# v1.0.7-TODO-190: both branches reach the base resampling methods, which inherit this.
+		prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+		on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+		if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
+		# v1.0.6-TODO-137: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (identical(private$get_estimand_type(), "RR")) {
 			return(private$compute_rr_subsampling_confidence_interval(alpha = alpha, B = B, b = b, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, min_fraction_usable_samples = min_fraction_usable_samples))
@@ -119,8 +133,12 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
 	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-two-sided-pval template).
-	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
-		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
+	compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = NULL, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+		# v1.0.7-TODO-190: both branches reach the base resampling methods, which inherit this.
+		prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+		on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+		if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
+		# v1.0.6-TODO-137: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (is.null(delta)){
 			delta = private$default_null_value()
@@ -132,8 +150,12 @@ incidence_gcomp_generic_alias_overrides = list(
 	},
 	# Computes an m-out-of-n bootstrap confidence interval for the treatment effect.
 	# Documented via @R6method (see gcomp-m-out-of-n-bootstrap-confidence-interval template).
-	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8){
-		# v1.0.6-TODO-191: risk ratio only (the risk difference ignores it).
+	compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+		# v1.0.7-TODO-190: both branches reach the base resampling methods, which inherit this.
+		prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+		on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+		if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
+		# v1.0.6-TODO-137: risk ratio only (the risk difference ignores it).
 		if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 		if (identical(private$get_estimand_type(), "RR")) {
 			return(private$compute_rr_m_out_of_n_bootstrap_confidence_interval(alpha = alpha, B = B, m = m, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, min_fraction_usable_samples = min_fraction_usable_samples))
@@ -167,7 +189,7 @@ incidence_gcomp_worker_overrides = list(
 	load_bootstrap_sample_into_worker = function(worker_state, indices){
 		private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 	},
-	# v1.0.6-TODO-191 / v1.0.6-TODO-230: marks degenerate risk-ratio subsampling /
+	# v1.0.6-TODO-137 / v1.0.6-TODO-164: marks degenerate risk-ratio subsampling /
 	# m-out-of-n draws as unusable (NaN).
 	compute_bootstrap_worker_estimate = function(worker_state){
 		edi_mark_degenerate_resampling_worker_draw(self, private,
@@ -415,7 +437,7 @@ NULL
 #' no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
 #' \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
 #' whatever usable draws there are.
-#' \strong{The p-value is symmetric} (since v1.0.6-TODO-230): with the pivot draws
+#' \strong{The p-value is symmetric} (since v1.0.6-TODO-164): with the pivot draws
 #' \eqn{T^*_j = \sqrt{b}(\log\widehat{RR}^*_j - \log\widehat{RR})} (\eqn{\sqrt{m}} for m-out-of-n) and
 #' \eqn{t = \sqrt{n}(\log\widehat{RR} - \log\delta)}, it is the share of usable draws with
 #' \eqn{|T^*_j| \ge |t|} (at least \eqn{1/B}), not the equal-tailed
@@ -467,7 +489,7 @@ InferenceIncidGCompRiskRatio = define_inference_class(
 			private$create_design_matrix()
 		},
 		get_estimand_type = function() "RR",
-		# v1.0.6-TODO-168 (a): adds the log(RR) symmetric studentized interval.
+		# v1.0.6-TODO-116 (a): adds the log(RR) symmetric studentized interval.
 		bayesian_bootstrap_ci_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric-percentile-t")
 	)),
 	overrides = list(

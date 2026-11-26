@@ -6,7 +6,7 @@
 # Where: R/EDI/R/inference_incidence_KK_cond_logit.R:854 (kind: na_where_defined).
 # On commit 48765322fe90 this test failed with: Expected `ci` to equal `ci_ref`. Differences: 2/2
 # mismatches (average diff: NaN) [1] NA - -0.258 == NA [2] NA - 1.350 == NA
-# Covered and fixed by v1.0.6-TODO-132 (2026-11-19): inference_incidence_KK_cond_logit.R no longer returns before caching the SE.
+# Covered and fixed by v1.0.6-TODO-86 (2026-11-19): inference_incidence_KK_cond_logit.R no longer returns before caching the SE.
 
 test_that("KK cond-logit IVWC Wald CI after an estimate-only call matches a fresh object", {
 		set.seed(20261117)

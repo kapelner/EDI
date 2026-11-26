@@ -72,7 +72,7 @@ InferenceIncidExtendedRobins = define_inference_class(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			# Found by the v1.0.6-TODO-327 sweep test
+			# Found by the v1.0.6-TODO-208 sweep test
 			# (test-asymp-ci-and-pval-defined-for-every-supported-testing-type.R): on
 			# a fresh object this returned NA with no recorded reason, because only
 			# the SE was computed and beta_hat_T was still NULL. Compute the estimate

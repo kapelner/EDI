@@ -7,10 +7,10 @@
 # Where: R/EDI/R/inference_helpers_zhang.R:17 (kind: other_numerical).
 # On commit 48765322fe90 this test failed with: Expected `p_fn(8.5)` <= 0.05. Actual comparison: 1.00
 # > 0.05 Difference: 0.95 > 0
-# Tracked as v1.0.6-TODO-400; remove the skip() when it is fixed.
+# Tracked as v1.0.7-TODO-97; remove the skip() when it is fixed.
 
 test_that("Zhang combined p-value does not drop an underflowed matched-pairs p-value and the exact CI stays finite", {
-	skip("v1.0.6-TODO-400: has_M treats an underflowed p_M = 0 as missing")
+	skip("v1.0.7-TODO-97: has_M treats an underflowed p_M = 0 as missing")
 		d_plus = 500L
 		d_minus = 500L
 		n11 = 3L; n10 = 0L; n01 = 1L; n00 = 2L

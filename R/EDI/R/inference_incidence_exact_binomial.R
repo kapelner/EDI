@@ -44,24 +44,10 @@ ExactBinomialIncidenceSource = list(
 			type
 		},
 		normalize_exact_inference_args = function(type, args_for_type = NULL){
-			if (should_run_asserts()) {
-				assertChoice(type, c("Binomial"))
-				assertList(args_for_type, null.ok = TRUE)
-			}
-			utils::modifyList(setNames(list(list()), type), if (is.null(args_for_type)) list() else args_for_type)
+			edi_exact_incidence_args(type, args_for_type, "Binomial")
 		},
 		assert_exact_inference_params = function(type, args_for_type){
-			if (should_run_asserts()) {
-				assertChoice(type, c("Binomial"))
-				assertList(args_for_type)
-				if (!(type %in% names(args_for_type))) stop("args_for_type must contain a list for ", type)
-			}
-			args = args_for_type[[type]]
-			if (should_run_asserts()) {
-				assertList(args)
-				assertResponseType(private$des_obj$get_response_type(), "incidence")
-				assertNoCensoring(private$any_censoring)
-			}
+			args = edi_validate_exact_incidence_args(private, type, args_for_type, "Binomial")
 			if (!private$design_supports_exact_binomial()) {
 				stop("Exact binomial incidence inference requires DesignFixedBinaryMatch or KK matching designs.")
 			}

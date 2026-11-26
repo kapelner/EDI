@@ -15,7 +15,7 @@ library(EDI)
 # stubs returning exact beta/variance values, independent of the real hurdle-GLMM/Poisson-fitting
 # machinery (already tested via the class's golden/migration files).
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
 # seed 3 matched every treated subject (8 pairs, no treated subject left in the
 # reservoir) and the "both pieces" test never reached the reservoir fit.

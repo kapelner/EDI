@@ -97,7 +97,7 @@ test_that("a weighted fit with a non-finite treatment coefficient returns NA and
 	est <- f$inf$compute_estimate_with_bootstrap_weights(rexp(f$n))
 	expect_true(is.na(est))
 	expect_true(is.na(f$p$last_weighted_refit$s_beta_hat_T))
-	skip("v1.0.6-TODO-262: weighted refit with non-finite beta_T returns NA but never calls cache_nonestimable_estimate (nonestimable = FALSE, no reason)")
+	skip("v1.0.7-TODO-116: weighted refit with non-finite beta_T returns NA but never calls cache_nonestimable_estimate (nonestimable = FALSE, no reason)")
 	expect_true(f$p$last_weighted_refit$nonestimable)
 })
 

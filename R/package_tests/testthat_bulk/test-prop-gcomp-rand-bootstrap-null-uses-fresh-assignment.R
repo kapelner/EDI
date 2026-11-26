@@ -1,4 +1,4 @@
-# v1.0.6-TODO-150: InferencePropGCompMeanDiff's bootstrap randomization test
+# v1.0.6-TODO-101: InferencePropGCompMeanDiff's bootstrap randomization test
 # (BRT) reuses the bootstrap worker estimator, which fit the treatment column and
 # responses snapshotted by the row-resample loader instead of the fresh design
 # assignment and sharp-null responses the BRT loader installs afterwards. Every

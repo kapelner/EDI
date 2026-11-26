@@ -9,7 +9,7 @@ test_that("weighted_cox_bootstrap_surrogate_fit fast path matches the coxph() fo
   fast = fn(time, dead, X, w)
   ref = suppressWarnings(survival::coxph(
     survival::Surv(time, dead) ~ treatment + x1 + x2,
-    data = as.data.frame(X), weights = w, ties = "breslow"))  # v1.0.6-TODO-271: EDI Cox fits use Breslow
+    data = as.data.frame(X), weights = w, ties = "breslow"))  # v1.0.6-TODO-170: EDI Cox fits use Breslow
   expect_equal(fast$beta_hat, unname(coef(ref)[["treatment"]]), tolerance = 1e-8)
   expect_equal(unname(fast$coefficients), unname(coef(ref)), tolerance = 1e-8)
   # warm start gives the same optimum

@@ -160,7 +160,7 @@ inference_stop_rand_bootstrap_ci_scale_mismatch = function(class_name) {
 	))
 }
 
-# v1.0.6-TODO-184: under a marginal estimand (set_estimand(), e.g.
+# v1.0.6-TODO-130: under a marginal estimand (set_estimand(), e.g.
 # "marginal_mean_diff" on the response's natural scale) the randomization CI
 # and the randomization-bootstrap CI still impose the sharp null as a shift on
 # the transform scale (logit for proportion, log for count), so the inverted
@@ -338,17 +338,17 @@ EDI_INFERENCE_EXCLUDED_CAPABILITIES = local({
 		# only after their native weighted-backend plans are complete.
 		InferenceOrdinalStereotypeLogitRegr = "bayesian_bootstrap",
 		InferenceOrdinalAdjCatLogitRegr = "bayesian_bootstrap",
-		# v1.0.6-TODO-217: KK compound classes with no weighted refit of their own
+		# v1.0.6-TODO-158: KK compound classes with no weighted refit of their own
 		# estimator. Their replicates used to come from the KK compound's generic
 		# raw mean-difference fallback, a different estimator; the fallback now
 		# refuses and these classes opt out (supports_bayesian_bootstrap() = FALSE).
 		InferenceBaiAdjustedTKK14 = "bayesian_bootstrap",
 		InferenceBaiAdjustedTKK21 = "bayesian_bootstrap",
-		# (v1.0.6-TODO-235 (2): the two KK quantile IVWC classes were here; they now
+		# (v1.0.6-TODO-169 (2): the two KK quantile IVWC classes were here; they now
 		# refit both halves by weighted quantreg::rq() and support it again.)
 		InferenceContinKKRobustRegrIVWC = "bayesian_bootstrap",
 		InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "bayesian_bootstrap",
-		# v1.0.6-TODO-235 (1): its own weighted hook was a marginal-Weibull surrogate.
+		# v1.0.6-TODO-169 (1): its own weighted hook was a marginal-Weibull surrogate.
 		InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "bayesian_bootstrap",
 		InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "bayesian_bootstrap"
 	)
@@ -2997,7 +2997,7 @@ get_effective_capabilities = function(name, des_obj = NULL, live_obj = NULL) {
 			live_remove = c(live_remove, capability)
 		}
 	}
-	# v1.0.6-TODO-189: under a non-conditional estimand the randomization and
+	# v1.0.6-TODO-135: under a non-conditional estimand the randomization and
 	# randomization-bootstrap CIs are refused
 	# (inference_stop_rand_ci_non_conditional_estimand()), so a live object no
 	# longer advertises them; set_estimand("conditional") restores them.
@@ -3146,7 +3146,7 @@ get_inference_hierarchy_migration_record = function(name) {
 	get(name, envir = EDI_INFERENCE_HIERARCHY_MIGRATION_MANIFEST, inherits = FALSE)
 }
 
-inference_public_method_names = function(name, generator = NULL) {
+inference_class_generator = function(name, generator) {
 	if (is.null(generator)) {
 		ns = environment(populate_inference_class_registry)
 		if (!exists(name, envir = ns, inherits = FALSE)) {
@@ -3157,6 +3157,11 @@ inference_public_method_names = function(name, generator = NULL) {
 	if (!inherits(generator, "R6ClassGenerator")) {
 		stop(sprintf("Object for %s is not an R6 generator.", name), call. = FALSE)
 	}
+	generator
+}
+
+inference_public_method_names = function(name, generator = NULL) {
+	generator = inference_class_generator(name, generator)
 	public_names = character()
 	current = generator
 	while (!is.null(current)) {
@@ -3167,16 +3172,7 @@ inference_public_method_names = function(name, generator = NULL) {
 }
 
 inference_private_owner_names = function(name, generator = NULL) {
-	if (is.null(generator)) {
-		ns = environment(populate_inference_class_registry)
-		if (!exists(name, envir = ns, inherits = FALSE)) {
-			stop(sprintf("No R6 generator found for inference class %s.", name), call. = FALSE)
-		}
-		generator = get(name, envir = ns, inherits = FALSE)
-	}
-	if (!inherits(generator, "R6ClassGenerator")) {
-		stop(sprintf("Object for %s is not an R6 generator.", name), call. = FALSE)
-	}
+	generator = inference_class_generator(name, generator)
 	owners = list()
 	current = generator
 	while (!is.null(current)) {

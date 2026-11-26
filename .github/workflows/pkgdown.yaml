@@ -97,6 +97,8 @@ jobs:
             mkdir -p R/EDI/docs/benchmarks
             cp "$RUNNER_TEMP/bench/index.html" "$RUNNER_TEMP/bench/benchmark_model_fits.md" R/EDI/docs/benchmarks/
             if [ -d "$RUNNER_TEMP/bench/python" ]; then cp -r "$RUNNER_TEMP/bench/python" R/EDI/docs/benchmarks/; fi
+            # The weekly design-balance report (design-balance-real-data.yml, v1.0.7-TODO-103).
+            if [ -d "$RUNNER_TEMP/bench/design-balance" ]; then cp -r "$RUNNER_TEMP/bench/design-balance" R/EDI/docs/benchmarks/; fi
           else
             echo "No benchmark-results branch yet: the site has no benchmarks/ page."
           fi

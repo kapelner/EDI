@@ -76,50 +76,9 @@ InferenceExtMOutOfNBootstrap = list(
 				cached = private$get_cached_resampling_distribution("m_out_of_n_boot", cache_key)
 				if (!is.null(cached)) return(cached)
 			}
-			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap draw generation")
-			if (!is.null(private$seed)) {
-				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-				on.exit(
-					if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
-					add = TRUE
-				)
-				set.seed(private$seed)
-			}
-			draws = private$generate_exchangeable_resampling_draws(
-				unit_info = unit_info,
-				B = B,
-				size = m,
-				replace = TRUE,
-				stratified = !identical(bootstrap_type, "resample_blocks"),
-				preserve_order = FALSE,
-				size_label = "m"
-			)
-			# Flag only the replicate loop (v1.0.6-TODO-207), restoring the caller's value
-			# (v1.0.6-TODO-185), so this method's own top-level code is not silenced.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "m_out_of_n_boot"
-			res = tryCatch(
-				private$compute_resampling_draw_distribution(
-					draws = draws,
-					operation = "m_out_of_n_boot",
-					show_progress = show_progress,
-					debug = debug,
-					cache_key = cache_key
-				),
-				finally = private$active_resampling_operation <- prev_resampling_operation
-			)
-			if (isTRUE(debug)) {
-				private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap debug summary")
-				est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
-				res$centered_scaled_values = private$resampling_scaling_factor(m, scaling) * (res$values - est)
-				res$full_estimate = est
-				res$m = m
-				res$n_units = unit_info$n_units
-				res$scaling = scaling
-				res$unit_type = unit_info$unit_type
-			}
-			res
+			edi_exchangeable_resample_distribution(self, private, unit_info, B, m, bootstrap_type, scaling,
+				show_progress, debug, cache_key, operation = "m_out_of_n_boot", family = "m-out-of-n bootstrap",
+				size_label = "m", replace = TRUE)
 		},
 		#' @description Computes a centered m-out-of-n bootstrap two-sided p-value.
 		#'
@@ -157,7 +116,7 @@ InferenceExtMOutOfNBootstrap = list(
 				min_number_usable_samples = min_number_usable_samples, resampling_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
-			# v1.0.6-TODO-230: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
+			# v1.0.6-TODO-164: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling,
 				symmetric = !is.null(edi_ratio_resampling_degenerate_rule(self, private)))
 		},
@@ -259,7 +218,9 @@ InferenceExtMOutOfNBootstrap = list(
 		}
 		,
 		m_out_of_n_bootstrap_cache_key = function(B, m, bootstrap_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
-			paste(as.integer(B), as.integer(m), bootstrap_type %||% "NULL", private$resampling_scaling_key(scaling), center, sep = "|")
+			# v1.0.7-TODO-190: re-imputed resamples are cached apart from the default ones.
+			paste(as.integer(B), as.integer(m), bootstrap_type %||% "NULL", private$resampling_scaling_key(scaling), center,
+				if (edi_bootstrap_reimputes(private)) "reimpute" else NULL, sep = "|")
 		},
 		m_out_of_n_bootstrap_centered_pivot = function(B, m, unit_info, show_progress = TRUE, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			private$check_bootstrap_replicate_deadline("m-out-of-n bootstrap centered pivot")
@@ -295,7 +256,7 @@ InferenceExtMOutOfNBootstrap = list(
 					# honest non-estimable result.
 					# A class with a degenerate-draw rule (ratio estimands) uses
 					# min_fraction_usable_samples instead (m_out_of_n_bootstrap_centered_pivot();
-					# v1.0.6-TODO-269; default 0.8, stricter than this gate).
+					# v1.0.6-TODO-204; default 0.8, stricter than this gate).
 					has_ratio_rule = !is.null(edi_ratio_resampling_degenerate_rule(self, private))
 					if (!has_ratio_rule && length(boot) > 0L && length(finite) / length(boot) < 0.5) {
 						return(list(ok = FALSE, reason = "m_out_of_n_high_replicate_failure_rate"))
@@ -317,7 +278,7 @@ InferenceExtMOutOfNBootstrap = list(
 				if (!isTRUE(pivot$ok)) return(pivot)
 				private$set_cached_centered_resampling_pivot("m_out_of_n_boot", cache_key, pivot)
 			}
-			# v1.0.6-TODO-230 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# v1.0.6-TODO-164 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
 			# min_fraction_usable_samples of the B resamples to be usable. Checked after the cache so a
 			# pivot built under one cap is judged under the cap of each call.
 			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "m_out_of_n",

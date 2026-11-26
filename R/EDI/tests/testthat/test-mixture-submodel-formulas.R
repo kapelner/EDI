@@ -38,7 +38,7 @@ test_that("auxiliary formulas control zero-inflated and hurdle count submodels",
 		verbose = FALSE,
 		optimization_alg = "lbfgs"
 	)
-	# v1.0.6-TODO-152: this zero part is separated (3 fitted probabilities 0 / 1).
+	# v1.0.6-TODO-103: this zero part is separated (3 fitted probabilities 0 / 1).
 	suppressWarnings(zip_full$compute_estimate(estimate_only = TRUE), classes = "edi_zero_part_separation_warning")
 	zip_ctx_2 = zip_full$.__enclos_env__$private$cached_values$likelihood_test_context
 	expect_gt(ncol(zip_ctx_2$Xzi), ncol(zip_ctx_1$Xzi))

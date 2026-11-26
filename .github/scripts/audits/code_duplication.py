@@ -5,8 +5,8 @@ Owner request 2026-11-18. Plan: R/package_metadata/new_feature_plans/v1_0_6/audi
 
 Why: several of the 2026-11-18 bugs were copies that drifted. InferenceSurvivalLogRank and
 InferenceSurvivalGehanWilcox share compute_shared_icen(); one got the ictest() arm-sign fix and the
-other did not (v1.0.6-TODO-117/-121). The GEE family parse is written out in R/EDI/src/fast_gee.cpp
-and again in python/cpp/bindings_incidence.cpp (v1.0.6-TODO-103). So the audit ranks DIVERGENT
+other did not (v1.0.6-TODO-71 / v1.0.6-TODO-75). The GEE family parse is written out in R/EDI/src/fast_gee.cpp
+and again in python/cpp/bindings_incidence.cpp (v1.0.7-TODO-43). So the audit ranks DIVERGENT
 near-clones first: pairs of regions that are mostly identical but differ in a few lines.
 
 Detection (no Claude, about 1 s): jscpd (token-based copy/paste detector) over SCAN_DIRS, with
@@ -20,7 +20,7 @@ up as several runs between the same two files with short gaps between them. This
    shared stretch, not only the parts jscpd matched exactly;
 3. classifies each differing hunk as `renamed` (equal once identifiers and literals are masked:
    log_rank vs gehan, "logrank1" vs "wmw") or `structural` (an operator, a call, an extra line:
-   the `arm_sign *` of v1.0.6-TODO-117), and gives the family a divergence score that is highest
+   the `arm_sign *` of v1.0.6-TODO-71), and gives the family a divergence score that is highest
    for a long shared stretch with a few structural differences.
 
 A family's id (`dup-<12 hex>`) hashes its two file paths and the normalized text of its two regions,
@@ -519,7 +519,7 @@ def units(ctx):
     out = {}
     for f in waiting:
         out[f["id"]] = {
-            # Highest score first; an R/Python boundary pair counts three times (the v1.0.6-TODO-103 shape:
+            # Highest score first; an R/Python boundary pair counts three times (the v1.0.7-TODO-43 shape:
             # layout differences there lower the score of code that must stay in step).
             "hash": f["id"], "priority": -int(f["score"] * 100 * (3 if boundary(f) else 1) + f["shared"]),
             "context": {"files": [loc(f, "a"), loc(f, "b")], "kind": f["kind"], "score": f["score"],
@@ -764,7 +764,7 @@ def render_push(res, blocking=False):
     if nd:
         md += [f"### Edits to one copy of a duplicated region ({len(nd)})", "",
                "The change edits one region of a known clone pair and leaves the other alone. If the edit is a "
-               "fix, the other copy probably needs it too (the v1.0.6-TODO-117 / -121 pattern). Line numbers are "
+               "fix, the other copy probably needs it too (the v1.0.6-TODO-71 / v1.0.6-TODO-75 pattern). Line numbers are "
                "the base's.", ""]
         for f in nd:
             e, o = f["edited"], "b" if f["edited"] == "a" else "a"

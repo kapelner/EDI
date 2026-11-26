@@ -166,7 +166,7 @@ InferenceMixinKKGLMMShared = list(
 			}
 			candidates
 		},
-		# v1.0.6-TODO-220 (2): the SE of the Wald CI / p-value of compute_asymp_*()
+		# v1.0.6-TODO-161 (2): the SE of the Wald CI / p-value of compute_asymp_*()
 		# (one source of truth). It used to come from the likelihood-test spec's
 		# information, which is not the Wald SE: InferenceContinKKGLMM's spec
 		# zeroes the beta x variance-parameter blocks for the score test
@@ -220,7 +220,7 @@ InferenceMixinKKGLMMShared = list(
 			if (!check_package_installed("glmmTMB")){
 				return(NULL)
 			}
-			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-26)
 			y_dat = private$y
 			if (identical(private$glmm_response_type(), "ordinal")) {
 				y_dat = ordered(y_dat, levels = sort(unique(y_dat)))
@@ -275,7 +275,7 @@ InferenceMixinKKGLMMShared = list(
 			)
 			fixed_terms = setdiff(colnames(dat), c("y", "group_id", ".bootstrap_weight__"))
 			glmm_formula = stats::as.formula(paste("y ~", paste(c(fixed_terms, "(1 | group_id)"), collapse = " + ")))
-			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-26)
 			tryCatch({
 				utils::capture.output(mod <- suppressMessages(suppressWarnings(
 					glmmTMB::glmmTMB(
@@ -312,3 +312,30 @@ InferenceMixinKKGLMMShared = list(
 		}
 	)
 )
+
+fit_kk_glmm = function(private, estimate_only) {
+	if (private$use_rcpp) {
+		private$shared_rcpp(estimate_only)
+	} else {
+		private$shared_glmm_tmb(estimate_only)
+	}
+}
+
+prepare_kk_glmm_fit = function(private, estimate_only) {
+	if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(FALSE)
+	if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(FALSE)
+	private$clear_nonestimable_state()
+	private$cached_mod = NULL
+	private$cached_values$likelihood_test_context = NULL
+	TRUE
+}
+
+kk_glmm_group_ids = function(group_id, n) {
+	if (is.null(group_id)) group_id = rep(NA_integer_, n)
+	group_id[is.na(group_id)] = 0L
+	reservoir_idx = which(group_id == 0L)
+	if (length(reservoir_idx) > 0L) {
+		group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+	}
+	group_id
+}

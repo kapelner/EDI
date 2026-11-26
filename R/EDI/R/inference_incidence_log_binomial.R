@@ -120,15 +120,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 				}
 			}
 			# Same dispatch as StandardModelCache's compute_asymp_confidence_interval().
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			edi_likelihood_asymp_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha), unsupported = NULL)
 		},
 		#' @description Asymptotic two-sided p-value for \eqn{H_0: \beta_T =
 		#'   \delta} under the current testing type. For \code{testing_type =
@@ -145,15 +137,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
 				}
 			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			edi_likelihood_asymp_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta), unsupported = NULL)
 		},
 		#' @description Wald confidence interval for \eqn{\beta_T}; \code{NA}
 		#'   bounds (with the \code{edi_wald_mle_boundary_unavailable} warning)
@@ -260,13 +244,8 @@ IncidenceLogBinomialLikelihoodSource = list(
 		logbin_X_cov_cache = NULL,
 		max_abs_reasonable_coef = 25,
 		is_log_binomial_fit_reasonable = function(mod, X_fit = NULL, j_treat = 2L, check_probability_boundary = TRUE){
-			if (is.null(mod) || is.null(mod$b)) return(FALSE)
-			j_treat = as.integer(j_treat %||% mod$j_treat %||% 2L)
-			if (length(j_treat) != 1L || !is.finite(j_treat) || j_treat < 1L) return(FALSE)
-			b = as.numeric(mod$b)
-			if (length(b) < j_treat || any(!is.finite(b))) return(FALSE)
-			if (any(abs(b) > private$max_abs_reasonable_coef)) return(FALSE)
-			if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
+			b = edi_reasonable_glm_coefficients(mod, j_treat, private$max_abs_reasonable_coef)
+			if (is.null(b)) return(FALSE)
 			# check_probability_boundary = FALSE: skip the fitted-probability-
 			# exceeds-1 boundary check. Used only for the Dirichlet-weighted
 			# Bayesian-bootstrap refit (compute_estimate_with_bootstrap_
@@ -296,7 +275,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 			}
 			TRUE
 		},
-		# v1.0.6-TODO-220 (2): the SE of the Wald CI / p-value of compute_asymp_*()
+		# v1.0.6-TODO-161 (2): the SE of the Wald CI / p-value of compute_asymp_*()
 		# (one source of truth), i.e. the inverse expected information X'WX of the
 		# IRLS fit (glm()'s convention, owner decision 2026-11-19). The inherited
 		# StandardModelCache method returned the observed information of the
@@ -317,7 +296,7 @@ IncidenceLogBinomialLikelihoodSource = list(
 		# randomization call refits the observed statistic on this object and
 		# overwrites fit_warm_start (compute_treatment_estimate_during_
 		# randomization_inference() below), which made a later jackknife differ
-		# by ~1e-11 from a fresh one (since v1.0.6-TODO-209 that method returns
+		# by ~1e-11 from a fresh one (since v1.0.6-TODO-150 that method returns
 		# compute_estimate() and no longer refits). In a fresh call cached_mod is exactly what
 		# shared() stored as fit_warm_start, so fresh results are unchanged.
 		# Workers whose dispatch policy is cold ignore the base warm start.
@@ -353,9 +332,9 @@ IncidenceLogBinomialLikelihoodSource = list(
 			ws_args$warm_start_fisher_info = NULL
 			ws_args
 		},
-		# v1.0.6-TODO-209: the randomization statistic is the cached point estimate,
+		# v1.0.6-TODO-150: the randomization statistic is the cached point estimate,
 		# the same quantity the reusable worker computes per draw
-		# (compute_bootstrap_worker_estimate -> compute_estimate), as v1.0.6-TODO-205
+		# (compute_bootstrap_worker_estimate -> compute_estimate), as v1.0.6-TODO-146
 		# did for InferenceIncidBinomialIdentityRiskDiff. This used to refit on every
 		# call from the warm start the previous call left behind (and overwrote that
 		# warm start), so the observed statistic could drift between calls and the
@@ -796,13 +775,13 @@ IncidenceLogBinomialLikelihoodSource = list(
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @section Subsampling and m-out-of-n:
-#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' (v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 #' \emph{degenerate}: a treatment arm with no events (such fits already fail and return \code{NA}). Its log risk ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 #' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 #' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws

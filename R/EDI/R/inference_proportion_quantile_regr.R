@@ -104,8 +104,7 @@ InferencePropQuantileRegr = define_inference_class(
 		#'   than columns) or the \pkg{quantreg} fit fails/errors.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			quantile_regr_estimate(private, estimate_only)
 		},
 		#' @description Recomputes \code{compute_estimate}'s treatment log-odds-ratio-shift
 		#'   coefficient with each subject's (or block's) contribution to the \code{tau}-quantile
@@ -127,25 +126,17 @@ InferencePropQuantileRegr = define_inference_class(
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			private$shared()
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			quantile_regr_wald_ci(private, alpha)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta The null difference to test against. Default is zero.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			private$shared()
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			quantile_regr_wald_pval(private, delta)
 		}
 	),
 	# Shared with the other quantile class (QuantileRegrSharedPrivate,
-	# v1.0.6-TODO-193); only the response scale and the quantreg solvers differ.
+	# v1.0.7-TODO-54); only the response scale and the quantreg solvers differ.
 	private = c(QuantileRegrSharedPrivate, list(
 		quantile_logit_response = TRUE,
 		quantile_estimate_method = "fn",

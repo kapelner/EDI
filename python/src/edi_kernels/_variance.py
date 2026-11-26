@@ -1,6 +1,6 @@
 """Variance outputs for the GLM kernels, computed from what ``_core`` already returns (private).
 
-v1.0.6-TODO-87. The R package has ``*_with_var_cpp`` twins of the OLS, logistic,
+v1.0.6-TODO-48. The R package has ``*_with_var_cpp`` twins of the OLS, logistic,
 probit, Poisson and negative-binomial kernels that also return coefficient
 variances. The Python bindings expose only the plain kernels, and
 ``fast_logistic_regression`` / ``fast_probit_regression`` returned

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-219: a seeded InferenceSuite$run_all_inference() is reproducible.
+# v1.0.6-TODO-160: a seeded InferenceSuite$run_all_inference() is reproducible.
 # Every task runs from its own seed, drawn once from the caller's stream and
 # keyed by the task's name, so results do not depend on what earlier tasks drew,
 # on task order, or on whether the fork path (here its same-process stand-in)

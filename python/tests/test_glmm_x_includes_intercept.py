@@ -1,4 +1,4 @@
-"""The GLMM kernels take X WITH an intercept column (v1.0.6-TODO-85).
+"""The GLMM kernels take X WITH an intercept column (v1.0.6-TODO-46).
 
 The fast_gaussian_lmm docstring said X has "no intercept column", but the C++
 model is X beta + u_i with beta_0 the intercept, and the R class

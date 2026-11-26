@@ -1,4 +1,4 @@
-# v1.0.6-TODO-146: the smoothed BRT adds N(0, sd(y)/sqrt(n)) noise to each resampled
+# v1.0.6-TODO-98: the smoothed BRT adds N(0, sd(y)/sqrt(n)) noise to each resampled
 # exact response. Under left-/interval-censoring a censored subject's y is NA, so the
 # noise reached exact times only, the bandwidth came from the exact times alone (1.0 in
 # raw time units when there are none), and additive noise on positive times breaks the
@@ -246,16 +246,31 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{"logit"} response transform: responses are clamped to
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the draws.
+		#'   \code{FALSE} (default): every draw analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each draw's resampled rows are imputed again
+		#'   (\code{missingness_method}) once, when the draw is made, and that imputation is
+		#'   reused for every \code{delta} the draw is evaluated at (also the fresh assignment is
+		#'   drawn on those rows), at the cost of one imputation per draw. Without missing
+		#'   covariates the two are identical. Not available when the inference's covariate
+		#'   matrix differs from the design's (a \code{model_formula}, or covariates dropped as
+		#'   perfect predictors); a class-specific batch kernel is bypassed when it is
+		#'   \code{TRUE}. See \code{compute_bootstrap_confidence_interval()}.
 		#' @return 	When \code{debug = FALSE} (default), a numeric vector of length \code{B}
 		#'   containing the null-distribution draws. When \code{debug = TRUE}, a list with:
 		#'   \code{values}, \code{errors}, \code{warnings}, \code{num_errors}, \code{num_warnings},
 		#'   \code{prop_iterations_with_errors}, \code{prop_iterations_with_warnings}, and
 		#'   \code{prop_illegal_values}.
-		approximate_rand_bootstrap_distribution_beta_hat_T = function(B = 501, delta = 0, transform_responses = "none", show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+		approximate_rand_bootstrap_distribution_beta_hat_T = function(B = 501, delta = 0, transform_responses = "none", show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "rand_bootstrap"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			reimpute = edi_bootstrap_reimputes(private)
+			if (reimpute) edi_assert_bootstrap_reimpute_supported(private)
 			if (!is.null(rand_bootstrap_draws) &&
 			    !rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type) &&
 			    any(vapply(rand_bootstrap_draws, function(draw) !is.null(draw[["smooth_noise"]]), logical(1)))) {
@@ -271,11 +286,12 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				as.integer(B),
 				formatC(as.numeric(delta), digits = 17, format = "fg", flag = "#"),
 				transform_responses,
-				# supplied draws already fix the scheme; fresh draws are keyed by it (v1.0.6-TODO-299)
+				# supplied draws already fix the scheme; fresh draws are keyed by it (v1.0.6-TODO-186)
 				if (draws_supplied) attr(rand_bootstrap_draws, "draws_id")
 					else paste0("fresh:", if (is.null(bootstrap_type)) "default" else bootstrap_type),
 				sep = "|"
 			)
+			if (reimpute) cache_key = paste0(cache_key, "|reimpute")
 			private$ensure_resampling_distribution_cache("rand_bootstrap")
 			cached_rand_boot_distr = private$get_cached_resampling_distribution("rand_bootstrap", cache_key)
 			if (!isTRUE(debug) && !is.null(cached_rand_boot_distr)) {
@@ -285,8 +301,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			has_custom_randomization_statistic =
 				!is.null(private[["custom_randomization_statistic_function"]]) ||
 				!is.null(private[["compiled_cpp_stat_fn"]])
-			has_fast_kernel = !has_custom_randomization_statistic &&
+			# A class's batch kernel resamples the fixed imputed matrix, so it cannot re-impute.
+			has_fast_kernel = !reimpute && !has_custom_randomization_statistic &&
 				private$has_private_method("compute_fast_rand_bootstrap_distr")
+			if (draws_supplied && reimpute) rand_bootstrap_draws = edi_rand_bootstrap_attach_reimputed(private, rand_bootstrap_draws)
 			if (!draws_supplied) {
 				if (!is.null(private$seed)) {
 					had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
@@ -455,7 +473,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   \code{1} requires every draw. The sequential Monte Carlo early-stopping path
 		#'   (\code{brt_mc_control}) does not stop on a prefix of the draws with too few valid
 		#'   draws: it draws the next batch, and applies the check to all \code{B} draws when it
-		#'   gets there (v1.0.6-TODO-219). A prefix that clears the check can still stop early,
+		#'   gets there (v1.0.6-TODO-160). A prefix that clears the check can still stop early,
 		#'   so a run that stops early never sees the later draws. Not applied inside
 		#'   \code{compute_rand_bootstrap_confidence_interval()}, which inverts these p-values
 		#'   and has its own failure reasons.
@@ -487,7 +505,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
 		#'   \code{"percentile"} if the SE is unavailable.
 		#'   \code{"smoothed"} is refused (with an error) for left- or interval-censored survival
-		#'   responses: censored subjects have no exact time to smooth (v1.0.6-TODO-146); use
+		#'   responses: censored subjects have no exact time to smooth (v1.0.6-TODO-98); use
 		#'   \code{"percentile"} there.
 		#'   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
 		#'   to each resampled draw before imposing the null shift, reducing discreteness in the
@@ -562,11 +580,30 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		#'   (\code{InferenceOrdinalRidit}, \code{InferenceOrdinalJonckheereTerpstraTest}) still use the
 		#'   slower R-level fallback in every case, because adding continuous Gaussian noise to integer
 		#'   category codes is not statistically meaningful — see the response-type caveat above.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the draws.
+		#'   \code{FALSE} (default): every draw analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each draw's resampled rows are imputed again
+		#'   (\code{missingness_method}) once, when the draw is made, and that imputation is
+		#'   reused for every \code{delta} the draw is evaluated at (also the fresh assignment is
+		#'   drawn on those rows), at the cost of one imputation per draw. Without missing
+		#'   covariates the two are identical. Not available when the inference's covariate
+		#'   matrix differs from the design's (a \code{model_formula}, or covariates dropped as
+		#'   perfect predictors); a class-specific batch kernel is bypassed when it is
+		#'   \code{TRUE}. See \code{compute_bootstrap_confidence_interval()}.
 		#' @return 	A two-sided p-value.
-		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile", min_fraction_usable_samples = 0.95){
+		compute_rand_bootstrap_two_sided_pval = function(B = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, bootstrap_type = NULL, rand_bootstrap_draws = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile", min_fraction_usable_samples = 0.95, reimpute_missing_vals_each_resample = FALSE){
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
-			# v1.0.6-TODO-151: same incidence guard as compute_rand_two_sided_pval()
-			# (v1.0.6-TODO-81/110). A nonzero delta shifted the 0/1 responses additively
+			# v1.0.7-TODO-190: the methods this one calls inherit the setting (they are called
+			# without the argument). Supplied draws get their once-per-draw imputation here, so
+			# every branch below (studentized, smoothed, sequential, plain) uses it.
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) {
+				edi_assert_bootstrap_reimpute_supported(private)
+				if (!is.null(rand_bootstrap_draws)) rand_bootstrap_draws = edi_rand_bootstrap_attach_reimputed(private, rand_bootstrap_draws)
+			}
+			# v1.0.6-TODO-102: same incidence guard as compute_rand_two_sided_pval()
+			# (v1.0.6-TODO-42 / v1.0.6-TODO-64). A nonzero delta shifted the 0/1 responses additively
 			# (e.g. to 0.2/1.2), which is no sharp null on any scale, and a risk-ratio
 			# class's delta = 1.2 was silently that shift, not the null RR = 1.2.
 			if (isTRUE(delta != 0) &&
@@ -579,7 +616,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				assertChoice(tolower(type), private$rand_bootstrap_pval_types)
 				assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			}
-			# v1.0.6-TODO-12: with na.rm = TRUE the p-value needs min_fraction_usable_samples of
+			# v1.0.6-TODO-2: with na.rm = TRUE the p-value needs min_fraction_usable_samples of
 			# the null draws to be valid. TRUE (after recording the reason and warning) when it
 			# falls short. A run below the randomization floor of
 			# compute_two_sided_randomization_pval_from_t0s() (max(10, 10%)) is left to that
@@ -593,7 +630,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					detail = bootstrap_valid_fraction_na_detail(n_valid, n_total, min_fraction_usable_samples, what = what))
 				TRUE
 			}
-			# v1.0.6-TODO-214: na.rm = FALSE returns NA on any invalid null draw, on every path
+			# v1.0.6-TODO-155: na.rm = FALSE returns NA on any invalid null draw, on every path
 			# (percentile, smoothed, studentized, sequential Monte Carlo), with one classed
 			# edi_bootstrap_nonfinite_na_warning per object, as the other bootstrap p-values do.
 			brt_na_rm_false_na = function(t0s, valid = is.finite(t0s)) {
@@ -657,7 +694,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 					# SE unavailable: fall through to percentile
 				} else {
 					symmetric_pivot = identical(type_lc, "symmetric-percentile-t")
-					# v1.0.6-TODO-151: `delta` is the sharp-null shift on the response scale, and
+					# v1.0.6-TODO-102: `delta` is the sharp-null shift on the response scale, and
 					# delta = 0 (no effect) is the only value allowed for incidence. The pivot must be
 					# centered at the matching null of the estimand; that is delta itself except for
 					# the raw risk-ratio g-computation classes, whose estimate is RR and whose
@@ -747,7 +784,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 						brt_na_rm_false_na(attr(smc_pval, "t0s"))
 						return(NA_real_)
 					}
-					# v1.0.6-TODO-219: the full B draws hold too few valid draws.
+					# v1.0.6-TODO-160: the full B draws hold too few valid draws.
 					if (isTRUE(attr(smc_pval, "too_few_valid_fraction"))) {
 						brt_valid_fraction_short(attr(smc_pval, "n_valid"), attr(smc_pval, "n_total"))
 						return(NA_real_)
@@ -841,7 +878,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# the resampled covariates. Materialization is serial so that all delta evaluations in
 		# the CI inversion share common random numbers; with materialize_w = FALSE the fresh w
 		# is drawn inside each (possibly parallel) iteration instead, from the same per-draw
-		# w_seed (v1.0.6-TODO-53), so it does not depend on which process or core runs it.
+		# w_seed (v1.0.6-TODO-17), so it does not depend on which process or core runs it.
 		generate_rand_bootstrap_draws = function(B, bootstrap_type = NULL, materialize_w = TRUE){
 			B = as.integer(B)
 			# Every assignment, materialized or lazy, is replayed by its own seed.  Draw the
@@ -849,7 +886,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			# receive an identical design replay (the parametric-bootstrap runners
 			# follow the same per-replicate-seed contract). A lazy draw used to take its w
 			# from whatever RNG stream the executing worker held, so the draws changed
-			# with set_num_cores() (v1.0.6-TODO-53).
+			# with set_num_cores() (v1.0.6-TODO-17).
 			w_seeds = if (B > 0L) {
 				sample.int(.Machine$integer.max, B, replace = FALSE)
 			} else integer()
@@ -867,6 +904,10 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				draw$w_rng_kind = rng_kind
 				draw
 			})
+			# v1.0.7-TODO-190: with reimpute_missing_vals_each_resample = TRUE each draw's rows are
+			# imputed here, once, before its fresh assignment is drawn on them.
+			reimputed_draws = edi_bootstrap_reimputes(private)
+			if (reimputed_draws) draws = edi_rand_bootstrap_attach_reimputed(private, draws)
 			if (isTRUE(materialize_w) && B > 0L) {
 				use_worker = isTRUE(private$use_reusable_bootstrap_worker())
 				materialize_chunk = function(idxs) {
@@ -876,7 +917,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 						draw$w_b = tryCatch({
 							set.seed(draw$w_seed)
 							if (!is.null(worker_state)) {
-								private$load_bootstrap_sample_into_worker(worker_state, list(i_b = draw$i_b, m_vec_b = draw$m_vec_b))
+								private$load_bootstrap_sample_into_worker(worker_state, edi_rand_bootstrap_row_draw(draw))
 								# [[ ]] to avoid $ partial matching (worker_des -> worker_des_priv)
 								inf_priv = if (!is.null(worker_state[["worker_inf"]])) {
 									worker_state[["worker_inf"]]$.__enclos_env__$private
@@ -889,7 +930,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 								des_obj$prepare_for_resampling_replay()
 								as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
 							} else {
-								sub_inf = private$bootstrap_subset_inference(list(i_b = draw$i_b, m_vec_b = draw$m_vec_b), smooth = FALSE)
+								sub_inf = private$bootstrap_subset_inference(edi_rand_bootstrap_row_draw(draw), smooth = FALSE)
 								if (is.null(sub_inf)) NULL else {
 									sub_des = sub_inf$.__enclos_env__$private$des_obj
 									sub_des$prepare_for_resampling_replay()
@@ -903,7 +944,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				draws = materialize_chunk(seq_len(B))
 			}
 			private$rand_boot_draws_counter = private$rand_boot_draws_counter + 1L
-			attr(draws, "draws_id") = paste0("rand_boot_draws_", private$rand_boot_draws_counter)
+			attr(draws, "draws_id") = paste0("rand_boot_draws_", private$rand_boot_draws_counter, if (reimputed_draws) "_reimpute" else "")
 			draws
 		},
 		# Loads a fresh assignment (and the sharp-null-shifted responses) into a worker whose
@@ -915,7 +956,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# TODO-2); the private-cache reset in `load_rand_bootstrap_assignment_into_worker()`
 		# also protects callers that invoke the assignment loader in isolation.
 		load_rand_bootstrap_draw_into_worker = function(worker_state, draw, delta, transform_responses, y0_full, zero_one_logit_clamp = .Machine$double.eps){
-			private$load_bootstrap_sample_into_worker(worker_state, list(i_b = draw$i_b, m_vec_b = draw$m_vec_b))
+			private$load_bootstrap_sample_into_worker(worker_state, edi_rand_bootstrap_row_draw(draw))
 			private$load_rand_bootstrap_assignment_into_worker(
 				worker_state = worker_state,
 				draw = draw,
@@ -1027,7 +1068,8 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			sub_draws = draws[new_idxs]
 			attr(sub_draws, "draws_id") = if (!is.null(draws_id)) paste0(draws_id, "_smc") else NULL
 			has_custom = !is.null(private[["custom_randomization_statistic_function"]]) || !is.null(private[["compiled_cpp_stat_fn"]])
-			has_fast_kernel = !has_custom && private$has_private_method("compute_fast_rand_bootstrap_distr")
+			# v1.0.7-TODO-190: the batch kernel cannot use re-imputed draws.
+			has_fast_kernel = !has_custom && !edi_bootstrap_reimputes(private) && private$has_private_method("compute_fast_rand_bootstrap_distr")
 			new_vals = NULL
 			if (has_fast_kernel) {
 				new_vals = tryCatch({
@@ -1064,15 +1106,15 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# lies entirely above or below mc_stop_threshold, the current p-value estimate is
 		# returned. Returns NULL when SMC is disabled, draws lack materialized w_b, or the
 		# batch size is >= B (which would be no batching at all).
-		# v1.0.6-TODO-214: with na.rm = FALSE the first evaluated prefix (or cached full
+		# v1.0.6-TODO-155: with na.rm = FALSE the first evaluated prefix (or cached full
 		# distribution) holding a non-finite draw ends the loop with NA carrying the
 		# attributes nonfinite_draws = TRUE and t0s (so the caller can warn): the full B draws
 		# hold that draw too, so this is the answer the one-shot path gives. A run that stops
 		# early on an all-finite prefix never sees the later draws, so it can return a finite
 		# p-value where the one-shot path (all B draws) would return NA; early stopping is
 		# exactly not evaluating those draws.
-		# v1.0.6-TODO-219: with na.rm = TRUE a prefix holding fewer than
-		# min_fraction_usable_samples (v1.0.6-TODO-12) valid draws is not a stopping point;
+		# v1.0.6-TODO-160: with na.rm = TRUE a prefix holding fewer than
+		# min_fraction_usable_samples (v1.0.6-TODO-2) valid draws is not a stopping point;
 		# the loop draws the next batch. At the full B draws (or a cached full distribution)
 		# the check is the one-shot path's: when it fails, NA is returned with the attributes
 		# too_few_valid_fraction = TRUE, n_valid and n_total, so the caller records and warns.
@@ -1097,7 +1139,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			threshold = mc_ctrl$mc_stop_threshold
 			# Short-circuit: if the full B-draw distribution is already cached, skip batching.
 			nonfinite_na = function(t0s) structure(NA_real_, nonfinite_draws = TRUE, t0s = as.numeric(t0s))
-			# The one-shot path's v1.0.6-TODO-12 check (brt_valid_fraction_short() in the caller):
+			# The one-shot path's v1.0.6-TODO-2 check (brt_valid_fraction_short() in the caller):
 			# below the randomization floor max(10, 10%) the floor's own reason stands.
 			fraction_short = function(t0s) {
 				n_valid = sum(is.finite(t0s))
@@ -1127,14 +1169,14 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 				t0s = private$get_brt_distribution_prefix(draws, target, delta, transform_arg, y0_full, zero_one_logit_clamp)
 				if (!isTRUE(na.rm) && any(!is.finite(t0s))) return(nonfinite_na(t0s))
 				if (target >= B_int) return(full_draws_result(t0s))
-				# v1.0.6-TODO-166: a prefix with too few finite draws is not a final
+				# v1.0.6-TODO-114: a prefix with too few finite draws is not a final
 				# answer; draw the next batch instead of returning NA (the full B draws
 				# may have enough). The second check is the finite-draw minimum of
 				# compute_two_sided_randomization_pval_from_t0s(), applied here so a
 				# short prefix neither warns nor records a hardened failure.
 				n_valid = sum(is.finite(t0s))
 				if (n_valid < min_draws_mc || n_valid < max(10L, as.integer(length(t0s) * 0.10))) next
-				# v1.0.6-TODO-219: too small a valid fraction on this prefix: draw more.
+				# v1.0.6-TODO-160: too small a valid fraction on this prefix: draw more.
 				if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(n_valid, length(t0s), min_fraction_usable_samples)) next
 				p_hat = private$compute_two_sided_randomization_pval_from_t0s(t0s, t, procedure = "randomization-bootstrap p-value")
 				if (is.finite(p_hat) && private$sequential_mc_band_excludes_threshold(t0s, t, threshold, conf_level)) return(p_hat)
@@ -1144,46 +1186,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# calls compute_treatment_estimate_during_randomization_inference(estimate_only = FALSE)
 		# so that s_beta_hat_T is populated and returned alongside the point estimate.
 		run_rand_bootstrap_iteration_with_se = function(draw, delta, transform_responses, y0_full, zero_one_logit_clamp = .Machine$double.eps){
-			sub_inf = private$bootstrap_subset_inference(list(i_b = draw$i_b, m_vec_b = draw$m_vec_b), smooth = FALSE)
+			sub_inf = edi_prepare_rand_bootstrap_subset(private, draw, delta, transform_responses, y0_full, zero_one_logit_clamp)
 			if (is.null(sub_inf)) return(c(t0 = NA_real_, se0 = NA_real_))
 			sub_priv = sub_inf$.__enclos_env__$private
-			sub_des = sub_priv$des_obj
-			sub_des_priv = sub_priv$des_obj_priv_int
-			w_new = if (!is.null(draw$w_b)) {
-				as.numeric(draw$w_b)
-			} else {
-				rand_bootstrap_lazy_draw_w(sub_des, draw)
-			}
-			if (length(w_new) != length(draw$i_b)) return(c(t0 = NA_real_, se0 = NA_real_))
-			sub_des_priv$w = w_new
-			y_sim = y0_full[draw$i_b]
-			if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], sub_des_priv$response_type)
-			if (delta != 0) {
-				y_sim = private$shift_randomization_responses(
-					y = y_sim, w = w_new, delta = delta,
-					transform_responses = transform_responses,
-					response_type = sub_des_priv$response_type,
-					inverse = FALSE, zero_one_logit_clamp = zero_one_logit_clamp
-				)
-			}
-			sub_des_priv$y = y_sim
-			if (identical(sub_des_priv$response_type, "survival")) {
-				# sub_priv$dead is already correct here (bootstrap_subset_inference()
-				# subsets it from the original Inference object's own private$dead);
-				# Design no longer stores a raw dead field to round-trip through
-				# (interval_censored_survival_response.md TODO-1), so dead_sim is only
-				# needed locally for the y_L/y_R construction below.
-				dead_sim = as.numeric(private$dead[draw$i_b])
-				if (!isTRUE(private$has_general_censoring)) {
-					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
-					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
-				} else if (delta != 0) {
-					bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, sub_des_priv$response_type, zero_one_logit_clamp)
-					sub_des_priv$y_L = bounds$y_L
-					sub_des_priv$y_R = bounds$y_R
-				}
-			}
-			private$sync_randomization_worker_state(sub_des, sub_inf)
 			estimate = tryCatch(
 				sub_inf$compute_estimate(estimate_only = FALSE),
 				error = function(e) NA_real_
@@ -1282,51 +1287,9 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 		# One null draw: build the resampled sub-design/sub-inference, draw (or inject) a fresh
 		# w from the design, impose the sharp null shift on the treated, and compute the statistic.
 		run_rand_bootstrap_iteration = function(draw, delta, transform_responses, y0_full, zero_one_logit_clamp = .Machine$double.eps){
-			sub_inf = private$bootstrap_subset_inference(list(i_b = draw$i_b, m_vec_b = draw$m_vec_b), smooth = FALSE)
+			sub_inf = edi_prepare_rand_bootstrap_subset(private, draw, delta, transform_responses, y0_full, zero_one_logit_clamp)
 			if (is.null(sub_inf)) return(NA_real_)
 			sub_priv = sub_inf$.__enclos_env__$private
-			sub_des = sub_priv$des_obj
-			sub_des_priv = sub_priv$des_obj_priv_int
-			w_new = if (!is.null(draw$w_b)) {
-				as.numeric(draw$w_b)
-			} else {
-				rand_bootstrap_lazy_draw_w(sub_des, draw)
-			}
-			if (length(w_new) != length(draw$i_b)) return(NA_real_)
-			sub_des_priv$w = w_new
-			# The resampled control potential outcomes are w-invariant under the sharp null;
-			# re-impose the delta shift on the freshly treated.
-			y_sim = y0_full[draw$i_b]
-			if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], sub_des_priv$response_type)
-			if (delta != 0) {
-				y_sim = private$shift_randomization_responses(
-					y = y_sim,
-					w = w_new,
-					delta = delta,
-					transform_responses = transform_responses,
-					response_type = sub_des_priv$response_type,
-					inverse = FALSE,
-					zero_one_logit_clamp = zero_one_logit_clamp
-				)
-			}
-			sub_des_priv$y = y_sim
-			if (identical(sub_des_priv$response_type, "survival")) {
-				# sub_priv$dead is already correct here (bootstrap_subset_inference()
-				# subsets it from the original Inference object's own private$dead);
-				# Design no longer stores a raw dead field to round-trip through
-				# (interval_censored_survival_response.md TODO-1), so dead_sim is only
-				# needed locally for the y_L/y_R construction below.
-				dead_sim = as.numeric(private$dead[draw$i_b])
-				if (!isTRUE(private$has_general_censoring)) {
-					sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
-					sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
-				} else if (delta != 0) {
-					bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, sub_des_priv$response_type, zero_one_logit_clamp)
-					sub_des_priv$y_L = bounds$y_L
-					sub_des_priv$y_R = bounds$y_R
-				}
-			}
-			private$sync_randomization_worker_state(sub_des, sub_inf)
 			estimate = tryCatch(
 				sub_priv$compute_treatment_estimate_during_randomization_inference(estimate_only = TRUE),
 				error = function(e) NA_real_
@@ -1337,7 +1300,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 			if (is.list(estimate) && "b" %in% names(estimate)) estimate = estimate$b[1]
 			as.numeric(estimate)[1L]
 		},
-		# v1.0.6-TODO-143: under general (left-/interval-) censoring the censored subjects'
+		# v1.0.6-TODO-95: under general (left-/interval-) censoring the censored subjects'
 		# y is NA, so shifting y alone imposes the sharp null on exact times only and the
 		# bounds keep the observed treated/control effect. Apply the same shift to y_L / y_R
 		# that y gets: remove it from the observed treated (inverse, at the observed w), take
@@ -1359,7 +1322,7 @@ InferenceRandBootstrap = R6::R6Class("InferenceRandBootstrap",
 # FALSE), replaying the draw's own w_seed under the RNG kind it was generated with, then
 # restoring the caller's RNG kind and stream. Without the seed the w came from whatever
 # stream the executing process held (the parent, or a fork worker's L'Ecuyer-CMRG
-# stream), so the draws changed with set_num_cores() (v1.0.6-TODO-53).
+# stream), so the draws changed with set_num_cores() (v1.0.6-TODO-17).
 rand_bootstrap_lazy_draw_w = function(des_obj, draw){
 	seed = draw[["w_seed"]]
 	if (!is.null(seed)) {
@@ -1380,4 +1343,104 @@ rand_bootstrap_lazy_draw_w = function(des_obj, draw){
 	}
 	des_obj$prepare_for_resampling_replay()
 	as.numeric(des_obj$draw_ws_according_to_design(1L)[, 1L])
+}
+
+# Prepare a fresh subset for the scalar and studentized bootstrap statistics.
+edi_prepare_rand_bootstrap_subset = function(private, draw, delta, transform_responses, y0_full, zero_one_logit_clamp) {
+	sub_inf = private$bootstrap_subset_inference(edi_rand_bootstrap_row_draw(draw), smooth = FALSE)
+	if (is.null(sub_inf)) return(NULL)
+	sub_priv = sub_inf$.__enclos_env__$private
+	sub_des = sub_priv$des_obj
+	sub_des_priv = sub_priv$des_obj_priv_int
+	w_new = if (!is.null(draw$w_b)) {
+		as.numeric(draw$w_b)
+	} else {
+		rand_bootstrap_lazy_draw_w(sub_des, draw)
+	}
+	if (length(w_new) != length(draw$i_b)) return(NULL)
+	sub_des_priv$w = w_new
+	# The resampled control potential outcomes are w-invariant under the sharp null;
+	# re-impose the delta shift on the freshly treated.
+	y_sim = y0_full[draw$i_b]
+	if (!is.null(draw[["smooth_noise"]])) y_sim = private$add_rand_bootstrap_smooth_noise(y_sim, draw[["smooth_noise"]], sub_des_priv$response_type)
+	if (delta != 0) {
+		y_sim = private$shift_randomization_responses(
+			y = y_sim,
+			w = w_new,
+			delta = delta,
+			transform_responses = transform_responses,
+			response_type = sub_des_priv$response_type,
+			inverse = FALSE,
+			zero_one_logit_clamp = zero_one_logit_clamp
+		)
+	}
+	sub_des_priv$y = y_sim
+	if (identical(sub_des_priv$response_type, "survival")) {
+		# sub_priv$dead is already correct here (bootstrap_subset_inference()
+		# subsets it from the original Inference object's own private$dead);
+		# Design no longer stores a raw dead field to round-trip through
+		# (interval_censored_survival_response.md TODO-1), so dead_sim is only
+		# needed locally for the y_L/y_R construction below.
+		dead_sim = as.numeric(private$dead[draw$i_b])
+		if (!isTRUE(private$has_general_censoring)) {
+			sub_des_priv$y_L = ifelse(dead_sim == 0, y_sim, NA_real_)
+			sub_des_priv$y_R = ifelse(dead_sim == 0, Inf, NA_real_)
+		} else if (delta != 0) {
+			bounds = private$rand_bootstrap_null_censoring_bounds(draw$i_b, w_new, delta, transform_responses, sub_des_priv$response_type, zero_one_logit_clamp)
+			sub_des_priv$y_L = bounds$y_L
+			sub_des_priv$y_R = bounds$y_R
+		}
+	}
+	private$sync_randomization_worker_state(sub_des, sub_inf)
+	sub_inf
+}
+
+# v1.0.7-TODO-190: reimpute_missing_vals_each_resample = TRUE for the bootstrap-randomization
+# test. Each draw's resampled rows are imputed once, when the draw is made (or when supplied
+# draws first reach a TRUE call), and the imputed rows travel with the draw as
+# `reimputed_Ximp`. Both row loaders (the reused worker's and bootstrap_subset_inference())
+# then rebuild the model matrix from those rows instead of imputing again, so the CI, which
+# evaluates the same draws at many deltas, imputes each draw once. The imputation is seeded
+# by the design's seed, so it gives the same rows wherever it runs.
+edi_rand_bootstrap_draw_imputed_rows = function(private, i_b) {
+	des_priv = private$des_obj_priv_int
+	sub_des = private$des_obj$duplicate(verbose = FALSE)
+	sub_priv = sub_des$.__enclos_env__$private
+	idx = as.integer(i_b)
+	Xraw = des_priv$Xraw
+	sub_priv$Xraw = if (data.table::is.data.table(Xraw)) Xraw[idx] else Xraw[idx, , drop = FALSE]
+	sub_priv$t = length(idx)
+	sub_priv$n = length(idx)
+	sub_priv$Ximp = NULL
+	sub_priv$rebuild_model_matrix_from_ximp = FALSE
+	sub_priv$covariate_impute_if_necessary_and_then_create_model_matrix()
+	as.data.frame(sub_priv$Ximp)
+}
+
+# Attaches `reimputed_Ximp` to every draw that lacks it, when this call re-imputes. Draws
+# that already carry it are left alone; for supplied draws (identified by their draws_id)
+# the imputed rows are also kept in private$cached_values, so a later call with the same
+# draws reuses them.
+edi_rand_bootstrap_attach_reimputed = function(private, draws) {
+	if (!length(draws) || !edi_bootstrap_reimputes(private)) return(draws)
+	draws_id = attr(draws, "draws_id")
+	cache = private$cached_values[["brt_reimputed_ximp"]]
+	if (is.null(cache)) cache = list()
+	for (b in seq_along(draws)) {
+		if (!is.null(draws[[b]][["reimputed_Ximp"]])) next
+		key = if (!is.null(draws_id)) paste0(draws_id, "#", b) else NULL
+		ximp = if (!is.null(key)) cache[[key]] else NULL
+		if (is.null(ximp)) {
+			ximp = edi_rand_bootstrap_draw_imputed_rows(private, draws[[b]][["i_b"]])
+			if (!is.null(key)) cache[[key]] = ximp
+		}
+		draws[[b]][["reimputed_Ximp"]] = ximp
+	}
+	if (!is.null(draws_id)) private$cached_values$brt_reimputed_ximp = cache
+	draws
+}
+
+# The row part of a BRT draw, as the row loaders take it.
+edi_rand_bootstrap_row_draw = function(draw) {
+	list(i_b = draw[["i_b"]], m_vec_b = draw[["m_vec_b"]], reimputed_Ximp = draw[["reimputed_Ximp"]])
 }

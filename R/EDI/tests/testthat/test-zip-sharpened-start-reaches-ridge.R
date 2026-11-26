@@ -1,14 +1,14 @@
-# v1.0.6-TODO-232 (2026-11-19): with covariates in the zero formula, a small ZIP
+# v1.0.6-TODO-166 (2026-11-19): with covariates in the zero formula, a small ZIP
 # fit can stop unflagged at an interior local maximum (gradient ~1e-10,
 # information positive definite) while the likelihood's supremum is on a ridge
 # where the zero part separates some zeros from every positive count.
 # pscl::zeroinfl() stops at another interior maximum, so it could not reveal
 # this. Each ZIP fit now also runs L-BFGS from pscl's start with the zero part
 # scaled by 10, which reaches the ridge here; the separated zero part is then
-# flagged (v1.0.6-TODO-152).
+# flagged (v1.0.6-TODO-103).
 
 zip_sharpened_repro = function() {
-	# The v1.0.6-TODO-218 sweep generator at dataset 1057 (seed 101057).
+	# The v1.0.6-TODO-159 sweep generator at dataset 1057 (seed 101057).
 	set.seed(101057)
 	n = sample(c(24, 40, 60, 100, 200, 400), 1)
 	infl = sample(c(-Inf, -2.5, -1, 0, 1), 1, prob = c(0.3, 0.2, 0.2, 0.15, 0.15))

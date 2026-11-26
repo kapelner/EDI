@@ -219,7 +219,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 		}
 	),
 	private = list(
-		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# v1.0.6-TODO-216: never warm-start from a separated fit (see
 		# edi_poisson_warm_start_on_boundary()).
 		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		best_X_colnames = NULL,
@@ -283,7 +283,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 			if (is.null(res) || !is.finite(res$b[2])){
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-189: under a marginal estimand return the g-computed
+			# v1.0.6-TODO-135: under a marginal estimand return the g-computed
 			# functional, the scale compute_estimate() and the reused worker use.
 			estimand = self$get_estimand()
 			if (identical(estimand, "conditional")) return(as.numeric(res$b[2]))
@@ -324,7 +324,7 @@ InferenceCountQuasiPoisson = define_inference_class(
 				fit_ok = function(mod, X_fit, keep){
 					j_treat = mod$j_treat
 					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
-					# v1.0.6-TODO-395: an unconverged IRLS fit (e.g. stuck at the zero start for
+					# v1.0.6-TODO-200: an unconverged IRLS fit (e.g. stuck at the zero start for
 					# large counts) is not an estimate, even when the Pearson dispersion is finite.
 					if (isFALSE(mod$converged)) return(FALSE)
 					if (estimate_only) return(TRUE)

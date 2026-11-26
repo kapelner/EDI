@@ -22,7 +22,7 @@ test_that("jackknife public distribution API is coherent", {
 })
 
 test_that("clustered designs support cluster jackknife deletion", {
-	# 6 clusters (was 4): since v1.0.6-TODO-135 a jackknife with fewer than 5 deletion units is
+	# 6 clusters (was 4): since v1.0.6-TODO-89 a jackknife with fewer than 5 deletion units is
 	# NA with a warning (test-jackknife-too-few-deletion-units-na-warns.R checks 4 vs 5 clusters).
 	des <- DesignFixedCluster$new(
 		n = 12,

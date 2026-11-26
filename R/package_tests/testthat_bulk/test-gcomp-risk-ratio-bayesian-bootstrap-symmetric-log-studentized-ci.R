@@ -1,4 +1,4 @@
-# v1.0.6-TODO-168 (a): the g-computation risk-ratio classes (InferenceIncidGCompRiskRatio,
+# v1.0.6-TODO-116 (a): the g-computation risk-ratio classes (InferenceIncidGCompRiskRatio,
 # InferenceIncidKKGCompRiskRatio) get a symmetric studentized Bayesian-bootstrap interval built on
 # log(RR), type = "symmetric-percentile-t" of compute_bayesian_bootstrap_confidence_interval().
 # The raw-scale "studentized" type undercovers at small n (0.89 at n = 60); the symmetric log-scale

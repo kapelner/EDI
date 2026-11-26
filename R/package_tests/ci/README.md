@@ -148,3 +148,53 @@ Two informational steps write to the job summary on the `macos-latest`
   R/package_tests/ci/simd_vectorization_report.sh` checks the no-OpenMP path.
 - `accelerate_thread_probe.R` times `crossprod()` in fresh R processes under
   each BLAS thread control and reports CPU/elapsed (arm_hardware.md TODO-21).
+
+## Real-data crash corpus (`real-data-crash-corpus.yml`, v1.0.7-TODO-102)
+
+Runs every applicable inference class on every redistributable CRAN trial of
+`R/package_metadata/experimental_datasets.csv`, with the trial's real assignment
+and real outcomes, and counts errors, silent NAs and timeouts. It finds crashes,
+not miscalibration. Triggered on push to main (path-filtered on package code, the
+catalog and the job's own files; comment-only edits are skipped) and by dispatch.
+Not a required check.
+
+- Runner: `R/package_tests/real_data_crash_corpus.R` (options and statuses in its
+  header). Loader: `R/package_tests/real_data_catalog.R`, which reads each trial
+  from its pinned CRAN release's source tarball (no install). It also records why it
+  skips a catalog row (factorials, crossovers, wide or counting-process outcomes).
+  Trial-specific fixes are in its `RDC_OVERRIDES`.
+- Statuses per call: `ok`, `warning`, `na` (a silent NA), `nonestimable` (EDI
+  refused or explained its NA), `error`, `timeout` (the case exceeded 60 s).
+- Gate: `real_data_crash_corpus_baseline.csv`, one row per (dataset, outcome,
+  class, call). A shard fails on a new `error` or `timeout`, on a new `na` where the
+  baseline had a value, or on a baseline `error` / `na` / `timeout` row whose `todo`
+  column does not cite an open release TODO (`v1.0.7-TODO-181`; several may be
+  separated by `;`).
+
+Run locally (against the installed EDI; the first run fetches the trials into the
+gitignored `R/package_metadata/randomized_experiment_datasets/real_data_rds/`):
+
+```sh
+Rscript R/package_tests/real_data_crash_corpus.R --datasets cgd,veteran --compare R/package_tests/ci/real_data_crash_corpus_baseline.csv
+Rscript R/package_tests/real_data_crash_corpus.R --cores 3    # the full corpus, ~1 h 15 min on 3 cores
+```
+
+Refreshing the baseline after a deliberate change (a fix, a new class, a catalog
+row): run the affected part (or everything) with `--write-baseline`. It merges into
+the file, keeps rows the run did not cover, and keeps the `todo` of every row that is
+still error / na / timeout. A new such row gets an empty `todo`; cite an open TODO
+there (open one if none fits), or the gate fails. A row that improved to ok can go
+from its TODO's evidence.
+
+```sh
+Rscript R/package_tests/real_data_crash_corpus.R --datasets cgd --write-baseline R/package_tests/ci/real_data_crash_corpus_baseline.csv
+```
+
+The CI shards upload their results CSVs (artifacts `crash-corpus-*`), so a refresh
+can merge a CI run's results instead of running locally:
+
+```sh
+gh run download <run-id> -p 'crash-corpus-*' -D /tmp/cc
+Rscript R/package_tests/real_data_crash_corpus.R --from-results "$(ls /tmp/cc/*/results-*.csv | grep -v _skips | paste -sd, -)" \
+  --write-baseline R/package_tests/ci/real_data_crash_corpus_baseline.csv
+```

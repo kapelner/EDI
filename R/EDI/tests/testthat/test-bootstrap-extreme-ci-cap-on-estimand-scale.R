@@ -1,4 +1,4 @@
-# v1.0.6-TODO-157 (from v1.0.6-TODO-113's owner decision): the bootstrap "extreme interval" cap
+# v1.0.6-TODO-104 (from v1.0.6-TODO-67's owner decision): the bootstrap "extreme interval" cap
 # (bootstrap_extreme_ci_width_threshold = 5 times bootstrap_outcome_scale(), the outcome SD) is in
 # outcome units but was also applied to log-ratio / link-scale coefficients, so a 5.6-wide log-OR
 # interval from 10 clusters was rejected. For those estimands an interval over the cap is now kept
@@ -128,12 +128,12 @@ test_that("the predicate: spread and magnitude rules apply only over the cap and
 	expect_false(logit$.__enclos_env__$private$bootstrap_estimand_on_link_scale())
 })
 
-# v1.0.6-TODO-160 (owner decision 2026-11-18): (1) for link-scale estimands a bound beyond
+# v1.0.6-TODO-109 (owner decision 2026-11-18): (1) for link-scale estimands a bound beyond
 # +-bootstrap_extreme_link_scale_max_abs (10) is always extreme when replicates are passed, whatever
 # the outcome SD (counts with SD 20 put the outcome-SD cap at ~100 log units, so degenerate
 # log-rate-ratio intervals passed); (2) the raw g-computation risk ratio is judged on log(RR) with
 # the link-scale rule instead of the outcome-SD cap on the ratio scale. Without replicates
-# (subsampling, m-out-of-n) (1) behaves as before; v1.0.6-TODO-175 extended (2) to them.
+# (subsampling, m-out-of-n) (1) behaves as before; v1.0.6-TODO-121 extended (2) to them.
 
 fixed_design_160 = function(n, response_type, seed, yfun){
 	set.seed(seed)
@@ -210,7 +210,7 @@ test_that("the g-computation risk ratio is judged on log(RR): a skewed interval 
 	theta = exp(rnorm(500, log(1.7), 0.6))
 	# [0.5, 6] is 5.5 wide on the ratio scale (over the old cap of 5) but log(12) = 2.5 on log(RR).
 	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7, theta = theta))
-	# Without replicates the log(RR) rule now applies too (v1.0.6-TODO-175 (2)); before, the
+	# Without replicates the log(RR) rule now applies too (v1.0.6-TODO-121 (2)); before, the
 	# ratio-scale check rejected this interval.
 	expect_false(p$bootstrap_confidence_interval_extreme(c(0.5, 6), est = 1.7))
 	# A bound at a ratio beyond e^-10: degenerate, although only 0.97 wide on the ratio scale.
@@ -268,7 +268,7 @@ test_that("the KK g-computation risk ratio uses the same log(RR) rule", {
 	expect_gt(r$ci[2L] - r$ci[1L], 5)
 })
 
-# v1.0.6-TODO-175 (from v1.0.6-TODO-160): the remaining raw-ratio-scale guards of the g-computation
+# v1.0.6-TODO-121 (from v1.0.6-TODO-109): the remaining raw-ratio-scale guards of the g-computation
 # risk ratio. (1) The replicate guard of the bootstrap CI paths runs on log(RR), so one replicate
 # with RR > 1e6 (near-zero control risk) no longer rejects the whole bootstrap; (2) callers without
 # replicates (the risk-ratio subsampling / m-out-of-n pivots) get the log(RR) rule; (3) the log-scale
@@ -310,9 +310,9 @@ test_that("risk-ratio subsampling / m-out-of-n intervals are judged on log(RR) w
 	expect_true(p$bootstrap_confidence_interval_extreme(c(0.01, 200), est = 1.5))
 	# The m-out-of-n interval [3e-5, 2.83] on this fixture was accepted. Its lower bound came from
 	# degenerate resamples (an arm with no events, or a separated fit: log RR* ~ -20). Since
-	# v1.0.6-TODO-191 those draws are unusable: about 10% of them here. Under a 95% usable-draw
+	# v1.0.6-TODO-137 those draws are unusable: about 10% of them here. Under a 95% usable-draw
 	# minimum the interval is NA for that reason before the extreme check runs; under the 80%
-	# default (v1.0.6-TODO-230) or with no cap, the degenerate draws are dropped and the interval
+	# default (v1.0.6-TODO-164) or with no cap, the degenerate draws are dropped and the interval
 	# is plausible.
 	inf = InferenceIncidGCompRiskRatio$new(des, verbose = FALSE)
 	inf$num_cores = 1L

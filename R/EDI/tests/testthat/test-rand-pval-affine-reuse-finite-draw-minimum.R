@@ -1,4 +1,4 @@
-# v1.0.6-TODO-124: the cached affine-reuse fast path of
+# v1.0.6-TODO-78: the cached affine-reuse fast path of
 # compute_rand_two_sided_pval() must enforce the same documented
 # max(10, floor(r/10)) finite-draw minimum as the uncached path (it used to
 # return NA only when no draw was finite), record the same failure reason, and
@@ -41,8 +41,8 @@ test_that("affine-reuse path returns NA below max(10, floor(r/10)) finite draws"
 	# zero-finite cutoff but below the documented minimum.
 	stub_cache(fx, n_finite = 15L)
 	expect_true(isTRUE(fx$priv$supports_additive_delta_shift("none")))
-	# The NA is announced with an edi_procedure_na_warning (v1.0.6-TODO-136);
-	# assert it by class (v1.0.6-TODO-204).
+	# The NA is announced with an edi_procedure_na_warning (v1.0.6-TODO-90);
+	# assert it by class (v1.0.6-TODO-145).
 	expect_warning(pv <- fx$inf$compute_rand_two_sided_pval(r = fx$r, permutations = fx$perms,
 		delta = 0.5, show_progress = FALSE), class = "edi_procedure_na_warning")
 	expect_true(is.na(pv))

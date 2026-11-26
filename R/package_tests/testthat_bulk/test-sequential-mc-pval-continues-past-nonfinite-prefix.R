@@ -1,4 +1,4 @@
-# v1.0.6-TODO-166: the sequential Monte Carlo p-value loops (randomization:
+# v1.0.6-TODO-114: the sequential Monte Carlo p-value loops (randomization:
 # compute_two_sided_pval_with_sequential_mc(); randomization bootstrap:
 # compute_two_sided_brt_pval_with_sequential_mc()) returned NA as soon as one
 # batch prefix had too few finite draws (fewer than 10), even when the full set
@@ -87,7 +87,7 @@ test_that("randomization-bootstrap sequential MC continues past non-finite prefi
 		priv$brt_mc_control = smc_control(min_draws = min_draws)
 		# 150 of 200 draws are finite, below the min_fraction_usable_samples default (0.95);
 		# this test is about the finite-draw floor, so the fraction check is off
-		# (v1.0.6-TODO-219 applies it on this path).
+		# (v1.0.6-TODO-160 applies it on this path).
 		priv$compute_two_sided_brt_pval_with_sequential_mc(t, B, 0, "none", d$get_y(), draws, .Machine$double.eps,
 			min_fraction_usable_samples = 0)
 	}

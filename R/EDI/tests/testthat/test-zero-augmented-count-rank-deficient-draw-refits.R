@@ -1,4 +1,4 @@
-# v1.0.6-TODO-126: zero-inflated and hurdle count classes on a rank-deficient resample.
+# v1.0.6-TODO-80: zero-inflated and hurdle count classes on a rank-deficient resample.
 # (1) The reusable bootstrap/jackknife worker restored the full-data best_X_colnames /
 #     best_Xzi_colnames on every draw. On a leave-one-block-out draw of a blocking design
 #     whose formula names the strata, the dropped stratum's dummy is constant, the hardened

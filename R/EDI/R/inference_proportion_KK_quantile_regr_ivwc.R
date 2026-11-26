@@ -72,7 +72,7 @@ InferencePropKKQuantileRegrIVWC = define_inference_class(
 		"Wald",
 		"KKQuantileRegrIVWC"
 	),
-	# v1.0.6-TODO-235 (2): the Bayesian bootstrap is back (v1.0.6-TODO-217 had opted
+	# v1.0.6-TODO-169 (2): the Bayesian bootstrap is back (v1.0.6-TODO-158 had opted
 	# out); the KKQuantileRegrIVWC component's compute_weighted_estimate_ivwc() refits
 	# both halves by weighted quantreg::rq().
 	metadata = list(likelihood_tier = "none"),

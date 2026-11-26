@@ -3,7 +3,7 @@
 
 Release files (R/package_metadata/future_release_plans/release_v*.md) number their
 checkbox TODOs (`- [ ] TODO-147 ...`). Agents append to them concurrently, and two of
-them can pick the same next number (it happened on 2026-11-18 with v1.0.6-TODO-147).
+them can pick the same next number (it happened on 2026-11-18 with v1.0.6-TODO-99).
 This compares each changed release file at the pushed commit with the remote base and
 fails only on duplicates the push adds: a number that is newly duplicated, or that
 gained more entries. Duplicates already on the remote do not block the push; the

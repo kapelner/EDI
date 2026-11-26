@@ -126,7 +126,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 			private$blocking_capable = TRUE
 			private$matching_capable = TRUE
 			private$uses_covariates = TRUE
-			# v1.0.6-TODO-290: out-of-range values used to construct and then fail mid-trial (qf() NaNs
+			# v1.0.6-TODO-177: out-of-range values used to construct and then fail mid-trial (qf() NaNs
 			# in KK14, "'probs' outside [0,1]" in KK21) or never match (t_0_pct > 1).
 			if (!is.null(lambda) && (!is.numeric(lambda) || length(lambda) != 1L || is.na(lambda) ||
 					!(lambda >= 0 && lambda <= 1))) {
@@ -139,7 +139,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 			}
 			private$lambda = if (is.null(lambda)) 0.1 else lambda
 			private$t_0_pct = if (is.null(t_0_pct)) 0.35 else t_0_pct
-			# v1.0.6-TODO-46: morrison = TRUE was documented (on KK21/KK21stepwise) as switching to
+			# v1.0.6-TODO-11: morrison = TRUE was documented (on KK21/KK21stepwise) as switching to
 			# Morrison's (2025) threshold calibration, but no code path reads it. Say so instead of
 			# silently running the standard schedule.
 			if (isTRUE(morrison)) {
@@ -164,7 +164,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 						private$assign_wt_Bernoulli()
 					} else {
 						all_subject_data = private$compute_all_subject_data()
-						# v1.0.6-TODO-107: no covariate varies among the earlier subjects yet (e.g. the
+						# v1.0.6-TODO-61: no covariate varies among the earlier subjects yet (e.g. the
 						# only formula covariate first varies at this subject), so there is nothing to
 						# match on and solve() would get a 0 x 0 matrix: randomize into the reservoir.
 						if (all_subject_data$rank_prev == 0L || NCOL(all_subject_data$X_prev) == 0L){
@@ -187,7 +187,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 						# The kernel returns d' S^-1 d for each reservoir subject, d = x_t - x_j. Under
 						# exchangeability d has covariance 2 Sigma, so the Hotelling statistic is half
 						# of that (Kapelner and Krieger 2014; SeqExpMatch 0.1.0 used 1/2 * d' S^-1 d).
-						# v1.0.6-TODO-45: the halving was lost in the port to C++, which made the
+						# v1.0.6-TODO-10: the halving was lost in the port to C++, which made the
 						# test twice as strict as published and formed fewer matches.
 						T_sq = compute_proportional_mahal_distances_cpp(
 							all_subject_data$xt_prev,
@@ -242,7 +242,7 @@ DesignSeqOneByOneKK14 = define_design_class(
 		too_early_to_match = function(){
 			# The t_0_pct burn-in is a fraction of the planned n. With n = NULL there is no
 			# planned n (private$n is NULL, and the comparison was logical(0), which crashed
-			# ||; v1.0.6-TODO-76), so the burn-in lasts only until the covariate model matrix
+			# ||; v1.0.6-TODO-38), so the burn-in lasts only until the covariate model matrix
 			# exists (t > p + 2 subjects, see DesignSeqOneByOne$add_one_subject()).
 			(isTRUE(private$fixed_sample) && private$t <= private$t_0_pct * private$n) ||
 				is.null(private$X) ||

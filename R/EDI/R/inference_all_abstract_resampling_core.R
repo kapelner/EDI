@@ -53,7 +53,7 @@ InferenceResamplingCore = R6::R6Class("InferenceResamplingCore",
 		# Moved from Jackknife.
 		normalize_jackknife_unit = function(unit = "auto"){
 			unit = tolower(as.character(unit)[1L])
-			# "permuted_block" and "observation_within_block": v1.0.6-TODO-4 (see
+			# "permuted_block" and "observation_within_block": v1.0.6-TODO-1 (see
 			# NonparametricBootstrap's resolve_jackknife_unit()).
 			valid = c("auto", "observation", "cluster", "block", "pair", "matched_set",
 				"permuted_block", "observation_within_block")
@@ -72,7 +72,7 @@ InferenceResamplingCore = R6::R6Class("InferenceResamplingCore",
 				if (unit %in% c("block", "observation_within_block") && !is_blocking_design) {
 					stop("jackknife unit = '", unit, "' requires a blocking design.", call. = FALSE)
 				}
-				# v1.0.6-TODO-231: also DesignSeqOneByOneRandomBlockSize, whose blocks assign_wt() records.
+				# v1.0.6-TODO-165: also DesignSeqOneByOneRandomBlockSize, whose blocks assign_wt() records.
 				if (unit == "permuted_block" && !is(design_obj, "DesignSeqOneByOneSPBR") &&
 					!is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
 					stop("jackknife unit = 'permuted_block' requires a DesignSeqOneByOneSPBR or ",

@@ -69,7 +69,7 @@ expect_status(list(args = list(), fixture = within(within(fixture, response_type
 expect_status(list(args = list(), fixture = fixture, tier = "ci", registry_entry = list(optional_dependencies = "optional_non_rcpp_backend")), "skipped_dependency")
 expect_status(list(args = list(B = 101L), fixture = fixture, tier = "smoke", registry_entry = list(slow_path_labels = "bootstrap")), "skipped_slow")
 
-# Data-shape cell constraints (v1.0.6-TODO-97).
+# Data-shape cell constraints (v1.0.7-TODO-41).
 cells = data.frame(
 	design = c("seq_kk21", "fixed_bernoulli", "fixed_bernoulli", "fixed_blocking", "fixed_bernoulli", "fixed_bernoulli"),
 	response_type = c("survival", "continuous", "continuous", "continuous", "continuous", "continuous"),

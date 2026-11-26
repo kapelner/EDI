@@ -59,7 +59,7 @@ def _synthetic_data():
 
 # R reference, EDI 1.0.4 (dev), recomputed 2026-11-22 via:
 #   EDI:::fast_stereotype_logit_cpp(X, y)
-# after the v1.0.6-TODO-176 in-kernel adjacent-category cold start
+# after the v1.0.6-TODO-122 in-kernel adjacent-category cold start
 # (fast_stereotype_logit.cpp, 40896b29). The EDI 1.0.0 fixture (b = 0.622,
 # -0.769; scores_raw = 29.12; neg_loglik = 403.150901059359) was a
 # non-optimal boundary stall: the loading had run off toward +Inf from the

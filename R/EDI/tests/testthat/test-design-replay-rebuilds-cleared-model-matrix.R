@@ -1,4 +1,4 @@
-# v1.0.6-TODO-129: a reusable bootstrap worker sets the worker design's private$X to NULL
+# v1.0.6-TODO-83: a reusable bootstrap worker sets the worker design's private$X to NULL
 # (model_matrix_stale = TRUE) on a rank-deficient resample. Design redraws that read
 # private$X directly must rebuild it from Ximp rather than erroring (Atkinson) or
 # replaying covariate-blind (KK21stepwise with condition_on_ws_for_rand_tests = FALSE).

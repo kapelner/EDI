@@ -17,7 +17,7 @@ library(EDI)
 # matched-only, reservoir-only, neither) via unlockBinding stubs on the two component-fitting private
 # methods, independent of the real frailty/Weibull-fitting machinery (already tested elsewhere).
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
 # seed 3 matched every treated subject (8 pairs, no treated subject left in the
 # reservoir) and the "both pieces" test never reached the reservoir fit.
@@ -49,7 +49,7 @@ set_mocks <- function(priv, beta_m, ssq_m, beta_r, ssq_r) {
 	}
 }
 
-# v1.0.6-TODO-132 (2026-11-19, owner decision): the 0.5/0.5 fallback is gone. estimate_only = TRUE
+# v1.0.6-TODO-86 (2026-11-19, owner decision): the 0.5/0.5 fallback is gone. estimate_only = TRUE
 # now fits both pieces with their variances and applies the same rule as the full call, so two
 # finite point estimates without finite variances are not estimable (the full call gives NA too).
 test_that("estimate_only = TRUE with both variances NA is NA, as the full call is (no 0.5/0.5 fallback)", {

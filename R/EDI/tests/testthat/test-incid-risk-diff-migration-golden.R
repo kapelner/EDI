@@ -201,7 +201,7 @@ risk_diff_se_formula_changed_labels = c("asymp_ci", "asymp_pval", "wald_ci", "wa
 # golden.R for why this is the only safe general pattern for classes whose
 # nominally-deterministic methods may consume the global RNG stream.
 #
-# v1.0.6-TODO-212: the shared harness calls use r = B = 9, below the 10 finite
+# v1.0.6-TODO-153: the shared harness calls use r = B = 9, below the 10 finite
 # draws the randomization and randomization-bootstrap p-values need, so those
 # two columns compared NA with NA on both sides. This file raises them to 12 and
 # pins the (finite) value both sides must return.

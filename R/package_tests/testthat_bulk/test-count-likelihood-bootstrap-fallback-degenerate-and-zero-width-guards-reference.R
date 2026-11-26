@@ -2,7 +2,7 @@ library(testthat)
 library(EDI)
 
 # CountLikelihoodPlumbing's missing interval, and the removal of its bootstrap
-# fallback (v1.0.6-TODO-380). count_bootstrap_fallback_ci() / _pval() used to give
+# fallback (v1.0.6-TODO-225). count_bootstrap_fallback_ci() / _pval() used to give
 # the zero-augmented classes' Wald path a bootstrap interval / p-value when the
 # asymptotic SE was unavailable (with degenerate-fit and zero-width guards). A Wald
 # request now gets the Wald result or NA (edi_wald_unavailable_na()), so the
@@ -32,7 +32,7 @@ test_that("the missing interval is NA with quantile-percent names for the given 
 	expect_equal(names(f$p$count_likelihood_missing_ci()), c("2.5%", "97.5%"))
 })
 
-test_that("the bootstrap-fallback helpers no longer exist (v1.0.6-TODO-380)", {
+test_that("the bootstrap-fallback helpers no longer exist (v1.0.6-TODO-225)", {
 	f <- mk()
 	expect_false(exists("count_bootstrap_fallback_ci", envir = f$p, inherits = FALSE))
 	expect_false(exists("count_bootstrap_fallback_pval", envir = f$p, inherits = FALSE))

@@ -98,45 +98,39 @@ split_kk_matched_reservoir_idx = function(m_vec, n){
 # Cached variant: the X/m structural part (X_matched_diffs, X_matched_diffs_full,
 # X_reservoir, m) depends only on m_vec and X, never on y or w.
 #
-# Cache hierarchy:
-#   1. des_priv (design object's private env) — shared across ALL inference objects
-#      on the same design.  Used when the current m_vec equals the design's own m_vec,
-#      i.e., for the original inference and every randomization iteration (m_vec fixed,
-#      only y/w permuted).
-#   2. private_env (inference object's private env) — local fallback for bootstrap
-#      resamples, which have a different m_vec_b and must not corrupt the design cache.
-#
-# Data is NEVER written to the global environment.
-.compute_kk_basic_match_data_cached = function(private_env, des_priv, X, n, y, w, m_vec){
+# Reuse structure across inference objects on the same design when their match
+# vector agrees with the design's. Bootstrap samples with a different match
+# structure are computed afresh.
+.compute_kk_match_data_cached = function(des_priv, X, n, y, w, m_vec,
+		structure_key, match_key, structural_fields, compute_full, compute_wy) {
 	if (is.null(m_vec)) m_vec = rep(NA_integer_, n)
 	m_vec[is.na(m_vec)] = 0L
 
-	# --- Fast path 1: design-level structural cache ---
 	if (!is.null(des_priv) &&
-	    !is.null(des_priv$xm_structural) &&
-	    identical(m_vec, des_priv$xm_m_vec) &&
-	    ncol(X) == ncol(des_priv$xm_structural$X_reservoir)){
-		wy = compute_matching_wy_stats_cpp(as.integer(w), as.numeric(y), as.integer(m_vec))
-		return(c(des_priv$xm_structural, wy))
+	    !is.null(des_priv[[structure_key]]) &&
+	    identical(m_vec, des_priv[[match_key]]) &&
+	    ncol(X) == ncol(des_priv[[structure_key]]$X_reservoir)) {
+		wy = compute_wy(as.integer(w), as.numeric(y), as.integer(m_vec))
+		return(c(des_priv[[structure_key]], wy))
 	}
 
-	# --- (no inference-level cache for the bootstrap case; falls through to full computation) ---
-	# --- Full computation ---
-	full = compute_zhang_match_data_cpp(as.matrix(X), as.numeric(y), as.integer(w), as.integer(m_vec))
-	structural = full[c("m", "X_matched_diffs", "X_matched_diffs_full", "X_reservoir")]
-
-	# Store in the design when the current m_vec is the design's own m_vec (so all
-	# inference objects on this design share it); otherwise nothing is cached (bootstrap).
-	if (!is.null(des_priv)){
+	full = compute_full(as.matrix(X), as.numeric(y), as.integer(w), as.integer(m_vec))
+	if (!is.null(des_priv)) {
 		des_m = des_priv$m
 		if (is.null(des_m)) des_m = rep(NA_integer_, n)
 		des_m[is.na(des_m)] = 0L
-		if (identical(m_vec, des_m)){
-			des_priv$xm_structural = structural
-			des_priv$xm_m_vec      = m_vec
+		if (identical(m_vec, des_m)) {
+			des_priv[[structure_key]] = full[structural_fields]
+			des_priv[[match_key]] = m_vec
 		}
 	}
 	full
+}
+
+.compute_kk_basic_match_data_cached = function(private_env, des_priv, X, n, y, w, m_vec){
+	.compute_kk_match_data_cached(des_priv, X, n, y, w, m_vec, "xm_structural", "xm_m_vec",
+		c("m", "X_matched_diffs", "X_matched_diffs_full", "X_reservoir"),
+		compute_zhang_match_data_cpp, compute_matching_wy_stats_cpp)
 }
 
 .compute_kk_lin_basic_match_data = function(X, n, y, w, m_vec){
@@ -149,30 +143,9 @@ split_kk_matched_reservoir_idx = function(m_vec, n){
 
 # Cached variant for the lin (means + diffs) C++ path. Same hierarchy as above.
 .compute_kk_lin_basic_match_data_cached = function(private_env, des_priv, X, n, y, w, m_vec){
-	if (is.null(m_vec)) m_vec = rep(NA_integer_, n)
-	m_vec[is.na(m_vec)] = 0L
-
-	if (!is.null(des_priv) &&
-	    !is.null(des_priv$lin_xm_structural) &&
-	    identical(m_vec, des_priv$lin_xm_m_vec) &&
-	    ncol(X) == ncol(des_priv$lin_xm_structural$X_reservoir)){
-		wy = compute_matching_lin_wy_stats_cpp(as.integer(w), as.numeric(y), as.integer(m_vec))
-		return(c(des_priv$lin_xm_structural, wy))
-	}
-
-	full = compute_matching_lin_match_data_cpp(as.matrix(X), as.numeric(y), as.integer(w), as.integer(m_vec))
-	structural = full[c("m", "X_matched_diffs_full", "X_matched_means_full", "X_reservoir")]
-
-	if (!is.null(des_priv)){
-		des_m = des_priv$m
-		if (is.null(des_m)) des_m = rep(NA_integer_, n)
-		des_m[is.na(des_m)] = 0L
-		if (identical(m_vec, des_m)){
-			des_priv$lin_xm_structural = structural
-			des_priv$lin_xm_m_vec      = m_vec
-		}
-	}
-	full
+	.compute_kk_match_data_cached(des_priv, X, n, y, w, m_vec, "lin_xm_structural", "lin_xm_m_vec",
+		c("m", "X_matched_diffs_full", "X_matched_means_full", "X_reservoir"),
+		compute_matching_lin_match_data_cpp, compute_matching_lin_wy_stats_cpp)
 }
 
 .extract_se_from_rq_fit = function(fit, coef_name){

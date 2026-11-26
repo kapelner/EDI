@@ -1,4 +1,4 @@
-# v1.0.6-TODO-158: a covariate that makes a type-appropriate transform of y an exact
+# v1.0.6-TODO-108: a covariate that makes a type-appropriate transform of y an exact
 # linear function of w + X (leakage) is dropped once at construction, with one
 # edi_perfect_predictor_warning, and every later fit equals the fit without it. Exact
 # fits driven by w alone are never dropped, and small-n saturation is skipped.

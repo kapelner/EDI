@@ -56,7 +56,7 @@ cases_again = generate_public_argument_combinations(
 )
 expect_true(identical(cases, cases_again), "Generation is not deterministic.")
 
-# Data-shape cells (v1.0.6-TODO-97): legal only, every legal pair covered, deterministic.
+# Data-shape cells (v1.0.7-TODO-41): legal only, every legal pair covered, deterministic.
 legal = legal_data_shape_cells()
 cells = pairwise_data_shape_cells(legal)
 expect_true(nrow(cells) > 0L && nrow(cells) < nrow(legal), "Data-shape covering array is empty or not smaller than the full factorial.")

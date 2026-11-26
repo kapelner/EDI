@@ -2,7 +2,7 @@
 # multgee/geepack for InferenceOrdinalKKGEE, aftgee for the KK rank regression,
 # nbpMatching for the Bai adjusted t) stop in their constructor when it is
 # absent, as on the R-devel valgrind and ASAN/UBSAN runners, which install only
-# EDI's hard dependencies (v1.0.6-TODO-181). The source of truth is the
+# EDI's hard dependencies (v1.0.6-TODO-127). The source of truth is the
 # inference registry's required_packages field (EDI_INFERENCE_REQUIRED_PACKAGES),
 # read through missing_required_packages_for_inference_class(), the same check
 # InferenceSuite discovery uses. test-inference-required-packages-registry.R

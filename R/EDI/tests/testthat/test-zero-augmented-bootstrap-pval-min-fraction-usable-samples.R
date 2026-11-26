@@ -1,4 +1,4 @@
-# v1.0.6-TODO-12 follow-up: the zero-augmented count classes override the
+# v1.0.6-TODO-2 follow-up: the zero-augmented count classes override the
 # nonparametric- and Bayesian-bootstrap p-values (to refuse BCa); the overrides
 # must accept min_fraction_usable_samples and pass it to the base methods.
 

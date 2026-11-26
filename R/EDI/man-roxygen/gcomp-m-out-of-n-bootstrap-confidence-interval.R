@@ -15,3 +15,7 @@
 #'   draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 #'   null data sets were \code{NA}). See \strong{Subsampling and
 #'   m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.
+#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+#'   (default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+#'   the missing-data step on each resample. See
+#'   \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.

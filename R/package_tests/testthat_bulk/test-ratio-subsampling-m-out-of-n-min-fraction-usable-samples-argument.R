@@ -1,5 +1,5 @@
-# v1.0.6-TODO-269: the usable-draw cap of the generic subsampling / m-out-of-n pivots of the
-# ratio-estimand classes (v1.0.6-TODO-230; fixed at ratio_resampling_min_fraction_usable = 0.8)
+# v1.0.6-TODO-204: the usable-draw cap of the generic subsampling / m-out-of-n pivots of the
+# ratio-estimand classes (v1.0.6-TODO-164; fixed at ratio_resampling_min_fraction_usable = 0.8)
 # is the user argument min_fraction_usable_samples on the four public methods, default 0.8.
 # A class with a degenerate-draw rule returns NA (reason <family>_too_few_usable_draws_fraction,
 # one edi_procedure_na_warning) below the cap; the cap replaces the fixed 50% failure gate there,

@@ -6,7 +6,7 @@ Unit: one source file in R/EDI/R or R/EDI/src (hash: its content; no dependencie
 RcppExports files are left out.
 
 Mechanical stage: TODO / FIXME / XXX notes (a comment that starts with one of the words; a citation
-such as `v1.0.6-TODO-43` is not a note) that no release TODO cites. A note is cited when it, or the
+such as `v1.0.7-TODO-34` is not a note) that no release TODO cites. A note is cited when it, or the
 comment lines right after it, names a TODO (`v<version>-TODO-<n>`, `TODO-<n>`), or when a release or
 plan file names the source file together with the note's line number or its text.
 

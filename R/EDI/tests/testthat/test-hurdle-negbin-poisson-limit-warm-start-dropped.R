@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-411: a warm start at the Poisson limit (log theta past
+# v1.0.6-TODO-229: a warm start at the Poisson limit (log theta past
 # HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA, e.g. theta ~ 1e8 carried over from the previous
 # fit) left the count optimizer where the observed information is meaningless, and its
 # Newton-decrement finish then summed the expected-information series on every iteration: one

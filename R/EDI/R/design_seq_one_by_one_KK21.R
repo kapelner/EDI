@@ -300,7 +300,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 						#(all weights 0, e.g. the stepwise kernels leave every weight NA -> 0 when the
 						#response is constant or fit exactly, so every residual variance is 0), the
 						#sum is 0 and raw / sum would be NaN, crashing quantile() below
-						#(v1.0.6-TODO-120). Fall back to equal weights, which is what KK21's own
+						#(v1.0.6-TODO-74). Fall back to equal weights, which is what KK21's own
 						#kernels give in that case (eps for every covariate).
 						sum_raw_weights = sum(raw_weights)
 						if (!is.finite(sum_raw_weights) || sum_raw_weights <= 0){
@@ -418,7 +418,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 			}
 			if (private$response_type == "proportion" && private$proportion_use_speedup){
 				# A response of exactly 0 or 1 would make every t-statistic non-finite
-				# (v1.0.6-TODO-60); with one present, all responses are compressed to
+				# (v1.0.6-TODO-24); with one present, all responses are compressed to
 				# (y(n - 1) + 0.5) / n (Smithson and Verkuilen 2006) before the logit.
 				# All-interior responses get the plain logit, unchanged bit for bit.
 				return(kk21_continuous_weights_cpp(as.matrix(xs), as.numeric(kk21_speedup_proportion_logit(ys))))
@@ -548,7 +548,7 @@ DesignSeqOneByOneKK21 = R6::R6Class("DesignSeqOneByOneKK21",
 #' \eqn{(y(n - 1) + 0.5) / n}, with \eqn{n} the number of responses in the fit
 #' (Smithson and Verkuilen 2006, as restated by Cribari-Neto and Zeileis 2010, p. 3),
 #' so the logits lie within \eqn{\pm\log(2n - 1)}. When every response is interior the
-#' plain logit is returned, so such designs are unchanged (v1.0.6-TODO-60).
+#' plain logit is returned, so such designs are unchanged (v1.0.6-TODO-24).
 #' @param ys Numeric vector of the proportion responses in the fit, in \eqn{[0, 1]}.
 #' @return \code{logit()} of the (compressed, if needed) responses.
 #' @noRd

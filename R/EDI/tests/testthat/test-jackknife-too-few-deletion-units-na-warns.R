@@ -1,6 +1,6 @@
-# v1.0.6-TODO-135: a jackknife with very few deletion units (e.g. leave-one-block-out on a
+# v1.0.6-TODO-89: a jackknife with very few deletion units (e.g. leave-one-block-out on a
 # 2-stratum design) returned a finite but meaningless SE with no warning (SE 0.0176 vs a Wald
-# SE of 0.0316, p ~ 4.6e-16 in the v1.0.6-TODO-127 repro). With G units the jackknife variance
+# SE of 0.0316, p ~ 4.6e-16 in the v1.0.6-TODO-81 repro). With G units the jackknife variance
 # has G - 1 df and the jackknife-Wald p-value / CI use the normal reference, so
 # compute_jackknife_summary() now returns NA with an edi_procedure_na_warning (reason
 # "jackknife_too_few_deletion_units") when G < EDI_JACKKNIFE_MIN_DELETION_UNITS (5). At or
@@ -28,7 +28,7 @@ fx_jk_few_units_cluster = function(n_clusters){
 	des
 }
 
-# Runs expr with the minimum-units threshold set to `value` (2 = the pre-v1.0.6-TODO-135 rule).
+# Runs expr with the minimum-units threshold set to `value` (2 = the pre-v1.0.6-TODO-89 rule).
 with_jk_min_units = function(value, expr){
 	ns = asNamespace("EDI")
 	old = get("EDI_JACKKNIFE_MIN_DELETION_UNITS", envir = ns)
@@ -61,7 +61,7 @@ for (G in 2:4) local({
 	test_that(paste0("leave-one-block-out with ", G, " blocks: every jackknife output is NA and warns with the reason"), {
 		inf = InferenceAllSimpleAverageDiff$new(fx_jk_few_units_blocking(G), verbose = FALSE)
 		inf$num_cores = 1L
-		# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject
+		# v1.0.6-TODO-1 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject
 		# within its stratum, so leave-one-block-out is asked for explicitly.
 		p = inf$.__enclos_env__$private
 		wald_ci = inf$compute_asymp_confidence_interval()
@@ -85,14 +85,14 @@ for (G in 2:4) local({
 		expect_true(all(is.na(ci)))
 		rec = p$cached_values$jackknife_n_deletion_units
 		expect_identical(rec[c("n", "unit")], list(n = G, unit = "block"))
-		expect_null(rec$df)  # set only for the stratified units (v1.0.6-TODO-4)
+		expect_null(rec$df)  # set only for the stratified units (v1.0.6-TODO-1)
 		# The model-based Wald state is untouched.
 		expect_identical(inf$compute_asymp_confidence_interval(), wald_ci)
 		expect_true(all(is.finite(wald_ci)))
 	})
 })
 
-test_that("the v1.0.6-TODO-127 case (2 strata, OLS) is NA with a warning instead of a meaningless SE", {
+test_that("the v1.0.6-TODO-81 case (2 strata, OLS) is NA with a warning instead of a meaningless SE", {
 	set.seed(1)
 	n = 40L
 	X = data.frame(x = rnorm(n), s = factor(rep(c("a", "b"), each = n / 2)))
@@ -140,7 +140,7 @@ test_that("at or above the threshold every jackknife output is identical to the 
 		with_jk_min_units(2L, jk_outputs(InferenceContinOLS$new(des, verbose = FALSE))))
 })
 
-# Owner decision 2026-11-18 (follow-up to v1.0.6-TODO-135): BCa is gated too. Its acceleration
+# Owner decision 2026-11-18 (follow-up to v1.0.6-TODO-89): BCa is gated too. Its acceleration
 # is a skewness estimated from the G jackknife replicates (identically 0 at G = 2) and the
 # bootstrap resamples only those G units, so below EDI_JACKKNIFE_MIN_DELETION_UNITS the BCa CI
 # and p-value (plain and Bayesian) are NA with exactly one edi_procedure_na_warning.
@@ -149,7 +149,7 @@ bca_outputs = function(des, bayes = FALSE, seed = 11L, block_unit = FALSE){
 		inf = InferenceAllSimpleAverageDiff$new(des, verbose = FALSE)
 		inf$num_cores = 1L
 		if (block_unit) {
-			# v1.0.6-TODO-4 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now
+			# v1.0.6-TODO-1 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now
 			# one subject within its stratum; pin it to the whole block, the few-units case.
 			p = inf$.__enclos_env__$private
 			unlockBinding("resolve_jackknife_unit", p)
@@ -178,7 +178,7 @@ bca_outputs = function(des, bayes = FALSE, seed = 11L, block_unit = FALSE){
 	}
 }
 
-# v1.0.6-TODO-4 (5bdb9dfb): plain BCa on DesignFixedBlocking now takes its acceleration from
+# v1.0.6-TODO-1 (5bdb9dfb): plain BCa on DesignFixedBlocking now takes its acceleration from
 # one-subject-within-stratum deletions (n units), so the plain path pins the unit to the block
 # (bca_outputs(block_unit = TRUE)); the Bayesian path still weights whole blocks.
 for (G in 2:4) local({

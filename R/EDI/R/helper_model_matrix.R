@@ -138,7 +138,7 @@ drop_highly_correlated_cols = function(M, threshold = 0.99){
 }
 
 
-# v1.0.6-TODO-107: names of the analysis columns that the design formula names
+# v1.0.6-TODO-61: names of the analysis columns that the design formula names
 # explicitly but that are constant among the rows seen so far (e.g. a factor
 # whose second level has not been enrolled yet). These are dropped before
 # model.matrix() like any constant column, so the formula would not find them.
@@ -149,7 +149,7 @@ constant_formula_named_columns = function(formula, data, is_constant_analysis_co
 	intersect(formula_vars, names(data)[is_constant_analysis_col])
 }
 
-# v1.0.6-TODO-107: build the model matrix when some formula-named columns are
+# v1.0.6-TODO-61: build the model matrix when some formula-named columns are
 # constant. Each such column goes back in as a numeric placeholder (its value if
 # numeric or logical, else 0, since model.matrix() refuses a one-level factor);
 # every model-matrix column it produces is then constant and is dropped, as a
@@ -172,4 +172,27 @@ create_model_matrix_with_constant_formula_columns = function(formula, data, full
 	}
 	if (ncol(mm) == 0L) return(matrix(NA_real_, nrow = nrow(data), ncol = 0L))
 	drop_linearly_dependent_cols(mm)$M
+}
+
+# Build a count or proportion model component using the full fit's retained columns.
+edi_build_component_matrix = function(private, model_formula, selected_colnames, treatment_name) {
+	if (identical(model_formula, ~ .)) {
+		X_cov = private$get_X()
+	} else {
+		X_imp = private$des_obj$get_X_imp()
+		X_cov = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else
+			edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))
+	}
+	if (!is.null(selected_colnames)) {
+		X_cov = if (is.null(X_cov) || !length(selected_colnames)) matrix(NA_real_, nrow = private$n, ncol = 0) else
+			as.matrix(X_cov[, intersect(selected_colnames, colnames(X_cov)), drop = FALSE])
+	}
+	if (is.null(X_cov) || ncol(as.matrix(X_cov)) == 0L) {
+		X_fit = cbind(1, private$w)
+		colnames(X_fit) = c("(Intercept)", treatment_name)
+		return(X_fit)
+	}
+	X_fit = cbind(1, private$w, as.matrix(X_cov))
+	colnames(X_fit)[1:2] = c("(Intercept)", treatment_name)
+	X_fit
 }

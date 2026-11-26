@@ -17,7 +17,7 @@ library(EDI)
 #     estimate-centered values are the correct behavior (verified: B=200
 #     gives 200/200 finite, mean ~ estimate).
 
-# v1.0.6-TODO-204 (2026-11-19): every golden below that reads the shared
+# v1.0.6-TODO-145 (2026-11-19): every golden below that reads the shared
 # continuous fixture was re-recorded after the fixture gained a small seeded
 # noise term (inference_migration_complete_design(); its old
 # seq(-0.3, 0.3) noise was collinear with x, so y was an exact linear function
@@ -139,7 +139,7 @@ test_that("migrated simple mean difference golden outputs are stable", {
 	expect_simple_mean_difference_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		# v1.0.6-TODO-212: r = 12, not 9. With r = 9 the p-value is NA (fewer
+		# v1.0.6-TODO-153: r = 12, not 9. With r = 9 the p-value is NA (fewer
 		# than the 10 finite draws the randomization p-value needs), so the
 		# golden compared NA with NA and could not catch a regression.
 		list(delta = 0, r = 12L, show_progress = FALSE),
@@ -159,7 +159,7 @@ test_that("migrated simple mean difference golden outputs are stable", {
 	expect_simple_mean_difference_golden(
 		"bootstrap confidence interval",
 		"compute_bootstrap_confidence_interval",
-		# v1.0.6-TODO-212: B = 99, not 9. The default type is BCa, which returns
+		# v1.0.6-TODO-153: B = 99, not 9. The default type is BCa, which returns
 		# NA when its adjusted tail lands within two order statistics of the ends
 		# (edi_bootstrap_bca_boundary_warning); at B = 9 the CI and the p-value
 		# were NA, and on this fixture the CI first comes back finite at B = 29

@@ -4,12 +4,12 @@
 # must be a formal of the enclosing function, of the class's initialize(), or of a public method of
 # the class, its parents or its components. Code in a component is checked for every exported class
 # that composes it, so a message only some of them can follow is reported with the classes that take
-# no such argument (v1.0.6-TODO-73: DesignFixedBlockedCluster told to set equal_block_sizes).
+# no such argument (v1.0.6-TODO-36: DesignFixedBlockedCluster told to set equal_block_sizes).
 # Reports in ONE issue (label `audit-message-args`), closed by the job on a clean run; nothing is
 # edited. A false positive is dismissed by listing its id in
 # R/package_metadata/audits/DISMISSED_DECISIONS.md.
 # Module: .github/scripts/audits/message_args.py
-# Plan: v1.0.6-TODO-96 (release_v1_0_6.md); framework:
+# Plan: v1.0.6-TODO-55 (release_v1_0_6.md); framework:
 # R/package_metadata/new_feature_plans/v1_0_6/audit_jobs_framework.md.
 
 name: audit · weekly · message-args

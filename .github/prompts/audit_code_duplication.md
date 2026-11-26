@@ -6,10 +6,10 @@ pairs of code regions in EDI that are copies of each other, most of them with a 
 Your job, for each candidate in your batch, is to say what the duplication is.
 
 Why this matters here: copies drift. In 2026-11 InferenceSurvivalLogRank got a sign fix in
-`compute_shared_icen()` and its copy in InferenceSurvivalGehanWilcox did not (v1.0.6-TODO-117 and
-v1.0.6-TODO-121); the GEE family parse is written out in `R/EDI/src/fast_gee.cpp` and again in
-`python/cpp/bindings_incidence.cpp` (v1.0.6-TODO-103); a g-computation jackknife path skipped guards its
-sibling had (v1.0.6-TODO-137). Finding the next one of these is the point of the audit.
+`compute_shared_icen()` and its copy in InferenceSurvivalGehanWilcox did not (v1.0.6-TODO-71 and
+v1.0.6-TODO-75); the GEE family parse is written out in `R/EDI/src/fast_gee.cpp` and again in
+`python/cpp/bindings_incidence.cpp` (v1.0.7-TODO-43); a g-computation jackknife path skipped guards its
+sibling had (v1.0.6-TODO-91). Finding the next one of these is the point of the audit.
 
 You can read and search the repository (Read, Glob, Grep). You have no shell, cannot build or run
 anything, and must not try to edit files.

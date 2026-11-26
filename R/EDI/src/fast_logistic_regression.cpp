@@ -2,7 +2,7 @@
 #include "_helper_functions_core.h"
 #else
 #include "_helper_functions.h"
-#include "result_map_rcpp.h"
+#include "glm_regression_rcpp.h"
 #include <RcppEigen.h>
 #endif
 #include "internal_fn_decls.h"
@@ -66,7 +66,7 @@ public:
 } // namespace
 
 // Weighted (or unweighted) logistic negative log-likelihood at a linear predictor.
-// Used by the IRLS step-halving safeguard below (v1.0.6-TODO-192 C++ follow-up).
+// Used by the IRLS step-halving safeguard below (v1.0.6-TODO-138 C++ follow-up).
 static double logistic_irls_neg_ll(const Eigen::VectorXd& eta,
                                    const Eigen::Ref<const Eigen::VectorXd>& y,
                                    const Eigen::Ref<const Eigen::VectorXd>& weights,
@@ -206,7 +206,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
     int iterations = 0;
     double last_grad_norm = std::numeric_limits<double>::quiet_NaN();
 
-    // Step-halving safeguard (v1.0.6-TODO-192 C++ follow-up, filed under v1.0.6-TODO-169/170).
+    // Step-halving safeguard (v1.0.6-TODO-138 C++ follow-up, filed under v1.0.6-TODO-117 / v1.0.6-TODO-118).
     // Plain IRLS has no globalization: from a poor warm start (or a supplied Fisher information
     // from a different problem) a full Newton step can overshoot into the saturated region,
     // where the floored IRLS weights make every later step larger; the KK g-computation
@@ -337,7 +337,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
             }
         }
 
-        // Check the last step (v1.0.6-TODO-272). The descent check above runs at the top of
+        // Check the last step (v1.0.6-TODO-171). The descent check above runs at the top of
         // the next iteration, so the step taken at iter = maxit - 1 (or the tiny step of the
         // step-size exit) was never checked; from a far warm start a capped fit returned a
         // negative log-likelihood orders of magnitude above its start. Apply the same
@@ -378,7 +378,7 @@ static ModelResult fast_logistic_regression_impl(const Eigen::Ref<const Eigen::M
         }
     };
 
-    // Scale-aware convergence fallback (v1.0.6-TODO-170, this fitter only). The absolute
+    // Scale-aware convergence fallback (v1.0.6-TODO-118, this fitter only). The absolute
     // gradient rule fails at the optimum when a covariate has a large scale or offset (e.g.
     // age + 1e5): rounding keeps |score| above 1e-8 although the fit cannot improve. When it
     // fails, the fit is still declared converged if the Newton decrement
@@ -563,45 +563,13 @@ Eigen::MatrixXd get_logistic_regression_weighted_hessian_cpp(const Eigen::Map<Ei
 
 // [[Rcpp::export]]
 List fast_logistic_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = false, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "irls", Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-    
-
-    
-
-    ModelResult res = fast_logistic_regression_internal(
-        X, y_vec_coerced, Eigen::VectorXd(),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        smart_cold_start, maxit, tol,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        estimate_only);
-
-    if (estimate_only) {
-        return edi::to_rcpp_list(edi::ResultMap()
-            .set("b", res.b)
-            .set("converged", res.converged)
-            .set("num_iter", res.num_iter)
-            .set("hit_iteration_cap", res.hit_iteration_cap)
-            .set("gradient_norm", res.gradient_norm)
-            .set("min_eigenvalue_information", res.min_eigenvalue_information));
-    }
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_logistic_regression_internal, X, y, warm_start_beta, smart_cold_start, maxit, tol, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, estimate_only);
+    if (estimate_only) return edi_glm::estimate_result(res);
     Eigen::VectorXd weights_vec = res.mu.array() * (1.0 - res.mu.array());
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("w", weights_vec)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("fisher_information", res.XtWX)
-        .set("score", res.score)
-        .set("neg_ll", res.neg_ll)
-        .set("converged", res.converged)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+
+    return edi_glm::binary_fit_result(res, weights_vec);
 }
 
 // [[Rcpp::export]]
@@ -627,20 +595,8 @@ List fast_logistic_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         false, &num_step_halvings);
     // num_step_halvings: IRLS step halvings taken (always 0 on the L-BFGS path). Its presence
-    // also marks a build that has the v1.0.6-TODO-192 step-halving safeguard.
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("mu", res.mu)
-        .set("XtWX", res.XtWX)
-        .set("fisher_information", res.XtWX)
-        .set("score", res.score)
-        .set("neg_ll", res.neg_ll)
-        .set("converged", res.converged)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information)
-        .set("num_step_halvings", num_step_halvings));
+    // also marks a build that has the v1.0.6-TODO-138 step-halving safeguard.
+    return edi_glm::fit_result_with_mean(res, &num_step_halvings);
 }
 
 // [[Rcpp::export]]
@@ -654,60 +610,9 @@ List fast_logistic_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X
 		std::string optimization_alg = "irls",
 		Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-
-    // Coerce y explicitly: unlike the other Eigen::Map params here, y commonly
-    // arrives int-typed (e.g. rbinom()) -- Eigen::Map<VectorXd> has no
-    // coercion path, so this restores the NumericVector(SEXP) auto-coercion
-    // the pre-zero-copy version of this function relied on.
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-    ModelResult res = fast_logistic_regression_internal(
-        X, y_vec, Eigen::VectorXd(),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        smart_cold_start, 100, 1e-8,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-    FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols(),
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values));
-
-    Eigen::MatrixXd info_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
-
-    auto free_idx_of = [&](int overall_j) -> int {
-        for (int jj = 0; jj < (int)fixed_spec.free_idx.size(); ++jj)
-            if (fixed_spec.free_idx[jj] == overall_j) return jj + 1; // 1-based for compute_diagonal_inverse_entry
-        return -1;
-    };
-
-    int free_j = (j > 0 && j <= X.cols()) ? free_idx_of(j - 1) : -1;
-    res.ssq_b_j = (free_j > 0) ? compute_diagonal_inverse_entry(info_free, free_j) : NA_REAL;
-
-    int free_2 = (X.cols() >= 2) ? free_idx_of(1) : -1;
-    res.ssq_b_2 = (free_2 > 0) ? compute_diagonal_inverse_entry(info_free, free_2) : NA_REAL;
-
-    Eigen::MatrixXd neg_XtWX = -res.XtWX;
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("params", res.b)
-        .set("ssq_b_j", res.ssq_b_j)
-        .set("ssq_b_2", res.ssq_b_2)
-        .set("score", res.score)
-        .set("observed_information", res.XtWX)
-        .set("fisher_information", res.XtWX)
-        .set("information", res.XtWX)
-        .set("information_type", std::string("fisher"))
-        .set("hessian", neg_XtWX)
-        .set("neg_loglik", res.neg_ll)
-        .set("neg_ll", res.neg_ll)
-        .set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
-        .set("converged", res.converged)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_logistic_regression_internal, X, y, warm_start_beta, smart_cold_start, 100, 1e-8, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, false);
+    return edi_glm::variance_result(res, X.cols(), j, make_fixed_param_spec(X.cols(), fixed_idx, fixed_values), false);
 }
 #endif // EDI_CORE_ONLY

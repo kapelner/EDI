@@ -644,31 +644,25 @@ edi::ResultMap fast_clayton_weibull_aft_optim_internal(
         h_ptr = &H_start;
     }
 
+    const auto failed_fit = [&](const std::string& reason) {
+        const Eigen::VectorXd p_fixed = apply_fixed_values(params, fixed_spec);
+        double last_val = std::numeric_limits<double>::quiet_NaN();
+        try {
+            Eigen::VectorXd g(p_fixed.size());
+            last_val = fun(p_fixed, g);
+        } catch (...) {}
+        return edi::ResultMap()
+            .set("converged", false).set("hit_iteration_cap", false).set("error", reason)
+            .set("par", p_fixed).set("params", p_fixed).set("b", p_fixed)
+            .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
+    };
     LikelihoodFitResult fit;
     try {
         fit = optimize_fixed_likelihood(fun, params, fixed_spec, maxit, reltol, optimization_alg, "lbfgs", 0, h_ptr);
     } catch (const std::exception& e) {
-        const Eigen::VectorXd p_fixed = apply_fixed_values(params, fixed_spec);
-        double last_val = std::numeric_limits<double>::quiet_NaN();
-        try {
-            Eigen::VectorXd g(p_fixed.size());
-            last_val = fun(p_fixed, g);
-        } catch (...) {}
-        return edi::ResultMap()
-            .set("converged", false).set("hit_iteration_cap", false).set("error", std::string(e.what()))
-            .set("par", p_fixed).set("params", p_fixed).set("b", p_fixed)
-            .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
+        return failed_fit(e.what());
     } catch (...) {
-        const Eigen::VectorXd p_fixed = apply_fixed_values(params, fixed_spec);
-        double last_val = std::numeric_limits<double>::quiet_NaN();
-        try {
-            Eigen::VectorXd g(p_fixed.size());
-            last_val = fun(p_fixed, g);
-        } catch (...) {}
-        return edi::ResultMap()
-            .set("converged", false).set("hit_iteration_cap", false).set("error", std::string("unknown"))
-            .set("par", p_fixed).set("params", p_fixed).set("b", p_fixed)
-            .set("value", last_val).set("neg_loglik", last_val).set("neg_ll", last_val);
+        return failed_fit("unknown");
     }
     params = fit.params;
     const int log_theta_idx = X.cols() + 1;

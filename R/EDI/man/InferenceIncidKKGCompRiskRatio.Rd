@@ -106,7 +106,7 @@ rest fell to 0.016 and 0.000 (0.90: \code{NA} for 2\% and 5\%, size 0.031 and 0.
 no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
 \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
 whatever usable draws there are.
-\strong{The p-value is symmetric} (since v1.0.6-TODO-230): with the pivot draws
+\strong{The p-value is symmetric} (since v1.0.6-TODO-164): with the pivot draws
 \eqn{T^*_j = \sqrt{b}(\log\widehat{RR}^*_j - \log\widehat{RR})} (\eqn{\sqrt{m}} for m-out-of-n) and
 \eqn{t = \sqrt{n}(\log\widehat{RR} - \log\delta)}, it is the share of usable draws with
 \eqn{|T^*_j| \ge |t|} (at least \eqn{1/B}), not the equal-tailed

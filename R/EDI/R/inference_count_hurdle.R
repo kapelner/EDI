@@ -94,7 +94,7 @@
 #' then \code{NA} (reason \code{"hurdle_count_mle_not_finite"}) with one warning of class
 #' \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
 #' \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
-#' keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+#' keep that pattern are \code{NA} too (v1.0.6-TODO-140).
 #'
 #' \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
 #' part is separated (a fitted probability of a zero is numerically 0 or 1, or
@@ -105,7 +105,7 @@
 #' kept. Unlike a zero-inflation part, a hurdle part has no benign "no
 #' inflation" case (its probabilities model the observed zeros), so this is
 #' always the warning. Randomization and bootstrap refits are never warm-started from a
-#' full-data hurdle part on such a ridge (v1.0.6-TODO-30, v1.0.6-TODO-152).
+#' full-data hurdle part on such a ridge (v1.0.6-TODO-6, v1.0.6-TODO-103).
 #'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
@@ -188,75 +188,24 @@ InferenceCountHurdlePoisson = define_inference_class(
 		#'   only the point estimate; used by randomization and bootstrap
 		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			estimand = self$get_estimand()
-			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
-				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
-			}
-			# 2026-08-23 (marginal_estimand_report.md TODO-5): re-derive the
-			# conditional beta_hat_T/s_beta_hat_T from the estimand-invariant
-			# private$cached_mod every call (same fix as ZOIB's TODO-4 and
-			# InferenceCountZeroInflatedPoisson's identical fix) so switching
-			# the estimand back to "conditional" after a marginal computation
-			# doesn't return stale marginal numbers.
-			mod = private$cached_mod
-			if (!is.null(mod)) {
-				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
-				if (!estimate_only) {
-					ssq = mod$ssq_b_j
-					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					if (is.finite(ssq) && ssq > .Machine$double.eps) {
-						private$cached_values$s_beta_hat_T = sqrt(ssq)
-						private$clear_nonestimable_state()
-					} else {
-						private$cache_nonestimable_se("model_standard_error_unavailable")
-					}
-				}
-			}
-			private$cached_values$beta_hat_T
+			za_poisson_estimand_estimate(self, private, estimate_only)
 		},
 		#' @description Asymptotic confidence interval. Under the conditional
 		#'   estimand, the interval of the test chosen with \code{set_testing_type()}:
 		#'   score, gradient, likelihood-ratio and Bartlett-corrected
 		#'   likelihood-ratio give the same interval as the matching
 		#'   \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
-		#'   returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+		#'   returned Wald, v1.0.6-TODO-230); the default Wald interval is \code{NA},
 		#'   with the reason recorded and an \code{edi_wald_unavailable_warning}, when
 		#'   the model standard error is unavailable (no bootstrap is substituted,
-		#'   v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
+		#'   v1.0.6-TODO-225). Under a marginal estimand (Wald only), the
 		#'   delta-method interval computed by \code{compute_estimate()}. Calls
 		#'   \code{self$compute_estimate()} first (not \code{private$shared()}
 		#'   directly) so the estimand-aware cache is always current regardless
 		#'   of call order.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			self$compute_estimate(estimate_only = FALSE)
-			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-				}
-				return(private$count_likelihood_missing_ci(alpha))
-			}
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
-				return(private$count_likelihood_missing_ci(alpha))
-			}
-			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
-			if (!identical(private$testing_type, "wald")) {
-				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
-			}
-			se = private$get_standard_error()
-			if (is.finite(se) && se > 0) {
-				private$cached_values$s_beta_hat_T = se
-			}
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: a Wald request gets Wald or NA, never the bootstrap
-				# interval this used to substitute (see edi_wald_unavailable_na()).
-				return(edi_wald_unavailable_na(self, private, alpha = alpha))
-			}
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			za_poisson_estimand_ci(self, private, alpha)
 		},
 		#' @description Asymptotic two-sided p-value, dispatched exactly as
 		#'   \code{compute_asymp_confidence_interval()}; see that method's
@@ -264,30 +213,7 @@ InferenceCountHurdlePoisson = define_inference_class(
 		#' @param delta The null treatment effect under the current estimand
 		#'   (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			self$compute_estimate(estimate_only = FALSE)
-			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-				}
-				return(NA_real_)
-			}
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
-			if (!identical(private$testing_type, "wald")) {
-				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
-			}
-			se = private$get_standard_error()
-			if (is.finite(se) && se > 0) {
-				private$cached_values$s_beta_hat_T = se
-			}
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
-				return(edi_wald_unavailable_na(self, private))
-			}
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			za_poisson_estimand_pval(self, private, delta)
 		}
 	),
 	private = list(
@@ -361,7 +287,7 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' then \code{NA} (reason \code{"hurdle_negbin_count_mle_not_finite"}) with one warning of class
 #' \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
 #' \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
-#' keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+#' keep that pattern are \code{NA} too (v1.0.6-TODO-140).
 #'
 #' \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
 #' part is separated (a fitted probability of a zero is numerically 0 or 1, or
@@ -371,7 +297,7 @@ InferenceCountHurdlePoisson = define_inference_class(
 #' \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}. The
 #' hurdle part is fit separately from the count part, so the count-part
 #' treatment estimate does not depend on it and is kept. A hurdle part has no
-#' benign "no inflation" case, so this is always the warning (v1.0.6-TODO-218).
+#' benign "no inflation" case, so this is always the warning (v1.0.6-TODO-159).
 #'
 #' @references Mullahy, J. (1986). "Specification and Testing of Some
 #'   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
@@ -475,7 +401,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#'   interval for the treatment coefficient by the test chosen with
 		#'   \code{set_testing_type()} (Wald by default; the other types give the same
 		#'   interval as the matching \code{compute_<type>_confidence_interval()},
-		#'   v1.0.6-TODO-413), using the shared count-likelihood semantics documented in
+		#'   v1.0.6-TODO-230), using the shared count-likelihood semantics documented in
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -485,7 +411,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
 				return(private$count_likelihood_missing_ci(alpha))
 			}
-			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
+			# v1.0.6-TODO-230: honor set_testing_type() (this always returned Wald).
 			if (!identical(private$testing_type, "wald")) {
 				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
 			}
@@ -496,7 +422,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#'   p-value for the treatment coefficient by the test chosen with
 		#'   \code{set_testing_type()} (Wald by default; the other types give the same
 		#'   p-value as the matching \code{compute_<type>_two_sided_pval()},
-		#'   v1.0.6-TODO-413); see
+		#'   v1.0.6-TODO-230); see
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -504,7 +430,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
+			# v1.0.6-TODO-230: see compute_asymp_confidence_interval().
 			if (!identical(private$testing_type, "wald")) {
 				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
 			}
@@ -524,7 +450,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 		#' @description Compute the hurdle negative-binomial gradient-test confidence
 		#'   interval by inverting the gradient test, whatever testing type is
 		#'   configured (before 1.0.6 it inverted the configured type, so by default
-		#'   it returned the Wald interval; v1.0.6-TODO-413). See
+		#'   it returned the Wald interval; v1.0.6-TODO-230). See
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
 		#'   for related score, likelihood-ratio, and gradient methods.
 		#' @param alpha The significance level (default 0.05).
@@ -532,7 +458,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
 				return(private$count_likelihood_missing_ci(alpha))
 			}
-			# v1.0.6-TODO-413: name the test. Without it the inversion used the
+			# v1.0.6-TODO-230: name the test. Without it the inversion used the
 			# configured testing type (Wald by default), so this returned the Wald
 			# interval unless set_testing_type("gradient") had been called.
 			private$invert_test_pval_confidence_interval(alpha, testing_type = "gradient")
@@ -562,15 +488,15 @@ InferenceCountHurdleNegBin = define_inference_class(
 				private$cache_nonestimable_estimate("hurdle_negbin_weighted_design_unusable")
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit, on the
+			# v1.0.6-TODO-140 (2): same aliased-column drop as the full fit, on the
 			# rows with positive weight.
 			X_fit = edi_zero_augmented_drop_aliased_count_cols(self, private, X_fit, weights = row_weights)
-			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			# v1.0.6-TODO-132: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_fit, private$y, 2L, weights = row_weights)) {
 				private$cache_nonestimable_estimate("hurdle_negbin_count_treatment_unidentified")
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-195 (3): no finite count-part treatment MLE on the rows with
+			# v1.0.6-TODO-140 (3): no finite count-part treatment MLE on the rows with
 			# positive weight.
 			if (zero_augmented_count_mle_infinite(X_fit, private$y, 2L, weights = row_weights)) {
 				private$cache_nonestimable_estimate("hurdle_negbin_count_mle_not_finite")
@@ -586,7 +512,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 						data = dat,
 						weights = row_weights,
 						# One TMB thread: a thread-split likelihood sum changes the fit with
-						# set_num_cores() (v1.0.6-TODO-62); EDI parallelizes the replicates itself.
+						# set_num_cores() (v1.0.6-TODO-26); EDI parallelizes the replicates itself.
 						control = glmmTMB::glmmTMBControl(parallel = 1L)
 					)
 				)),
@@ -668,13 +594,13 @@ InferenceCountHurdleNegBin = define_inference_class(
 			X_f = private$build_component_matrix(private$model_formula, private$best_X_colnames, treatment_name = "treatment")
 			X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			if (is.null(X_f) || is.null(X_hurdle)) return(NA_real_)
-			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit.
+			# v1.0.6-TODO-140 (2): same aliased-column drop as the full fit.
 			X_f = edi_zero_augmented_drop_aliased_count_cols(self, private, X_f)
-			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			# v1.0.6-TODO-132: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_f, private$y, 2L)) return(NA_real_)
-			# v1.0.6-TODO-195 (3): no finite count-part treatment MLE.
+			# v1.0.6-TODO-140 (3): no finite count-part treatment MLE.
 			if (zero_augmented_count_mle_infinite(X_f, private$y, 2L)) return(NA_real_)
-			# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+			# v1.0.6-TODO-140 (4): see edi_check_count_kernel_inputs().
 			if (!isTRUE(tryCatch(edi_check_count_kernel_inputs("fast_hurdle_negbin_cpp", X_f, private$y, X_hurdle, X2_name = "X_hurdle"),
 				error = function(e) FALSE))) return(NA_real_)
 			n_params = ncol(X_f) + 1L
@@ -728,42 +654,19 @@ InferenceCountHurdleNegBin = define_inference_class(
 			stats::as.formula(paste(response, "~", rhs))
 		},
 		build_component_matrix = function(model_formula, selected_colnames = NULL, treatment_name = "treatment"){
-			if (is.null(selected_colnames)) {
-				if (identical(model_formula, ~ .)) {
-					X_cov = private$get_X()
-				} else {
-					X_imp = private$des_obj$get_X_imp()
-					X_cov = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
-				}
-			} else {
-				if (identical(model_formula, ~ .)) {
-					X_cov_all = private$get_X()
-				} else {
-					X_imp = private$des_obj$get_X_imp()
-					X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
-				}
-				X_cov = if (is.null(X_cov_all) || !length(selected_colnames)) matrix(NA_real_, nrow = private$n, ncol = 0) else as.matrix(X_cov_all[, intersect(selected_colnames, colnames(X_cov_all)), drop = FALSE])
-			}
-			if (is.null(X_cov) || ncol(as.matrix(X_cov)) == 0L) {
-				X_fit = cbind(1, private$w)
-				colnames(X_fit) = c("(Intercept)", treatment_name)
-				return(X_fit)
-			}
-			X_fit = cbind(1, private$w, as.matrix(X_cov))
-			colnames(X_fit)[1:2] = c("(Intercept)", treatment_name)
-			X_fit
+			edi_build_component_matrix(private, model_formula, selected_colnames, treatment_name)
 		},
 		predictors_df = function(){
 			data.frame(w = private$w)
 		},
 		try_hurdle_negbin_fit = function(X_f, X_hurdle, j_t, estimate_only = FALSE){
-			# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+			# v1.0.6-TODO-140 (4): see edi_check_count_kernel_inputs().
 			if (!isTRUE(tryCatch(edi_check_count_kernel_inputs("fast_hurdle_negbin_cpp", X_f, private$y, X_hurdle, X2_name = "X_hurdle"),
 				error = function(e) FALSE))) return(NULL)
 			n_params = ncol(X_f) + 1L
 			warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
 			warm_fisher = private$get_fit_warm_start_fisher(n_params)
-			# v1.0.6-TODO-411: a warm start at the Poisson limit (log theta past the boundary, e.g.
+			# v1.0.6-TODO-229: a warm start at the Poisson limit (log theta past the boundary, e.g.
 			# theta ~ 1e8 from the previous fit) leaves the count optimizer where the observed
 			# information is numerically meaningless, so its Newton-decrement finish fell back to the
 			# expected-information series on every iteration: one refit in a randomization-CI bound
@@ -952,7 +855,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 			} else {
 				X_hurdle = private$build_component_matrix(private$model_formula_hurdle, private$best_hurdle_X_colnames, treatment_name = "treatment")
 			}
-			# v1.0.6-TODO-195 (2): drop count-part covariates aliased on the positive
+			# v1.0.6-TODO-140 (2): drop count-part covariates aliased on the positive
 			# rows, as glm does (warns once, never inside resampling); j_treat stays 2.
 			if (isTRUE(private$harden) && identical(as.integer(j_treat), 2L)) {
 				aliased = zero_augmented_drop_aliased_count_cols(X_fit, private$y, j_treat = 2L)
@@ -962,7 +865,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 					edi_warn_covariate_dropped_once(self, private, aliased$dropped, "aliased_on_positive_rows")
 				}
 			}
-			# v1.0.6-TODO-195 (3): when one arm's positive counts all equal 1 the
+			# v1.0.6-TODO-140 (3): when one arm's positive counts all equal 1 the
 			# zero-truncated count part has no finite treatment MLE, whatever the
 			# covariates (so no treatment-only fallback): NA with a recorded reason and
 			# one edi_procedure_na_warning (silent inside resampling).
@@ -972,7 +875,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 				edi_warn_hurdle_count_mle_not_finite(self, private, inf_arms, reason = "hurdle_negbin_count_mle_not_finite")
 				return(NULL)
 			}
-			# v1.0.6-TODO-186: skip the fit when the positive rows do not identify the
+			# v1.0.6-TODO-132: skip the fit when the positive rows do not identify the
 			# count-part treatment coefficient (see zero_augmented_count_treatment_identified()).
 			fit = if (zero_augmented_count_treatment_identified(X_fit, private$y, j_treat)) {
 				private$try_hurdle_negbin_fit(X_fit, X_hurdle, j_treat, estimate_only = estimate_only)
@@ -1010,8 +913,8 @@ InferenceCountHurdleNegBin = define_inference_class(
 			private$cached_values$hurdle_coefficients = fit$mod$hurdle_b
 			log_th = log(as.numeric(fit$mod$theta_hat))
 			if (isTRUE(is.finite(log_th))) private$cached_vc_params = log_th
-			# v1.0.6-TODO-218 (2): the same zero-part separation flag as the other
-			# zero-augmented classes (v1.0.6-TODO-152). The hurdle part is a logistic
+			# v1.0.6-TODO-159 (2): the same zero-part separation flag as the other
+			# zero-augmented classes (v1.0.6-TODO-103). The hurdle part is a logistic
 			# regression of 1(y > 0) fit on its own, so its information block is
 			# X_h' diag(p (1 - p)) X_h. A hurdle part has no "no inflation" case:
 			# separation always gives the edi_zero_part_separation_warning. The
@@ -1075,7 +978,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 			b_j = as.numeric(full_res$b[j])
 			if (!is.finite(b_j)) return(NULL)
 			warm_fisher = full_res$fisher_information
-			# v1.0.6-TODO-186 / -195 (3): see the matching block in the zero-augmented
+			# v1.0.6-TODO-132 / v1.0.6-TODO-140 (3): see the matching block in the zero-augmented
 			# Poisson simulate_under_lik_null(): the estimate replicate reads b[j] and
 			# counts NA as a failed refit; the LR replicate uses only the two nlls.
 			if (!zero_augmented_count_treatment_identified(X_pos, y_pos_obs, j_treat = j) ||
@@ -1108,7 +1011,7 @@ InferenceCountHurdleNegBin = define_inference_class(
 # negative-binomial dispersion is treated as at its Poisson limit.
 HURDLE_NEGBIN_POISSON_BOUNDARY_LOG_THETA = log(1e4)
 
-# v1.0.6-TODO-425: the zero-truncated negative-binomial count part of a hurdle fit on
+# v1.0.6-TODO-232: the zero-truncated negative-binomial count part of a hurdle fit on
 # Poisson-like counts can stop at an enormous theta (1e7 to 1e15, depending on the platform's
 # floating point) with converged = TRUE but dispersion_at_poisson_boundary = FALSE. At such a
 # theta the C++ observed information is numerically meaningless (entries ~1e26, negative

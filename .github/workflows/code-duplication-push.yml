@@ -4,7 +4,7 @@
 # change introduces:
 #   1. new clones: code the change adds that repeats code already in the tree;
 #   2. new divergences: the change edits one region of a known clone pair and leaves the other
-#      untouched (the LogRank-fixed / Gehan-Wilcoxon-not pattern of v1.0.6-TODO-117/-121).
+#      untouched (the LogRank-fixed / Gehan-Wilcoxon-not pattern of v1.0.6-TODO-71 / v1.0.6-TODO-75).
 # Base: the push's `before` commit; for a PR, the merge base with the target branch. Only R/C++/Python
 # files that changed in more than comments and whitespace count (scripts/significant_changes.py).
 # Report: the job summary, and for a PR one comment, updated in place on later pushes.

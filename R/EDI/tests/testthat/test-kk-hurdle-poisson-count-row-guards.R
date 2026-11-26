@@ -1,10 +1,10 @@
-# v1.0.6-TODO-195 (1) / (3): the KK hurdle-Poisson classes fit the count part of a
+# v1.0.6-TODO-140 (1) / (3): the KK hurdle-Poisson classes fit the count part of a
 # hurdle model (a zero-truncated Poisson GLMM on the matched rows with a positive
 # count; OneLik adds a plain Poisson likelihood on the reservoir). They had none of
 # the zero-augmented guards: when every positive matched row was treated the
 # estimate was an arbitrary -0.43 (SE 0.31), when every treated positive count was
 # 1 it was -14 (SE 335), and aliased count covariates were kept. Now the count
-# rows get the same guards as InferenceCountHurdlePoisson (v1.0.6-TODO-186 and
+# rows get the same guards as InferenceCountHurdlePoisson (v1.0.6-TODO-132 and
 # -195 (2) / (3)): see kk_hurdle_count_guard().
 
 kk_hurdle_guard_design = function(y_fun, n = 40L, seed = 2L, x = NULL) {

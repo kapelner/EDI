@@ -1,8 +1,8 @@
-# v1.0.6-TODO-215 item (2): the four cumulative-link ordinal kernels (logit,
+# v1.0.6-TODO-156 item (2): the four cumulative-link ordinal kernels (logit,
 # probit, cauchit, cloglog) used to return the observed Hessian under the name
 # `fisher_information` as well as `observed_information` / `information`. The
 # expected (Fisher) information is computed in R
-# (ordinal_cumlink_expected_information(), v1.0.6-TODO-201), so the misleading
+# (ordinal_cumlink_expected_information(), v1.0.6-TODO-142), so the misleading
 # field is gone: the kernels return the observed information only, and every R
 # caller that fed it to the next fit's warm start reads `observed_information`.
 # The kernel assertions need the rebuilt EDI.so (PATCHED, needs owner build);

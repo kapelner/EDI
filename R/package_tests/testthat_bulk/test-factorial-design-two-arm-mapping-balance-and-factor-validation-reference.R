@@ -20,7 +20,7 @@ test_that("get_w_factorial() is NULL before assignment and afterwards the combin
 	expect_equal(as.integer(gf$A), as.integer(w) + 1L)
 	expect_equal(sort(unique(as.integer(gf$A))), 1:2)
 	# a single-level factor (list(dose = 1, arm = 2)) used to be accepted as a constant column; since
-	# v1.0.6-TODO-305 every factor needs >= 2 levels
+	# v1.0.6-TODO-190 every factor needs >= 2 levels
 	expect_error(mk(10L, list(dose = 1, arm = 2)), "factors\\$dose must be a whole number of levels >= 2")
 })
 
@@ -50,7 +50,7 @@ test_that("factors validation: must be a non-empty numeric list with exactly two
 	expect_error(mkd(2))
 })
 
-# v1.0.6-TODO-305 (docs-scenarios factorial F4): list(subject = 2.5) ran as a two-level factor and an
+# v1.0.6-TODO-190 (docs-scenarios factorial F4): list(subject = 2.5) ran as a two-level factor and an
 # unnamed list(2) got the column name Var1.
 test_that("factors must be whole numbers of levels >= 2 in a fully named list", {
 	mkd <- function(f) DesignFixedFactorial$new(factors = f, response_type = "continuous", n = 10L, verbose = FALSE)

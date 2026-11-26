@@ -862,7 +862,7 @@ run_all_inference_task_is_comprehensive_slow_path = function(task, response_type
 #' @keywords internal
 #' @noRd
 # Which run_all_inference() count argument reaches which sentinel, and the
-# method's own name for it (v1.0.6-TODO-210 follow-up, owner 2026-11-19).
+# method's own name for it (v1.0.6-TODO-151 follow-up, owner 2026-11-19).
 # `r` reaches the randomization procedures (randomization test/CI take `r`,
 # the randomization-bootstrap test/CI take `B`); `B` reaches the bootstrap
 # procedures. Every definition of these methods was checked to use exactly
@@ -1295,7 +1295,7 @@ run_all_inference_build_tasks = function(cls_names, formulas, methods, des_obj =
 }
 
 #' Default `B` of a class's `compute_lik_ratio_bootstrap_confidence_interval()`
-#' (v1.0.6-TODO-210). The suite never passes `B`, so the CI runs at this
+#' (v1.0.6-TODO-151). The suite never passes `B`, so the CI runs at this
 #' default. Walks the generator's `get_inherit()` chain for an override with a
 #' `B` formal (lazy-component stubs are `function(...)`) and falls back to the
 #' `InferenceParamBootstrap` definition; every definition defaults to 199 today.
@@ -1318,7 +1318,7 @@ run_all_inference_param_boot_ci_default_B = function(cls_name) {
 #' Error before any fitting when `run_all_inference()` would run the
 #' parametric-bootstrap LR CI (sentinel `"param_boot"`, CIs on) at a `B` (the
 #' user's `B`, else the method default) too small for `alpha`
-#' (v1.0.6-TODO-210): that CI can never reject when `2 / (B + 1) > alpha`,
+#' (v1.0.6-TODO-151): that CI can never reject when `2 / (B + 1) > alpha`,
 #' i.e. needs `B >= 2 / alpha - 1`.
 #' @keywords internal
 #' @noRd
@@ -1343,7 +1343,7 @@ run_all_inference_check_param_boot_ci_B = function(tasks, alpha, compute_conf_in
 
 #' Smallest `B` every bootstrap method in the suite accepts: each one's
 #' `min_number_usable_samples` defaults to 5 and the methods reject
-#' `B < min_number_usable_samples` (v1.0.6-TODO-219).
+#' `B < min_number_usable_samples` (v1.0.6-TODO-160).
 #' @keywords internal
 #' @noRd
 EDI_INFERENCE_SUITE_MIN_USABLE_B = 5L
@@ -1352,7 +1352,7 @@ EDI_INFERENCE_SUITE_MIN_USABLE_B = 5L
 #' `EDI_INFERENCE_SUITE_MIN_USABLE_B` and a task will pass it to a bootstrap
 #' procedure (`"bootstrap"`, `"bayes_boot"`, `"param_boot"`,
 #' `"param_boot_direct"`), instead of letting every such row fail on its own
-#' (v1.0.6-TODO-219).
+#' (v1.0.6-TODO-160).
 #' @keywords internal
 #' @noRd
 run_all_inference_check_min_usable_B = function(tasks, B = NULL) {
@@ -1368,7 +1368,7 @@ run_all_inference_check_min_usable_B = function(tasks, B = NULL) {
 		EDI_INFERENCE_SUITE_MIN_USABLE_B, as.integer(B), paste0("\"", used, "\"", collapse = ", ")), call. = FALSE)
 }
 
-#' Per-task RNG seeds for `run_all_inference()` (v1.0.6-TODO-219). One master
+#' Per-task RNG seeds for `run_all_inference()` (v1.0.6-TODO-160). One master
 #' integer is drawn from the caller's RNG stream; each task's seed is that
 #' master plus a hash of the task's `result_name`, so a task's draws depend
 #' only on the caller's seed and on which task it is -- not on how many draws
@@ -1389,7 +1389,7 @@ run_all_inference_task_seeds = function(result_names) {
 }
 
 #' Run one suite task (`fn()`) with the global RNG set from `seed`, then
-#' restore the caller's `.Random.seed` (v1.0.6-TODO-219). The task also gets an
+#' restore the caller's `.Random.seed` (v1.0.6-TODO-160). The task also gets an
 #' empty design-level randomization-permutation cache, and the design's own
 #' cache is put back afterwards: unseeded randomization draws are cached on the
 #' design and shared by every inference object built on it, so otherwise the
@@ -1447,7 +1447,7 @@ run_all_inference_fork_timeout_row = function(cls_name, design_family, response_
 		pval            = NA_real_,
 		pval_method     = NA_character_,
 		estimand        = tryCatch(run_all_inference_estimand(cls_name), error = function(e) NA_character_),
-		tau             = NA_real_,  # v1.0.6-TODO-292: a missing tau dropped the whole results_table
+		tau             = NA_real_,  # v1.0.6-TODO-179: a missing tau dropped the whole results_table
 		fit_secs        = as.numeric(max_secs_per_class),
 		warnings        = NA_character_,
 		status          = "timeout",
@@ -1724,8 +1724,7 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 			# for several sentinels (Bartlett-approx, rand, rand_bootstrap,
 			# param_boot) re-invokes that same expensive machinery ~15-40
 			# times per bound during root-finding -- by far the dominant cost
-			# for those sentinels. `ci$method` stays `NA_character_` here
-			# (not `method`, unlike the `is.na(method)` branch above) so
+			# for those sentinels. `ci$method` stays `NA_character_` here so
 			# downstream reporting can't mistake "never attempted because CI
 			# is off for this whole run" for "attempted and unsupported."
 			ci = if (!isTRUE(compute_conf_intervals)) {
@@ -1757,16 +1756,9 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 				tryCatch(deparse1(inf_obj$get_model_formula()), error = function(e) NA_character_)
 			}
 			if (isTRUE(inf_obj$is_nonestimable("any"))) {
-				# Keep the method names on a nonestimable row too (per user
-				# request, 2026-08-21: "the name of the method should be
-				# visible even if it is producing NA's") -- the CI/pval
-				# sentinel label when an attempt was possible, else the
-				# task's own `method` sentinel, so the printout never shows
-				# a bare NA where the method column should be.
 				list(
 					status = "nonest", cov_model = cov_model,
-					ci_method = if (!is.na(ci$method)) ci$method else method,
-					pval_method = if (!is.na(pv$method)) pv$method else method,
+					ci_method = ci$method, pval_method = pv$method,
 					message = inf_obj$get_nonestimable_reason() %||% NA_character_
 				)
 			} else {
@@ -1840,10 +1832,9 @@ run_all_inference_one_class = function(cls_name, des_obj, params, alpha, design_
 	# those blanks were just as uninformative as the error/timeout case
 	# this rule already covered). The task's own requested sentinel is
 	# known regardless of what the CI/pval call attempt actually returned,
-	# so fill in only the NA side(s); a side that got a real (possibly
-	# different) method label from a successful attempt is left untouched.
+	# so fill in missing labels for procedures enabled for this run.
 	if (!is.na(method)) {
-		if (is.na(row$ci_method)) row$ci_method = method
+		if (isTRUE(compute_conf_intervals) && is.na(row$ci_method)) row$ci_method = method
 		if (is.na(row$pval_method)) row$pval_method = method
 	}
 	row$warnings  = if (length(collected$warnings) > 0L) paste(collected$warnings, collapse = "; ") else NA_character_
@@ -4243,15 +4234,14 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 #'   `cct_combine_pvalues_full()`'s `weights / sum(weights)` renormalization
 #'   entirely (an `NA`-containing sum is `NA`), turning *every* row's
 #'   weight into `NA` and the whole combined statistic into `NA`, not just
-#'   that one row's contribution. `is.finite()` here now matches the weight
-#'   function's own criteria exactly, so a row is either usable to both or
-#'   neither. The same NA-weight-poisons-everything failure mode can also
+#'   that one row's contribution. Both functions now require finite p-values.
+#'   The same NA-weight-poisons-everything failure mode can also
 #'   arise for a reason unrelated to the p-value itself (e.g. a quantile-
 #'   regression row's weight is `NA` because it has no registered
 #'   `estimand` to group by, even though its p-value is perfectly finite),
-#'   so `usable` also requires a finite `weight` whenever `weights` is
-#'   supplied, not just a finite `pval`.
-#' - Fewer than 2 usable p-values after dropping non-finite ones: returns
+#'   so `usable` also requires a finite, positive `weight` whenever
+#'   `weights` is supplied.
+#' - Fewer than 2 usable p-values after filtering: returns
 #'   `pval = stat = NA_real_` rather than silently treating a single
 #'   p-value as if it were a combined one -- a "combination" of one
 #'   p-value is just that p-value, not a meaningful combined-evidence claim.
@@ -4263,7 +4253,7 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 #'   `NaN`/`Inf`/`-Inf`) entries are dropped before counting/combining.
 #' @param weights Numeric vector the same length as `pvals`, aligned
 #'   positionally, or `NULL` for equal weights over the usable p-values.
-#'   Need not sum to 1 -- renormalized internally.
+#'   Only finite, positive weights contribute. They are renormalized internally.
 #' @param pval_eps Clip p-values to `[pval_eps, 1 - pval_eps]` before
 #'   combining. Default `1e-4`.
 #' @return `list(pval, stat, n_used)`.
@@ -4273,20 +4263,14 @@ cct_combine_pvalues_full = function(pvals, weights = NULL) {
 run_all_inference_combine_pvalues = function(pvals, weights = NULL, pval_eps = 1e-4) {
 	pvals = as.numeric(pvals)
 	usable = is.finite(pvals)
-	# Also require a finite `weight` when weights are supplied (per user
-	# report, 2026-08-24, part 2): a row can have a perfectly finite p-value
-	# but a `NA` weight for a reason unrelated to the p-value itself (e.g.
-	# `run_all_inference_compute_combined_evidence_weights()` leaves a
-	# quantile-regression row's weight `NA` because it has no registered
-	# `estimand` to group by) -- filtering on `pvals` alone let such a row's
-	# `NA` weight through into `cct_combine_pvalues_full()`'s `weights /
-	# sum(weights)`, which poisons every row's normalized weight the same
-	# way a stray non-finite p-value did (fixed separately above).
-	if (!is.null(weights)) usable = usable & is.finite(as.numeric(weights))
+	if (!is.null(weights)) {
+		weights = as.numeric(weights)
+		usable = usable & is.finite(weights) & weights > 0
+	}
 	n_used = sum(usable)
 	if (n_used < 2L) return(list(pval = NA_real_, stat = NA_real_, n_used = n_used))
 	pvals = pvals[usable]
-	if (!is.null(weights)) weights = as.numeric(weights)[usable]
+	if (!is.null(weights)) weights = weights[usable]
 	pvals = pmin(pmax(pvals, pval_eps), 1 - pval_eps)
 	full = cct_combine_pvalues_full(pvals, weights)
 	list(pval = full$pval, stat = full$stat, n_used = n_used)
@@ -4363,7 +4347,7 @@ run_all_inference_per_estimand_breakdown_lines = function(results_table) {
 		combined = run_all_inference_combine_pvalues(groups[[g]])
 		combined_pvals[i] = combined$pval
 		# A group with one usable p-value has nothing to combine: report that p-value itself
-		# instead of the combiner's NA (v1.0.6-TODO-312).
+		# instead of the combiner's NA (v1.0.6-TODO-194).
 		finite_g = groups[[g]][is.finite(groups[[g]])]
 		if (length(finite_g) == 1L) combined_pvals[i] = finite_g
 		# This group's representative `tau` (for the "quantile_regression_
@@ -5028,7 +5012,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 		#'   (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
 		#'   n_estimand_groups, estimands_used, weighting, weights_used,
 		#'   classes_used)} -- the Cauchy-combination-test p-value/statistic
-		#'   across all usable rows under the resolved weighting policy;
+		#'   across rows with finite p-values and finite, positive weights;
 		#'   \code{weights_used}/\code{classes_used} are keyed/valued by each
 		#'   row's \code{results} name, not \code{results_table$inference_class}
 		#'   directly, since that column can repeat under \code{formulas};
@@ -5206,7 +5190,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			resample_counts = list(r = if (is.null(r)) NULL else as.integer(r), B = if (is.null(B)) NULL else as.integer(B))
 			run_all_inference_check_param_boot_ci_B(tasks, alpha, compute_conf_intervals, resample_counts$B)
 			run_all_inference_check_min_usable_B(tasks, resample_counts$B)
-			# v1.0.6-TODO-219: each task runs from its own seed (drawn once from the
+			# v1.0.6-TODO-160: each task runs from its own seed (drawn once from the
 			# caller's stream), so a seeded run is reproducible and the sequential and
 			# fork paths give the same results.
 			task_seeds = run_all_inference_task_seeds(vapply(tasks, `[[`, character(1L), "result_name"))
@@ -5353,7 +5337,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 				}
 			}
 			results_table = if (length(results)) {
-				# v1.0.6-TODO-292: a row with a NULL or length-0 field (e.g. a fork-timeout row with
+				# v1.0.6-TODO-179: a row with a NULL or length-0 field (e.g. a fork-timeout row with
 				# no tau) made data.frame() fail with "differing number of rows", losing every
 				# result; such a field becomes NA instead.
 				one = function(x, na) if (length(x) == 1L) x else na
@@ -5421,7 +5405,7 @@ InferenceSuite = R6::R6Class("InferenceSuite",
 			# it -- knows whether `ci_a`/`ci_b`/`ci_method` are real data or
 			# were never computed, without needing the whole `out` object too.
 			attr(results_table, "compute_conf_intervals") = compute_conf_intervals
-			combined_usable = !is.na(results_table$weight)
+			combined_usable = is.finite(results_table$weight) & results_table$weight > 0
 			combined = run_all_inference_combine_pvalues(results_table$pval, results_table$weight)
 			out = list(
 				results = results,

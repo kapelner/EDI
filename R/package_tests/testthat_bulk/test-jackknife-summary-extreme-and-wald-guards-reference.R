@@ -43,7 +43,7 @@ smd_boot_fixture <- function(n = 20L, seed = 123L) {
 test_that("compute_jackknife_summary caches 'jackknife_extreme_summary' when se_j exceeds the separation threshold", {
 	f <- smd_boot_fixture()
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", f$priv)
-	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	# >= 5 replicates so the v1.0.6-TODO-89 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
 	f$priv$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") c(9e5, -9e5, 9e5, -9e5, 9e5, -9e5)
 
 	s <- f$priv$compute_jackknife_summary("observation")
@@ -56,7 +56,7 @@ test_that("compute_jackknife_summary caches 'jackknife_extreme_summary' when se_
 test_that("compute_jackknife_summary rejects finite draws when jackknife bias exceeds twice its standard error", {
 	f <- smd_boot_fixture()
 	theta_hat <- as.numeric(f$inf$compute_estimate(estimate_only = TRUE))[1L]
-	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	# >= 5 replicates so the v1.0.6-TODO-89 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
 	jack <- theta_hat + c(0.099, 0.100, 0.101, 0.102, 0.103)
 	n_units <- length(jack)
 	jack_bar <- mean(jack)

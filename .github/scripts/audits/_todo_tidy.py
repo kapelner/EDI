@@ -17,8 +17,8 @@ Two steps, in this order, on each unreleased `future_release_plans/release_v*.md
        `TODO-<n>` on a line that also carries the entry's bold title (a status line naming it);
      - in a file the renumbered entry introduced: named in backticks by that entry and by no other
        entry with the same number, and first committed on or after the entry's added date.
-   Every other reference is listed for a human. Old-style references (`v1.0.6 TODO-30`,
-   `release_v1_0_6.md -> TODO-30`) are never rewritten (CLAUDE.md lets them stay); they are listed.
+   Every other reference is listed for a human. Old-style references (`v1.0.6 TODO-6`,
+   `release_v1_0_6.md -> TODO-6`) are never rewritten (CLAUDE.md lets them stay); they are listed.
 2. REORDER. Within each contiguous run of top-level TODO entries (entries separated only by blank
    lines, at the same indent, under the same heading), the entries are put in numeric order
    (TODO-4 < TODO-4b < TODO-5 < TODO-17). An entry's whole block (checkbox line, indented

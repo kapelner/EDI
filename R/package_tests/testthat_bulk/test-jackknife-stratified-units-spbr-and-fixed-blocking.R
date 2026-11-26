@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-4: the jackknife on DesignSeqOneByOneSPBR and DesignFixedBlocking used to delete whole
+# v1.0.6-TODO-1: the jackknife on DesignSeqOneByOneSPBR and DesignFixedBlocking used to delete whole
 # strata (get_block_ids() returns stratum ids), leaving 2-4 replicates. The automatic units are now
 # "permuted_block" (SPBR: the design's permuted blocks, a trailing partial block merged into the
 # previous block of its stratum) and "observation_within_block" (FixedBlocking: one subject at a time),
@@ -57,7 +57,7 @@ test_that("FixedBlocking: the automatic jackknife deletes one subject and pools 
 	expect_equal(f$inf$compute_jackknife_std_error(), hand$se, tolerance = 1e-12)
 	expect_equal(f$inf$compute_jackknife_bias_estimate(), hand$bias, tolerance = 1e-12)
 	expect_equal(f$inf$compute_jackknife_estimate(), theta_hat - hand$bias, tolerance = 1e-12)
-	# v1.0.6-TODO-231: t reference with df = sum_h (n_h - 1) = 3 * 3 on the stratified units.
+	# v1.0.6-TODO-165: t reference with df = sum_h (n_h - 1) = 3 * 3 on the stratified units.
 	df <- sum(table(f$blk) - 1)
 	expect_equal(df, 9)
 	z <- qt(0.975, df)
@@ -112,7 +112,7 @@ test_that("FixedBlocking: too few within-stratum degrees of freedom gives NA wit
 
 test_that("SPBR: the deletion units are the permuted blocks; a trailing partial block is merged", {
 	f <- spbr_fixture()
-	# v1.0.6-TODO-270: 2-3 blocks per stratum here, so "auto" deletes single subjects; the permuted-block
+	# v1.0.7-TODO-122: 2-3 blocks per stratum here, so "auto" deletes single subjects; the permuted-block
 	# layout itself is checked through the explicit unit.
 	expect_identical(f$p$resolve_jackknife_unit("auto"), "observation_within_block")
 	lay <- f$p$jackknife_stratified_layout("permuted_block")
@@ -152,7 +152,7 @@ test_that("SPBR: a stratum with only a partial block is one unit", {
 })
 
 test_that("SPBR: jackknife SE and bias are the stratified JKn of the block-deleted replicates", {
-	# v1.0.6-TODO-270: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
+	# v1.0.7-TODO-122: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
 	f <- spbr_fixture(n = 120L, seed = 9L)
 	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
 	lay <- f$p$jackknife_stratified_layout("auto")
@@ -202,7 +202,7 @@ test_that("with a single stratum the stratified formulas reduce to the ordinary 
 	expect_equal(m1, m0, tolerance = 1e-12)
 })
 
-# v1.0.6-TODO-231 (3): DesignSeqOneByOneRandomBlockSize draws each block's size at random, so its blocks
+# v1.0.6-TODO-165 (3): DesignSeqOneByOneRandomBlockSize draws each block's size at random, so its blocks
 # cannot be rebuilt from the enrolment order; assign_wt() records the block of every subject (and each
 # block's stratum and drawn size), and the jackknife deletes one recorded block at a time, with SPBR's
 # rule for a stratum's trailing unfilled block (merged into that stratum's previous block).
@@ -242,7 +242,7 @@ test_that("RandomBlockSize: assign_wt() records balanced permuted blocks within 
 })
 
 test_that("RandomBlockSize: the jackknife deletes one recorded block, merging a trailing unfilled block", {
-	# v1.0.6-TODO-270: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
+	# v1.0.7-TODO-122: n large enough for >= 10 blocks in each stratum, so "auto" is the permuted block.
 	f <- rbs_fixture(n = 120L)
 	expect_identical(f$p$resolve_jackknife_unit("auto"), "permuted_block")
 	ids <- f$dp$permuted_block_ids
@@ -292,7 +292,7 @@ test_that("RandomBlockSize without a block record (an object saved before 1.0.6)
 	expect_null(inf$.__enclos_env__$private$jackknife_stratified_layout("permuted_block"))
 })
 
-# v1.0.6-TODO-231 (4): the BCa acceleration on the stratified units is the skewness of the empirical
+# v1.0.6-TODO-165 (4): the BCa acceleration on the stratified units is the skewness of the empirical
 # influence values centred within strata (Davison & Hinkley 1997, stratified case):
 # a = sum_h c_h^3 sum_i d^3 / (6 (sum_h c_h^2 sum_i d^2)^(3/2)), d = r_h (theta_bar_h - theta_(h,i)),
 # c_h = (n_h - 1)/n_h.
@@ -332,7 +332,7 @@ test_that("FixedBlocking BCa interval uses the stratified acceleration", {
 		p$bca_ci_core(boot, 0.05, est, jack, reason_prefix = "bootstrap_bca_", on_failure = fail, strata = strata))
 })
 
-# v1.0.6-TODO-231 (6), owner decision 2026-11-20: the stratified units use t with sum_h (n_h - 1) df;
+# v1.0.6-TODO-165 (6), owner decision 2026-11-20: the stratified units use t with sum_h (n_h - 1) df;
 # unstratified units keep the normal reference bit for bit.
 test_that("SPBR jackknife-Wald test and interval use t with sum_h (n_h - 1) degrees of freedom", {
 	f <- spbr_fixture(n = 120L, seed = 9L)
@@ -362,7 +362,7 @@ test_that("unstratified jackknife-Wald keeps the normal reference exactly", {
 	expect_identical(f$p$compute_jackknife_summary("block")$df, Inf)
 })
 
-# v1.0.6-TODO-231 (5), owner decision 2026-11-20.
+# v1.0.6-TODO-165 (5), owner decision 2026-11-20.
 obs_blocks_fixture <- function(n_blocks, per = 12L, seed = 2L) {
 	set.seed(seed)
 	n <- n_blocks * per

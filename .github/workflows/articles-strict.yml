@@ -1,6 +1,6 @@
 name: articles-strict
 
-# Strict article render gate (v1.0.6-TODO-99). Renders every package vignette
+# Strict article render gate (v1.0.6-TODO-57). Renders every package vignette
 # (R/EDI/vignettes/*.Rmd) and every pkgdown-only article
 # (R/EDI/vignettes/articles/*.Rmd) with warnings as errors: a chunk whose
 # output shows a warning or an error, a warning from inline code, or a render

@@ -195,29 +195,20 @@ InferenceExtLikelihoodTestMemoization = list(
 				if (!is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
 				res = likelihood_ratio_test_from_negloglik_cpp(f_nll, n_nll, df = 1L)
 				p_value = as.numeric(res$p_value %||% res)
-			} else if (testing_type == "lik_ratio_bartlett_approx") {
-				if (!isTRUE(private$supports_bartlett_likelihood_ratio_approx())) return(NA_real_)
+			} else if (is_bartlett_approx || testing_type == "lik_ratio_bartlett_exact") {
+				supported = if (is_bartlett_approx) private$supports_bartlett_likelihood_ratio_approx() else
+					private$supports_bartlett_likelihood_ratio_exact()
+				if (!isTRUE(supported)) return(NA_real_)
 				f_nll = entry$full_negloglik
 				n_nll = entry$null_negloglik
 				if (is.null(f_nll) || !length(f_nll) || is.null(n_nll) || !length(n_nll)) return(NA_real_)
 				if (!is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
 				factor = tryCatch(
-					private$get_bartlett_factor_approx(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit, B = bartlett_B_resolved),
-					error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("Bartlett factor failed: ", conditionMessage(e))); NULL }
-				)
-				if (is.null(factor) || length(factor) != 1L || !is.finite(factor) || factor <= 0) return(NA_real_)
-				res = likelihood_ratio_test_from_negloglik_cpp(f_nll, n_nll, df = 1L)
-				statistic = as.numeric(res$statistic %||% NA_real_)
-				if (!is.finite(statistic)) return(NA_real_)
-				p_value = as.numeric(stats::pchisq(statistic / factor, df = 1, lower.tail = FALSE))
-			} else if (testing_type == "lik_ratio_bartlett_exact") {
-				if (!isTRUE(private$supports_bartlett_likelihood_ratio_exact())) return(NA_real_)
-				f_nll = entry$full_negloglik
-				n_nll = entry$null_negloglik
-				if (is.null(f_nll) || !length(f_nll) || is.null(n_nll) || !length(n_nll)) return(NA_real_)
-				if (!is.finite(f_nll) || !is.finite(n_nll)) return(NA_real_)
-				factor = tryCatch(
-					private$get_bartlett_factor_exact(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit),
+					if (is_bartlett_approx) {
+						private$get_bartlett_factor_approx(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit, B = bartlett_B_resolved)
+					} else {
+						private$get_bartlett_factor_exact(spec = spec, delta = delta, full_fit = spec$full_fit, null_fit = entry$null_fit)
+					},
 					error = function(e) { edi_note_lik_test_failure(private, testing_type, paste0("Bartlett factor failed: ", conditionMessage(e))); NULL }
 				)
 				if (is.null(factor) || length(factor) != 1L || !is.finite(factor) || factor <= 0) return(NA_real_)

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-273: the robust M fit (method = "M", MAD scale re-estimated each
+# v1.0.6-TODO-172: the robust M fit (method = "M", MAD scale re-estimated each
 # iteration) must stop at iteration 1 when its OLS start is an exact fit
 # (median |residual| = 0), as MASS::rlm does: rlm returns the start and reports
 # convergence. The kernel used to floor the start scale at 1e-10 before the

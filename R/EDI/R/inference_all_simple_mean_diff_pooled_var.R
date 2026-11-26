@@ -162,7 +162,7 @@ SimpleMeanDifferencePooledVarSource = list(
 				self$compute_estimate()
 			}
 			# The randomization path caches beta_hat_T without the per-arm responses
-			# (v1.0.6-TODO-293), so rebuild them from y and w when they are missing.
+			# (v1.0.6-TODO-180), so rebuild them from y and w when they are missing.
 			if (is.null(private$cached_values$yTs) || is.null(private$cached_values$yCs)) {
 				private$cached_values$yTs = private$y[private$w == 1]
 				private$cached_values$yCs = private$y[private$w == 0]

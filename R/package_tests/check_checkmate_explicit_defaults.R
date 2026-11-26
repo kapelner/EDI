@@ -1,4 +1,4 @@
-# Static check (v1.0.6-TODO-106; run by scripts/pre-push, ~2 s): flag assertNumeric/assertNumber/assertIntegerish
+# Static check (v1.0.6-TODO-60; run by scripts/pre-push, ~2 s): flag assertNumeric/assertNumber/assertIntegerish
 # calls that leave checkmate's permissive defaults implicit.
 #   assertNumeric/assertIntegerish: must name any.missing; assertNumeric must also name finite or both lower and upper.
 #   assertNumber: must name finite or both lower and upper.

@@ -511,7 +511,7 @@ InferenceContinKKGLMM = define_inference_class("InferenceContinKKGLMM",
 		supports_lik_ratio_param_bootstrap = function() isTRUE(private$use_rcpp),
 		simulate_under_lik_null = function(spec, delta, null_fit){
 			# fast_gaussian_lmm_cpp bundles all params in $b: c(betas, log_sigma_e, log_sigma_b)
-			# (residual SD first, then pair SD; v1.0.6-TODO-291 fixed a swap here)
+			# (residual SD first, then pair SD; v1.0.6-TODO-178 fixed a swap here)
 			p      = ncol(spec$X)
 			b_all  = as.numeric(null_fit$b)
 			if (length(b_all) < p + 2L) return(NULL)

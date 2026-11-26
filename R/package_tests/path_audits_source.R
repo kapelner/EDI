@@ -1575,7 +1575,7 @@ html_from_audit = function(tables, outfile = "path_audits.html") {
     method_cell(r, method_id, "maybe")
   }
   # Custom-statistic pval (delta = 0). Incidence is attempted like every other
-  # response type since v1.0.6-TODO-81/-110: InferenceRandCustom's
+  # response type since v1.0.6-TODO-42 / v1.0.6-TODO-64: InferenceRandCustom's
   # compute_rand_two_sided_pval() runs on incidence at delta = 0 for both the
   # R-function and the C++ statistic, and refuses a nonzero delta for every
   # form ("randomization tests with delta nonzero not supported for

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-405: compute_rand_two_sided_pval(type = "Zhang") dispatched to the Zhang exact test inside an
+# v1.0.6-TODO-202: compute_rand_two_sided_pval(type = "Zhang") dispatched to the Zhang exact test inside an
 # `if (should_run_asserts())` block (inference_all_abstract_rand_ci.R, and the same in
 # inference_mixin_kk_gee_shared.R), so with assertions off `type` was ignored and the randomization-draw
 # p-value came back (0.42 instead of 0.527 below), and a `type` a non-incidence class cannot use was silently

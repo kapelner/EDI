@@ -14,7 +14,7 @@
 #'
 #' Count-part covariates aliased on the subjects with a positive count are
 #' dropped before every fit, the same as what \code{\link[stats]{glm}} does with
-#' aliased columns (v1.0.6-TODO-195; see
+#' aliased columns (v1.0.6-TODO-140; see
 #' \code{zero_augmented_drop_aliased_count_cols()} and the concrete classes'
 #' "Aliased count-part covariates" paragraph). The treatment is never dropped.
 #'
@@ -82,11 +82,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 		#'   interval for the conditional treatment coefficient by the test chosen
 		#'   with \code{set_testing_type()} (score, gradient, likelihood-ratio or
 		#'   Bartlett-corrected likelihood-ratio inversion: the same interval as the
-		#'   matching \code{compute_<type>_confidence_interval()}, v1.0.6-TODO-413).
+		#'   matching \code{compute_<type>_confidence_interval()}, v1.0.6-TODO-230).
 		#'   The default Wald interval is \code{NA}, with
 		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
 		#'   stable model standard error is unavailable (no bootstrap is substituted,
-		#'   v1.0.6-TODO-380). See
+		#'   v1.0.6-TODO-225). See
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -96,7 +96,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
 				return(private$count_likelihood_missing_ci(alpha))
 			}
-			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
+			# v1.0.6-TODO-230: honor set_testing_type() (this always returned Wald).
 			if (!identical(private$testing_type, "wald")) {
 				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
 			}
@@ -106,7 +106,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: a Wald request gets Wald or NA, never the bootstrap
+				# v1.0.6-TODO-225: a Wald request gets Wald or NA, never the bootstrap
 				# interval this used to substitute (see edi_wald_unavailable_na()).
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
@@ -115,11 +115,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 		#' @description Compute the zero-augmented count-model asymptotic two-sided
 		#'   p-value for the conditional treatment coefficient by the test chosen with
 		#'   \code{set_testing_type()} (the same p-value as the matching
-		#'   \code{compute_<type>_two_sided_pval()}, v1.0.6-TODO-413). The default
+		#'   \code{compute_<type>_two_sided_pval()}, v1.0.6-TODO-230). The default
 		#'   Wald p-value is \code{NA}, with
 		#'   the reason recorded and an \code{edi_wald_unavailable_warning}, when a
 		#'   stable model standard error is unavailable (no bootstrap is substituted,
-		#'   v1.0.6-TODO-380). See
+		#'   v1.0.6-TODO-225). See
 		#'   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
@@ -127,7 +127,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
+			# v1.0.6-TODO-230: see compute_asymp_confidence_interval().
 			if (!identical(private$testing_type, "wald")) {
 				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
 			}
@@ -137,7 +137,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$s_beta_hat_T = se
 			}
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
+				# v1.0.6-TODO-225: see compute_asymp_confidence_interval().
 				return(edi_wald_unavailable_na(self, private))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -161,15 +161,15 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cache_nonestimable_estimate("zero_augmented_poisson_aux_design_unusable")
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit, on the
+			# v1.0.6-TODO-140 (2): same aliased-column drop as the full fit, on the
 			# rows with positive weight.
 			X_fit = edi_zero_augmented_drop_aliased_count_cols(self, private, X_fit, weights = row_weights)
-			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			# v1.0.6-TODO-132: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L, weights = row_weights)) {
 				private$cache_nonestimable_estimate("zero_augmented_count_treatment_unidentified")
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-195 (3): no finite hurdle count-part treatment MLE on the
+			# v1.0.6-TODO-140 (3): no finite hurdle count-part treatment MLE on the
 			# rows with positive weight.
 			if (identical(private$za_description(), "Hurdle Poisson") &&
 				zero_augmented_count_mle_infinite(X_fit, private$y, j_treat = 2L, weights = row_weights)) {
@@ -229,9 +229,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 		},
 		compute_jackknife_wald_confidence_interval = function(alpha = 0.05, unit = "auto"){
 			private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
-			ci = c(NA_real_, NA_real_)
-			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-			ci
+			za_unavailable_interval(alpha)
 		},
 		#' @description Nonparametric-bootstrap two-sided p-value; see
 		#'   \code{\link[EDI:InferenceNonParamBootstrap]{InferenceNonParamBootstrap}}.
@@ -245,21 +243,18 @@ ZeroAugmentedCountLikelihoodSource = list(
 		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must
 		#'   be finite when \code{na.rm = TRUE}. Default 0.95; below it the p-value is \code{NA} with reason
 		#'   \code{"bootstrap_too_few_valid_replicates_fraction"}. \code{0} turns the check off.
-		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
-			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
-				return(NA_real_)
-			}
-			private$nonparam_boot_compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+		#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
+		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95, reimpute_missing_vals_each_resample = FALSE){
+			if (za_unsupported_bootstrap_type(private, type)) return(NA_real_)
+			private$nonparam_boot_compute_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples,
+				reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample)))
 		},
-		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
-			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
-				ci = c(NA_real_, NA_real_)
-				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-				return(ci)
-			}
-			private$nonparam_boot_compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples)
+		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, reimpute_missing_vals_each_resample = FALSE){
+			if (za_unsupported_bootstrap_type(private, type)) return(za_unavailable_interval(alpha))
+			private$nonparam_boot_compute_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples,
+				reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample)))
 		},
 		#' @description Bayesian-bootstrap two-sided p-value; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
@@ -276,19 +271,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 		#' @param weighting_unit_type Weighting unit; see
 		#'   \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
-			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
-				return(NA_real_)
-			}
+			if (za_unsupported_bootstrap_type(private, type)) return(NA_real_)
 			private$bayesian_boot_compute_bayesian_bootstrap_two_sided_pval(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
 		compute_bayesian_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL){
-			if (!is.null(type) && identical(tolower(type), "bca")) {
-				private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
-				ci = c(NA_real_, NA_real_)
-				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
-				return(ci)
-			}
+			if (za_unsupported_bootstrap_type(private, type)) return(za_unavailable_interval(alpha))
 			private$bayesian_boot_compute_bayesian_bootstrap_confidence_interval(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
 		}
 	),
@@ -490,7 +477,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						X_cov_all = private$get_X()
 					} else {
 						X_imp = private$des_obj$get_X_imp()
-						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
+						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-108
 					}
 					private$za_Xzi_cov_all = X_cov_all
 				} else {
@@ -502,7 +489,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						X_cov_all = private$get_X()
 					} else {
 						X_imp = private$des_obj$get_X_imp()
-						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
+						X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-108
 					}
 					private$za_X_cov_all = X_cov_all
 				} else {
@@ -738,18 +725,18 @@ ZeroAugmentedCountLikelihoodSource = list(
 				sum(nll)
 			},
 			zero_augmented_failed_fit_diagnostics = function(fit, exception_message = NULL){
-				info = fit$information %||% fit$fisher_information %||% fit$observed_information
+				info = fit[["information"]] %||% fit[["fisher_information"]] %||% fit[["observed_information"]]
 				list(
 					family = private$za_description(),
-					converged = isTRUE(fit$converged),
-					hit_iteration_cap = isTRUE(fit$hit_iteration_cap),
-					num_iter = fit$num_iter %||% NA_integer_,
-					gradient_norm = fit$gradient_norm %||% NA_real_,
-					min_eigenvalue_information = fit$min_eigenvalue_information %||% NA_real_,
-					params = fit$params %||% NULL,
-					params_origin = fit$params_origin %||% "optimizer terminal state",
+					converged = isTRUE(fit[["converged"]]),
+					hit_iteration_cap = isTRUE(fit[["hit_iteration_cap"]]),
+					num_iter = fit[["num_iter"]] %||% NA_integer_,
+					gradient_norm = fit[["gradient_norm"]] %||% NA_real_,
+					min_eigenvalue_information = fit[["min_eigenvalue_information"]] %||% NA_real_,
+					params = fit[["params"]] %||% NULL,
+					params_origin = fit[["params_origin"]] %||% "optimizer terminal state",
 					information = info %||% NULL,
-					exception_message = exception_message %||% fit$exception_message %||% NULL
+					exception_message = exception_message %||% fit[["exception_message"]] %||% NULL
 				)
 			},
 			fit_hurdle_poisson_components_independently = function(X_fit, Xzi_fit, estimate_only = FALSE){
@@ -867,11 +854,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 			}
 			X_fit = private$build_component_matrix(private$model_formula, private$best_X_colnames, treatment_name = "treatment")
 			Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "treatment")
-			# v1.0.6-TODO-195 (2): same aliased-column drop as the full fit.
+			# v1.0.6-TODO-140 (2): same aliased-column drop as the full fit.
 			X_fit = edi_zero_augmented_drop_aliased_count_cols(self, private, X_fit)
-			# v1.0.6-TODO-186: see zero_augmented_count_treatment_identified().
+			# v1.0.6-TODO-132: see zero_augmented_count_treatment_identified().
 			if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L)) return(NA_real_)
-			# v1.0.6-TODO-195 (3): no finite hurdle count-part treatment MLE.
+			# v1.0.6-TODO-140 (3): no finite hurdle count-part treatment MLE.
 			if (identical(private$za_description(), "Hurdle Poisson") && zero_augmented_count_mle_infinite(X_fit, private$y, j_treat = 2L)) return(NA_real_)
 			if (private$use_rcpp && identical(private$za_description(), "Zero-Inflated Negative Binomial")) {
 				n_params = ncol(X_fit) + ncol(Xzi_fit) + 1L
@@ -898,9 +885,9 @@ ZeroAugmentedCountLikelihoodSource = list(
 				is_hurdle = identical(private$za_description(), "Hurdle Poisson")
 				n_params = ncol(X_fit) + ncol(Xzi_fit)
 				ws_args = private$get_backend_warm_start_args(n_params)
-					# v1.0.6-TODO-30: the guarded fitter cold-starts when the warm start
+					# v1.0.6-TODO-6: the guarded fitter cold-starts when the warm start
 					# (the full-data fit) has its zero part on the ridge and adds the
-					# pscl-start candidate (v1.0.6-TODO-152), as the full fit does.
+					# pscl-start candidate (v1.0.6-TODO-103), as the full fit does.
 					fit = tryCatch(
 						fast_zero_augmented_poisson_cpp_guarded(
 							X_fit, as.numeric(private$y), Xzi_fit,
@@ -912,7 +899,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						),
 						error = function(e) NULL
 					)
-					# v1.0.6-TODO-30: the same plain cold retry the full fit makes
+					# v1.0.6-TODO-6: the same plain cold retry the full fit makes
 					# (release_v1_0_5.md TODO-4), so a replicate equals a fresh fit.
 					if ((is.null(fit) || !isTRUE(fit$converged)) && !is_hurdle) {
 						fit_retry = tryCatch(
@@ -934,7 +921,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					}
 					if (is.null(fit) || !isTRUE(fit$converged)) return(NA_real_)
 					private$set_fit_warm_start(as.numeric(fit$params), "params")
-					# v1.0.6-TODO-189: under a marginal estimand (ZIP / hurdle Poisson
+					# v1.0.6-TODO-135: under a marginal estimand (ZIP / hurdle Poisson
 					# only) return the g-computed functional, the scale
 					# compute_estimate() and the reused worker use.
 					estimand = if (is.function(self$get_estimand)) self$get_estimand() else "conditional"
@@ -943,7 +930,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 						as.numeric(fit$params), X_fit, Xzi_fit, is_hurdle, estimand
 					)))
 			} else {
-				# v1.0.6-TODO-189: the glmmTMB path has no marginal functional (the
+				# v1.0.6-TODO-135: the glmmTMB path has no marginal functional (the
 				# marginal estimate needs the Rcpp fit's stacked params), so it gives
 				# no statistic rather than the conditional coefficient.
 				if (is.function(self$get_estimand) && !identical(self$get_estimand(), "conditional")) return(NA_real_)
@@ -1084,7 +1071,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					if (!is.null(start) && length(full_start) == start_len && all(is.finite(full_start))) {
 						full_start[j_treat] = delta
 						nll_of = function(f) {
-							v = if (is.null(f)) NA_real_ else suppressWarnings(as.numeric(f$neg_loglik %||% f$neg_ll %||% NA_real_)[1L])
+							v = if (is.null(f)) NA_real_ else suppressWarnings(as.numeric(f[["neg_loglik"]] %||% f[["neg_ll"]] %||% NA_real_)[1L])
 							if (is.finite(v)) v else Inf
 						}
 						alt = tryCatch(fit_from(full_start), error = function(e) NULL)
@@ -1096,30 +1083,30 @@ ZeroAugmentedCountLikelihoodSource = list(
 					fit
 				},
 				extract_start = function(fit){
-					as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
 				},
 				score = function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
 					if (is_zinb) {
-						as.numeric(fit$score %||% get_zinb_score_cpp(X = X_fit, y = y, Xzi = Xzi_fit, params))
+						as.numeric(fit[["score"]] %||% get_zinb_score_cpp(X = X_fit, y = y, Xzi = Xzi_fit, params))
 					} else {
-						as.numeric(fit$score %||% get_zero_augmented_poisson_score_cpp(X_fit, y, Xzi_fit, params, is_hurdle = is_hurdle))
+						as.numeric(fit[["score"]] %||% get_zero_augmented_poisson_score_cpp(X_fit, y, Xzi_fit, params, is_hurdle = is_hurdle))
 					}
 				},
 				observed_information = function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
-					boundary_information(fit, fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
+					boundary_information(fit, fit[["observed_information"]] %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
 				},
 				information = function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
-					boundary_information(fit, fit$information %||% fit$fisher_information %||% fit$observed_information %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
+					boundary_information(fit, fit[["information"]] %||% fit[["fisher_information"]] %||% fit[["observed_information"]] %||% (if (is_zinb) -get_zinb_hessian_cpp(X_fit, y, Xzi_fit, params) else -get_zero_augmented_poisson_hessian_cpp(X_fit, y, Xzi_fit, params, is_hurdle)))
 				},
 				neg_loglik = function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
 					if (is_zinb) {
-						as.numeric(fit$neg_loglik %||% fit$neg_ll %||% get_zinb_neg_loglik_cpp(X = X_fit, y = y, Xzi = Xzi_fit, params))
+						as.numeric(fit[["neg_loglik"]] %||% fit[["neg_ll"]] %||% get_zinb_neg_loglik_cpp(X = X_fit, y = y, Xzi = Xzi_fit, params))
 					} else {
-						as.numeric(fit$neg_loglik %||% fit$neg_ll %||% fit$mod$neg_ll %||% fit$mod$neg_loglik)
+						as.numeric(fit[["neg_loglik"]] %||% fit[["neg_ll"]] %||% fit[["mod"]][["neg_ll"]] %||% fit[["mod"]][["neg_loglik"]])
 					}
 				},
 				# v1.1.0-TODO-174: per-subject score contributions and the HC1-type
@@ -1128,7 +1115,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				# ZINB has no score-contribution formula here, so it does not
 				# support the robust tests (supports_robust_likelihood_tests()).
 				score_contributions = if (!is_zinb) function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
 					zero_augmented_poisson_score_contributions(params, as.matrix(X_fit), as.matrix(Xzi_fit), y, is_hurdle = is_hurdle)
 				},
 				# The hurdle likelihood factorizes, so the tested count-part
@@ -1176,7 +1163,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				private$cached_values$zero_inflation_fallback = TRUE
 			}
 			# One TMB thread: a thread-split likelihood sum changes the fit with
-			# set_num_cores() (v1.0.6-TODO-64); EDI parallelizes the replicates itself.
+			# set_num_cores() (v1.0.6-TODO-28); EDI parallelizes the replicates itself.
 			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L)
 			tryCatch(
 				suppressWarnings(suppressMessages(
@@ -1203,7 +1190,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					private$cache_nonestimable_estimate("zero_augmented_poisson_design_unusable")
 					return(NULL)
 				}
-				# v1.0.6-TODO-126: best_X_colnames is reduced once on the full data, and the
+				# v1.0.6-TODO-80: best_X_colnames is reduced once on the full data, and the
 				# reusable bootstrap/jackknife worker restores it on every draw. On a draw
 				# where a cached column is constant or collinear (e.g. a stratum dummy on a
 				# leave-one-block-out draw), the hardened X_full above has already dropped
@@ -1245,16 +1232,16 @@ ZeroAugmentedCountLikelihoodSource = list(
 				} else {
 					Xzi_fit = private$build_component_matrix(private$model_formula_zero, private$best_Xzi_colnames, treatment_name = "w")
 				}
-				# v1.0.6-TODO-195 (2): drop count-part covariates aliased on the
+				# v1.0.6-TODO-140 (2): drop count-part covariates aliased on the
 				# positive rows, as glm does (warns once, never inside resampling).
 				X_fit = edi_zero_augmented_drop_aliased_count_cols(self, private, X_fit, warn = TRUE)
-				# v1.0.6-TODO-186: a count-part treatment coefficient the positive rows do
+				# v1.0.6-TODO-132: a count-part treatment coefficient the positive rows do
 				# not identify is not estimable; fitting would just return the warm start.
 				if (!zero_augmented_count_treatment_identified(X_fit, private$y, j_treat = 2L)) {
 					private$invalidate_likelihood_fit("zero_augmented_count_treatment_unidentified")
 					return(NULL)
 				}
-				# v1.0.6-TODO-195 (3): a hurdle count part whose positive counts all equal
+				# v1.0.6-TODO-140 (3): a hurdle count part whose positive counts all equal
 				# 1 in an arm has no finite treatment MLE; NA with a recorded reason and
 				# one edi_procedure_na_warning (silent inside resampling).
 				if (identical(private$za_description(), "Hurdle Poisson")) {
@@ -1320,7 +1307,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					Xzi_fit = Xzi_fit,
 					is_hurdle = FALSE
 				)
-				# v1.0.6-TODO-152: separated zero part -> NA zero rows + one warning.
+				# v1.0.6-TODO-103: separated zero part -> NA zero rows + one warning.
 				edi_zero_augmented_flag_zero_part_separation(self, private, fit, X_fit, Xzi_fit, is_hurdle = FALSE, is_zinb = TRUE)
 				out$beta_hat_T = beta_hat_T
 				if (!estimate_only) {
@@ -1340,7 +1327,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 				n_params = ncol(X_fit) + ncol(Xzi_fit)
 				ws_args = private$get_backend_warm_start_args(n_params)
 				fit_error = NULL
-				# v1.0.6-TODO-30 / -152: see fast_zero_augmented_poisson_cpp_guarded().
+				# v1.0.6-TODO-6 / v1.0.6-TODO-103: see fast_zero_augmented_poisson_cpp_guarded().
 				fit = tryCatch(
 					fast_zero_augmented_poisson_cpp_guarded(
 						X_fit, as.numeric(private$y), Xzi_fit,
@@ -1433,7 +1420,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 					Xzi_fit = Xzi_fit,
 					is_hurdle = is_hurdle
 				)
-				# v1.0.6-TODO-152: separated zero part -> NA zero rows + one warning.
+				# v1.0.6-TODO-103: separated zero part -> NA zero rows + one warning.
 				edi_zero_augmented_flag_zero_part_separation(self, private, fit, X_fit, Xzi_fit, is_hurdle = is_hurdle)
 				out$beta_hat_T = beta_hat_T
 				# 2026-08-23 (marginal_estimand_report.md TODO-5, wiring pass):
@@ -1558,7 +1545,7 @@ ZeroAugmentedCountLikelihoodSource = list(
 			if (is.null(full_res$params) && !is.null(full_res$coefficients)){
 				full_res$params = as.numeric(c(full_res$coefficients$cond, full_res$coefficients$zi))
 			}
-			# v1.0.6-TODO-186 / -195 (3): a simulated hurdle response whose positive rows
+			# v1.0.6-TODO-132 / v1.0.6-TODO-140 (3): a simulated hurdle response whose positive rows
 			# do not identify the count-part treatment coefficient, or put it at
 			# infinity, has no usable estimate: the parametric-bootstrap ESTIMATE
 			# replicate reads params[j] and counts it as a failed refit. The LR
@@ -1604,11 +1591,11 @@ ZeroAugmentedCountLikelihoodSource = list(
 					fit
 				},
 				neg_loglik = function(fit){
-					params = as.numeric(fit$params %||% c(as.numeric(fit$coefficients$cond), as.numeric(fit$coefficients$zi)))
+					params = as.numeric(fit[["params"]] %||% c(as.numeric(fit[["coefficients"]][["cond"]]), as.numeric(fit[["coefficients"]][["zi"]])))
 					if (is_zinb){
-						as.numeric(fit$neg_loglik %||% fit$neg_ll %||% get_zinb_neg_loglik_cpp(X = X, y = as.numeric(y_sim), Xzi = Xzi, params))
+						as.numeric(fit[["neg_loglik"]] %||% fit[["neg_ll"]] %||% get_zinb_neg_loglik_cpp(X = X, y = as.numeric(y_sim), Xzi = Xzi, params))
 					} else {
-						as.numeric(fit$neg_loglik %||% fit$neg_ll)
+						as.numeric(fit[["neg_loglik"]] %||% fit[["neg_ll"]])
 					}
 				}
 			)
@@ -1616,12 +1603,80 @@ ZeroAugmentedCountLikelihoodSource = list(
 	)
 )
 
-# v1.0.6-TODO-413: the non-Wald branches of compute_asymp_confidence_interval() /
+# Estimand-aware methods shared by the hurdle and zero-inflated Poisson leaves.
+za_poisson_estimand_estimate = function(self, private, estimate_only) {
+	private$shared(estimate_only = estimate_only)
+	estimand = self$get_estimand()
+	if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
+		return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
+	}
+	# Restore the conditional cache after a marginal estimate without refitting.
+	za_cached_conditional_estimate(private, estimate_only)
+}
+
+za_poisson_estimand_ci = function(self, private, alpha) {
+	self$compute_estimate(estimate_only = FALSE)
+	if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
+		if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+			return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+		}
+		return(private$count_likelihood_missing_ci(alpha))
+	}
+	if (should_run_asserts()) {
+		assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+	}
+	if (private$mark_count_likelihood_block_asymp_nonestimable()) {
+		return(private$count_likelihood_missing_ci(alpha))
+	}
+	# v1.0.6-TODO-230: honor set_testing_type() (this always returned Wald).
+	if (!identical(private$testing_type, "wald")) {
+		return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
+	}
+	se = private$get_standard_error()
+	if (is.finite(se) && se > 0) {
+		private$cached_values$s_beta_hat_T = se
+	}
+	if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+		# v1.0.6-TODO-225: a Wald request gets Wald or NA, never the bootstrap
+		# interval this used to substitute (see edi_wald_unavailable_na()).
+		return(edi_wald_unavailable_na(self, private, alpha = alpha))
+	}
+	private$compute_z_or_t_ci_from_s_and_df(alpha)
+}
+
+za_poisson_estimand_pval = function(self, private, delta) {
+	self$compute_estimate(estimate_only = FALSE)
+	if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
+		if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+			return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+		}
+		return(NA_real_)
+	}
+	if (should_run_asserts()) {
+		assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
+	}
+	if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
+	# v1.0.6-TODO-230: see compute_asymp_confidence_interval().
+	if (!identical(private$testing_type, "wald")) {
+		return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
+	}
+	se = private$get_standard_error()
+	if (is.finite(se) && se > 0) {
+		private$cached_values$s_beta_hat_T = se
+	}
+	if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
+		# v1.0.6-TODO-225: see compute_asymp_confidence_interval().
+		return(edi_wald_unavailable_na(self, private))
+	}
+	private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+}
+
+# v1.0.6-TODO-230: the non-Wald branches of compute_asymp_confidence_interval() /
 # compute_asymp_two_sided_pval() on the four zero-augmented count classes
 # (ZIP, ZINB, hurdle Poisson, hurdle NegBin). Before 1.0.6 those methods always
 # returned Wald whatever set_testing_type() chose. Each branch calls the same
 # public method a direct call reaches, so the two always agree; an unknown type
-# stops (as v1.0.6-TODO-327 did for the other likelihood classes). The callers
+# stops (as v1.0.6-TODO-208 did for the other likelihood classes). The callers
 # keep their own Wald body, so Wald results are unchanged. `value` is alpha when
 # `ci` is TRUE, delta otherwise.
 za_count_asymp_by_testing_type = function(self, private, ci, value){
@@ -1733,7 +1788,7 @@ zero_augmented_fit_is_degenerate = function(vcov, params) {
 # TRUE when a HURDLE fit has no MLE by construction: every positive count equals 1,
 # so the zero-truncated Poisson likelihood only improves as lambda -> 0. Decided from
 # the data alone, so the outcome cannot depend on what an optimizer/TMB build returns.
-# Since v1.0.6-TODO-195 (3) the full fit is NA on such data (and whenever one
+# Since v1.0.6-TODO-140 (3) the full fit is NA on such data (and whenever one
 # arm's positive counts are all 1, zero_augmented_count_mle_infinite_arms()), so
 # this SE-side check is only a backstop.
 zero_augmented_data_has_no_mle = function(y, is_hurdle) {
@@ -1743,7 +1798,7 @@ zero_augmented_data_has_no_mle = function(y, is_hurdle) {
 	length(pos) > 0L && all(pos == 1)
 }
 
-# v1.0.6-TODO-186: TRUE when the rows with a positive count identify the
+# v1.0.6-TODO-132: TRUE when the rows with a positive count identify the
 # count-part treatment coefficient, i.e. dropping the treatment column from
 # those rows of the count design lowers its rank. For a hurdle the likelihood
 # factors into the binary part and a zero-truncated count part fit to the
@@ -1768,7 +1823,7 @@ zero_augmented_count_treatment_identified = function(X_fit, y, j_treat = 2L, wei
 	qr(X_pos)$rank > qr(X_pos[, -j_treat, drop = FALSE])$rank
 }
 
-# v1.0.6-TODO-195 (4), 2026-11-19: R-side argument check before the zero-augmented
+# v1.0.6-TODO-140 (4), 2026-11-19: R-side argument check before the zero-augmented
 # and hurdle count kernels (fast_zero_augmented_poisson_cpp(),
 # fast_hurdle_negbin_cpp() / _with_var_cpp(), fast_truncated_negbin_count_cpp(),
 # fast_hurdle_poisson_glmm_cpp()). Until the owner rebuilds with the C++ checks of
@@ -1792,7 +1847,7 @@ edi_check_count_kernel_inputs = function(kernel, X, y, X2 = NULL, group_id = NUL
 	invisible(TRUE)
 }
 
-# v1.0.6-TODO-195 (3), 2026-11-19: the arms (values of the treatment column) in
+# v1.0.6-TODO-140 (3), 2026-11-19: the arms (values of the treatment column) in
 # which every positive count equals 1. A zero-truncated count density (Poisson or
 # negative binomial) at y = 1 only increases as the rate goes to 0, so when every
 # positive row of one arm has y = 1 the likelihood keeps increasing along the
@@ -1849,7 +1904,7 @@ edi_warn_hurdle_count_mle_not_finite = function(self, private, arms, reason = "h
 		warning_class = "edi_hurdle_count_mle_not_finite_warning")
 }
 
-# v1.0.6-TODO-195 item (2), owner decision 2026-11-19: the count-part coefficients
+# v1.0.6-TODO-140 item (2), owner decision 2026-11-19: the count-part coefficients
 # are learned from the rows with a positive count (see
 # zero_augmented_count_treatment_identified()), so a count-part covariate that is
 # aliased on those rows (constant there, or a linear combination of the intercept,
@@ -1861,7 +1916,7 @@ edi_warn_hurdle_count_mle_not_finite = function(self, private, arms, reason = "h
 # is never dropped: when it is itself aliased (with the intercept alone, e.g. every
 # positive row in one arm), X_fit is returned unchanged and the TODO-186 guard
 # makes the fit non-estimable. The QR is the one kk_strat_cox_drop_within_strata_
-# aliased_cols() (v1.0.6-TODO-128) uses, with a single stratum: removing the
+# aliased_cols() (v1.0.6-TODO-82) uses, with a single stratum: removing the
 # column means is the same as putting the intercept first. Rows are those with
 # y > 0 (and positive weight). Returns list(X, keep, dropped); with nothing to
 # drop, X is X_fit itself.
@@ -1903,7 +1958,7 @@ edi_zero_augmented_drop_aliased_count_cols = function(self, private, X_fit, weig
 	res$X
 }
 
-# v1.0.6-TODO-222 (2026-11-19; found under v1.1.0-TODO-217): ZINB negative log-likelihood in R, for comparing two
+# v1.0.6-TODO-163 (2026-11-19; found under v1.1.0-TODO-217): ZINB negative log-likelihood in R, for comparing two
 # fast_zinb_cpp() fits (its estimate_only results carry no neg_loglik). params =
 # c(beta_count, beta_zero, log_theta), the C++ layout; zi_off = TRUE evaluates the
 # zero-inflation-off limit (pi = 0), which is what a "NegBinNoZI" boundary fit stands for.
@@ -1922,7 +1977,7 @@ zinb_neg_loglik_r = function(params, X, Xzi, y, zi_off = FALSE) {
 	-sum(ll)
 }
 
-# v1.0.6-TODO-222 (2026-11-19; found under v1.1.0-TODO-217): fast_zinb_cpp() with a guard against a wrong
+# v1.0.6-TODO-163 (2026-11-19; found under v1.1.0-TODO-217): fast_zinb_cpp() with a guard against a wrong
 # (non-MLE) fit. Newton-Raphson (the class default), started from a warm start
 # such as the full-data MLE, has two failure modes on ZINB data whose
 # zero-inflation logit is flat or separated:
@@ -1945,10 +2000,10 @@ zinb_neg_loglik_r = function(params, X, Xzi, y, zi_off = FALSE) {
 # log-likelihood is kept (a refit must improve it by more than 1e-6). The root
 # cause is in C++ (both acceptance paths should compare likelihoods); this R
 # guard avoids a rebuild and is local to the ZINB fits. Remove it once both C++
-# acceptance paths compare likelihoods (the root fix in v1.0.6-TODO-222).
+# acceptance paths compare likelihoods (the root fix in v1.0.6-TODO-163).
 fast_zinb_cpp_guarded = function(...) {
 	args = list(...)
-	# v1.0.6-TODO-30: never warm-start from a zero part on the ridge (see
+	# v1.0.6-TODO-6: never warm-start from a zero part on the ridge (see
 	# zero_augmented_warm_start_on_ridge()); such a start is dropped (cold start).
 	if (!is.null(args$warm_start_params) && !is.null(args$X) && !is.null(args$Xzi) &&
 			zero_augmented_warm_start_on_ridge(args$Xzi, args$warm_start_params, ncol(args$X))) {
@@ -1994,7 +2049,7 @@ fast_zinb_cpp_guarded = function(...) {
 	fit
 }
 
-# v1.0.6-TODO-30 / v1.0.6-TODO-152 (2026-11-19): the zero-inflation (or hurdle)
+# v1.0.6-TODO-6 / v1.0.6-TODO-103 (2026-11-19): the zero-inflation (or hurdle)
 # part of a zero-augmented Poisson fit often has no finite maximum: some fitted
 # zero probabilities run off to 0 or 1 along a flat ridge (e.g. zero intercept
 # -23.8 and zero treatment +23.8, or a saturated -234.6 / +121 on plain Poisson
@@ -2020,7 +2075,7 @@ fast_zinb_cpp_guarded = function(...) {
 # subject reaches 10-24; dropping such a start costs one cold start and does
 # not change the maximum.
 ZERO_AUGMENTED_RIDGE_ETA_EDGE = 10
-# v1.0.6-TODO-232 (2026-11-19): with covariates in the zero formula the ZIP
+# v1.0.6-TODO-166 (2026-11-19): with covariates in the zero formula the ZIP
 # likelihood often has its supremum on a ridge (zero part separating some zeros
 # from every positive count) while the default and pscl starts stop at an
 # interior local maximum (gradient ~1e-10, information positive definite), so the
@@ -2034,9 +2089,9 @@ ZERO_AUGMENTED_RIDGE_ETA_EDGE = 10
 # 10 improves 55 of the 96 and reaches the reference in 41 (x5: 28 / 19; x20:
 # 58 / 48 but fails to converge more often at n = 400); the separated fit is then
 # flagged by edi_zero_augmented_flag_zero_part_separation(). Not a full fix: the
-# rest still stop at an interior maximum (v1.0.6-TODO-232 open item).
+# rest still stop at an interior maximum (v1.0.6-TODO-166 open item).
 ZERO_AUGMENTED_SHARPENED_START_SCALE = 10
-# v1.0.6-TODO-218 (1): see zero_augmented_zero_part_separation().
+# v1.0.6-TODO-159 (1): see zero_augmented_zero_part_separation().
 ZERO_AUGMENTED_NO_INFLATION_MAX_LOGIT = stats::qlogis(0.05)
 
 # Zero-part linear predictor Xzi %*% gamma for a stacked params vector
@@ -2141,7 +2196,7 @@ zero_augmented_pscl_start = function(X, y, Xzi) {
 # warm start on the zero-inflation ridge is dropped (cold start), and for a ZIP
 # mixture (not hurdle) whose data have zeros and whose zero part is free, two
 # more L-BFGS fits, from pscl's start and from that start with its zero part
-# scaled by ZERO_AUGMENTED_SHARPENED_START_SCALE (v1.0.6-TODO-232), and the
+# scaled by ZERO_AUGMENTED_SHARPENED_START_SCALE (v1.0.6-TODO-166), and the
 # lowest negative log-likelihood is kept; a candidate must lower it by more than
 # 1e-6. The candidate is tried only when the primary
 # fit converged, so an unconverged primary fit still reaches the callers' own
@@ -2172,7 +2227,7 @@ fast_zero_augmented_poisson_cpp_guarded = function(X, y, Xzi, is_hurdle = FALSE,
 	start = zero_augmented_pscl_start(X, y, Xzi)
 	if (is.null(start)) return(fit)
 	if (length(fixed_idx)) start[as.integer(fixed_idx)] = as.numeric(fixed_values)
-	# v1.0.6-TODO-232: a second candidate from the same start with its zero part
+	# v1.0.6-TODO-166: a second candidate from the same start with its zero part
 	# scaled by ZERO_AUGMENTED_SHARPENED_START_SCALE, which reaches a higher ridge
 	# the unscaled start misses (see the note above ZERO_AUGMENTED_RIDGE_ETA_EDGE).
 	sharpened = start
@@ -2194,7 +2249,7 @@ fast_zero_augmented_poisson_cpp_guarded = function(X, y, Xzi, is_hurdle = FALSE,
 	best
 }
 
-# v1.0.6-TODO-152 (2026-11-19): is the zero-inflation (or hurdle) part of a
+# v1.0.6-TODO-103 (2026-11-19): is the zero-inflation (or hurdle) part of a
 # full-data fit separated, i.e. on the ridge where its likelihood has no finite
 # maximum? Two rules, either suffices:
 #   * a fitted zero probability is numerically 0 or 1: |Xzi gamma| >=
@@ -2205,7 +2260,7 @@ fast_zero_augmented_poisson_cpp_guarded = function(X, y, Xzi, is_hurdle = FALSE,
 #     has smallest / largest eigenvalue below 1e-5 (a flat direction). Interior
 #     maxima with one covariate-extreme subject keep that ratio above ~3e-4.
 # A ZINB fit at its zero-inflation-off boundary (zero_inflation_at_boundary) is
-# separated by definition. v1.0.6-TODO-218 (1), owner 2026-11-19: a separated
+# separated by definition. v1.0.6-TODO-159 (1), owner 2026-11-19: a separated
 # zero-INFLATION part (not a hurdle) whose ridge points only toward "no
 # inflation" -- every subject the ridge drives to the boundary is driven to
 # pi -> 0, and no subject has a fitted inflation probability above 5% (zero logit
@@ -2218,7 +2273,7 @@ fast_zero_augmented_poisson_cpp_guarded = function(X, y, Xzi, is_hurdle = FALSE,
 # sends one arm to pi -> 0 and leaves the other at a small interior pi (0.5-4%),
 # hence the 5% bound rather than "every logit <= -10".
 # Returns list(separated, no_inflation, n_to_zero, max_pi, n_extreme, max_abs_eta).
-# zero_info (v1.0.6-TODO-218 (2)): the zero-part block of the observed
+# zero_info (v1.0.6-TODO-159 (2)): the zero-part block of the observed
 # information, for a caller whose fit is not a ZIP / ZINB / hurdle-Poisson kernel
 # fit (InferenceCountHurdleNegBin's separately fitted logistic hurdle part); fit
 # then only needs params = c(<n_cond placeholders>, gamma).
@@ -2263,7 +2318,7 @@ zero_augmented_zero_part_separation = function(fit, X, y, Xzi, is_hurdle = FALSE
 	if (min(ev) <= 0 || min(ev) / max(ev) < 1e-5) out else none
 }
 
-# v1.0.6-TODO-152: after an accepted full-data fit (never inside resampling), mark
+# v1.0.6-TODO-103: after an accepted full-data fit (never inside resampling), mark
 # a separated zero part nonestimable and warn once per object. The zero-part
 # rows of the summary table become NA (the coefficients are wherever the
 # optimizer stopped on the ridge, and their standard errors are meaningless);
@@ -2271,7 +2326,7 @@ zero_augmented_zero_part_separation = function(fit, X, y, Xzi, is_hurdle = FALSE
 # in the ridge limit (it matches pscl::zeroinfl, which runs further along the
 # ridge). The warning has class edi_zero_part_separation_warning, a subclass of
 # edi_logistic_separation_warning, so suppressing either class silences it.
-# v1.0.6-TODO-218 (1), owner 2026-11-19: when the zero-inflation part is pushed to
+# v1.0.6-TODO-159 (1), owner 2026-11-19: when the zero-inflation part is pushed to
 # "no inflation" for every subject (no excess zeros; see
 # zero_augmented_zero_part_separation()'s no_inflation), the rows are still NA but
 # the condition is a message of class edi_no_zero_inflation_message, not the
@@ -2303,7 +2358,7 @@ edi_zero_augmented_flag_zero_part_separation = function(self, private, fit, X_fi
 	if (isTRUE(private$cached_values$zero_part_separation_warned)) return(invisible(TRUE))
 	private$cached_values$zero_part_separation_warned = TRUE
 	if (isTRUE(sep$no_inflation)) {
-		# v1.0.6-TODO-218 (1), owner 2026-11-19: no excess zeros is not a fault.
+		# v1.0.6-TODO-159 (1), owner 2026-11-19: no excess zeros is not a fault.
 		count_model = if (isTRUE(is_zinb)) "negative binomial" else "Poisson"
 		n_all = nrow(as.matrix(Xzi_fit))
 		everyone = isTRUE(sep$max_pi <= 0.01)
@@ -2340,4 +2395,33 @@ edi_zero_augmented_flag_zero_part_separation = function(self, private, fit, X_fi
 			max_abs_eta = sep$max_abs_eta, component = component, link = "logit")
 	))
 	invisible(TRUE)
+}
+
+# Keep a usable point estimate when the model standard error is unavailable.
+za_cached_conditional_estimate = function(private, estimate_only) {
+	mod = private$cached_mod
+	if (!is.null(mod)) {
+		private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
+		if (!estimate_only) {
+			ssq = mod$ssq_b_j
+			ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+			if (is.finite(ssq) && ssq > .Machine$double.eps) {
+				private$cached_values$s_beta_hat_T = sqrt(ssq)
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("model_standard_error_unavailable")
+			}
+		}
+	}
+	private$cached_values$beta_hat_T
+}
+
+za_unsupported_bootstrap_type = function(private, type) {
+	if (is.null(type) || !identical(tolower(type), "bca")) return(FALSE)
+	private$signal_unsupported_procedure("zero_augmented_poisson_jackknife_not_supported")
+	TRUE
+}
+
+za_unavailable_interval = function(alpha) {
+	stats::setNames(c(NA_real_, NA_real_), paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%"))
 }

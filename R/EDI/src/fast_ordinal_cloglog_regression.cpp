@@ -111,7 +111,7 @@ edi::ResultMap fast_ordinal_cloglog_regression_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
     bool estimate_only = false
 ) {
-    // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.6-TODO-193).
+    // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.7-TODO-54).
     static const edi_ordinal::FixedLinkFitSpec spec = {
         edi_ordinal::Link::Cloglog, cloglog_legacy_alpha};
     return edi_ordinal::fixed_link_ordinal_internal<OrdinalCLLRegression>(

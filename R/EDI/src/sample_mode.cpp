@@ -29,7 +29,9 @@ struct SexpEq {
 	}
 };
 
-Rcpp::RObject sample_mode_integer(const IntegerVector& data, bool is_factor) {
+template <int storage_type>
+Rcpp::RObject sample_mode_discrete(const Rcpp::Vector<storage_type>& data,
+                                   int missing_value, bool is_factor = false) {
 	int n = data.size();
 	if (n == 0) {
 		return data;
@@ -41,7 +43,7 @@ Rcpp::RObject sample_mode_integer(const IntegerVector& data, bool is_factor) {
 
 	for (int i = 0; i < n; ++i) {
 		int val = data[i];
-		if (val == NA_INTEGER) {
+		if (val == missing_value) {
 			update_info(na_info, i);
 			continue;
 		}
@@ -55,7 +57,7 @@ Rcpp::RObject sample_mode_integer(const IntegerVector& data, bool is_factor) {
 
 	int best_count = -1;
 	int best_first = n + 1;
-	int best_val = NA_INTEGER;
+	int best_val = missing_value;
 	bool best_is_na = false;
 
 	if (na_info.count > 0) {
@@ -74,62 +76,12 @@ Rcpp::RObject sample_mode_integer(const IntegerVector& data, bool is_factor) {
 		}
 	}
 
-	IntegerVector res(1);
-	res[0] = best_is_na ? NA_INTEGER : best_val;
+	Rcpp::Vector<storage_type> res(1);
+	res[0] = best_is_na ? missing_value : best_val;
 	if (is_factor) {
 		res.attr("class") = data.attr("class");
 		res.attr("levels") = data.attr("levels");
 	}
-	return res;
-}
-
-Rcpp::RObject sample_mode_logical(const LogicalVector& data) {
-	int n = data.size();
-	if (n == 0) {
-		return data;
-	}
-
-	std::unordered_map<int, CountInfo> counts;
-	counts.reserve(static_cast<size_t>(n));
-	CountInfo na_info{0, -1};
-
-	for (int i = 0; i < n; ++i) {
-		int val = data[i];
-		if (val == NA_LOGICAL) {
-			update_info(na_info, i);
-			continue;
-		}
-		auto it = counts.find(val);
-		if (it == counts.end()) {
-			counts.emplace(val, CountInfo{1, i});
-		} else {
-			++it->second.count;
-		}
-	}
-
-	int best_count = -1;
-	int best_first = n + 1;
-	int best_val = NA_LOGICAL;
-	bool best_is_na = false;
-
-	if (na_info.count > 0) {
-		best_count = na_info.count;
-		best_first = na_info.first_index;
-		best_is_na = true;
-	}
-
-	for (const auto& kv : counts) {
-		const CountInfo& info = kv.second;
-		if (info.count > best_count || (info.count == best_count && info.first_index < best_first)) {
-			best_count = info.count;
-			best_first = info.first_index;
-			best_val = kv.first;
-			best_is_na = false;
-		}
-	}
-
-	LogicalVector res(1);
-	res[0] = best_is_na ? NA_LOGICAL : best_val;
 	return res;
 }
 
@@ -256,9 +208,9 @@ Rcpp::RObject sample_mode_character(const CharacterVector& data) {
 SEXP sample_mode_cpp(SEXP data) {
 	switch (TYPEOF(data)) {
 	case INTSXP:
-		return sample_mode_integer(IntegerVector(data), Rf_isFactor(data));
+		return sample_mode_discrete(IntegerVector(data), NA_INTEGER, Rf_isFactor(data));
 	case LGLSXP:
-		return sample_mode_logical(LogicalVector(data));
+		return sample_mode_discrete(LogicalVector(data), NA_LOGICAL);
 	case REALSXP:
 		return sample_mode_numeric(NumericVector(data));
 	case STRSXP:

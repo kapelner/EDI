@@ -159,7 +159,7 @@ InferenceExtParamBootstrapEstimate = list(
 		#
 		# Sets private$active_resampling_operation = "param_boot" for the replicate
 		# loop only and restores the caller's value on exit, so the public callers'
-		# top-level code stays outside the flag (v1.0.6-TODO-207).
+		# top-level code stays outside the flag (v1.0.6-TODO-148).
 		run_param_bootstrap_estimate_replicates = function(spec, full_fit, B, max_attempts_per_replicate, show_progress = FALSE){
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "param_boot"

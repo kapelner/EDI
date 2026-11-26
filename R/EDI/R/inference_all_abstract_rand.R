@@ -1,3 +1,39 @@
+compute_randomization_pval_from_draws = function(self, private, r, delta, transform_responses,
+		show_progress, permutations, cache_key, zero_one_logit_clamp, alternative, cache_affine = TRUE) {
+	private$ensure_resampling_distribution_cache("rand")
+	t = private$compute_treatment_estimate_during_randomization_inference()
+	if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
+	if (length(t) != 1 || !is.finite(t)) {
+		if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
+		return(NA_real_)
+	}
+	mc_pval = private$compute_two_sided_pval_with_sequential_mc(
+		t = t,
+		r = r,
+		delta = delta,
+		transform_responses = transform_responses,
+		show_progress = show_progress,
+		permutations = permutations,
+		cache_key = cache_key,
+		zero_one_logit_clamp = zero_one_logit_clamp,
+		alternative = alternative
+	)
+	if (!is.null(mc_pval)) return(mc_pval)
+	t0s = private$get_randomization_distribution_prefix(
+		r = r,
+		delta = delta,
+		transform_responses = transform_responses,
+		show_progress = show_progress,
+		permutations = permutations,
+		cache_key = cache_key,
+		zero_one_logit_clamp = zero_one_logit_clamp
+	)
+	if (cache_affine) {
+		private$cache_additive_delta_shift_distribution(t0s, r, delta, transform_responses, permutations)
+	}
+	private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
+}
+
 # Tail-count -> randomization p-value, n = number of finite reference draws.
 # v1.2.0-TODO-207 (owner ruling 2026-11-23): the exact Monte Carlo rule that
 # counts the observed statistic as one draw (Phipson and Smyth 2010):
@@ -108,7 +144,7 @@ rand_drop_realized_from_enumeration = function(permutations, w, r){
 	if (nrow(W) != length(w)) return(out)
 	# The O(1) tests come before anything that touches all n x r entries of W: a randomization CI
 	# search calls this once per p-value evaluation, and for random draws (flag NULL) r is never
-	# choose(n, n_T), so the column scans below were the CI's largest cost (v1.0.6-TODO-428).
+	# choose(n, n_T), so the column scans below were the CI's largest cost (v1.0.6-TODO-235).
 	if (!isTRUE(flag) && (!is.null(permutations$m_mat) || !isTRUE(all.equal(r, choose(length(w), sum(w)))))) return(out)
 	W = W[, seq_len(r), drop = FALSE]
 	is_w = colSums(abs(W - w)) == 0
@@ -137,7 +173,7 @@ rand_tail_counts = function(t0s, t){
 	c(ge = sum(t0s >= t - tol), le = sum(t0s <= t + tol))
 }
 
-# v1.0.6-TODO-136: a randomization CI search evaluates the p-value once per delta, so the
+# v1.0.6-TODO-90: a randomization CI search evaluates the p-value once per delta, so the
 # p-value's NA warning would repeat for every evaluation. The CI searches run their p-value
 # calls through this, which drops only those p-value warnings (other warnings pass through);
 # the CI then reports its own NA once.
@@ -205,7 +241,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#'   \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 		#'   so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.
 		approximate_randomization_distribution_beta_hat_T = function(r = 501, delta = 0, transform_responses = "none", show_progress = TRUE, permutations = NULL, debug = FALSE, zero_one_logit_clamp = .Machine$double.eps){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "rand"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -438,7 +474,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# did, so a "rand" CI could come back for a row whose "rand"
 			# p-value always came back `NA` even though it was actually
 			# computable.
-			# v1.0.6-TODO-110: a custom statistic supplied as C++
+			# v1.0.6-TODO-64: a custom statistic supplied as C++
 			# (compiled_cpp_stat_fn) counts as custom just like the R-function
 			# form; only checking the R field refused the C++ form even at delta = 0.
 			private$should_use_zhang_incidence_randomization() ||
@@ -536,7 +572,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		#' @return 	Randomization p-value.
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
-			# v1.0.6-TODO-81/110: nonzero delta is refused on incidence however the
+			# v1.0.6-TODO-42 / v1.0.6-TODO-64: nonzero delta is refused on incidence however the
 			# statistic is supplied (built-in, custom R function or custom C++); the
 			# R-function form used to be exempt.
 			if (isTRUE(delta != 0) &&
@@ -545,7 +581,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				# v1.0.6-TODO-100: the delta check downstream (in
+				# v1.0.6-TODO-58: the delta check downstream (in
 				# approximate_randomization_distribution_beta_hat_T()) is skipped when the
 				# null distribution comes from the cache, so an NA delta returned a p-value.
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
@@ -604,43 +640,13 @@ InferenceRand = R6::R6Class("InferenceRand",
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
 					return(NA_real_)
 				}
-				# v1.0.6-TODO-124: same max(10, floor(r/10)) finite-draw minimum (and
+				# v1.0.6-TODO-78: same max(10, floor(r/10)) finite-draw minimum (and
 				# the same recorded failure reason) as the uncached path; this path
 				# used to return NA only when no draw was finite.
 				return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative))
 			}
-			private$ensure_resampling_distribution_cache("rand")
-			t = private$compute_treatment_estimate_during_randomization_inference()
-			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
-			if (length(t) != 1 || !is.finite(t)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
-				return(NA_real_)
-			}
-			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
-				t = t,
-				r = r,
-				delta = delta,
-				transform_responses = transform_responses,
-				show_progress = show_progress,
-				permutations = permutations,
-				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp,
-				alternative = alternative
-			)
-			if (!is.null(mc_pval)) return(mc_pval)
-			t0s = private$get_randomization_distribution_prefix(
-				r = r,
-				delta = delta,
-				transform_responses = transform_responses,
-				show_progress = show_progress,
-				permutations = permutations,
-				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp
-			)
-			private$cache_additive_delta_shift_distribution(
-				t0s, r, delta, transform_responses, permutations
-			)
-			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
+			compute_randomization_pval_from_draws(self, private, r, delta, transform_responses,
+				show_progress, permutations, cache_key, zero_one_logit_clamp, alternative)
 		}
 		),
 	private = c(InferenceExtSequentialMCPval$private, list(
@@ -801,9 +807,9 @@ InferenceRand = R6::R6Class("InferenceRand",
 			# next. Chaining (previously done for concave likelihoods) made each null
 			# fit's start, and so its converged iterate, depend on how the permutations
 			# were split into num_cores chunks, so the seeded randomization distribution
-			# changed with set_num_cores() (v1.0.6-TODO-61). For nonconcave likelihoods
+			# changed with set_num_cores() (v1.0.6-TODO-25). For nonconcave likelihoods
 			# it could also carry a wrong local optimum forward (2026-11-16, see
-			# rand_likelihood_is_nonconcave() and v1.0.6-TODO-30).
+			# rand_likelihood_is_nonconcave() and v1.0.6-TODO-6).
 			# Serial dispatch (chunk_n == 1L, the common case: num_cores = 1 is
 			# InferenceSuite's default) is where `create_bootstrap_worker_state()`'s
 			# `self$duplicate()` + design `duplicate()` becomes the dominant cost when
@@ -989,10 +995,10 @@ InferenceRand = R6::R6Class("InferenceRand",
 			min_required = max(10L, as.integer(length(t0s) * 0.10))
 			if (nsim_adj < min_required) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_too_few_finite_estimates", "estimate")
-				# v1.0.6-TODO-136: warn instead of a silent NA. Silent inside resampling
+				# v1.0.6-TODO-90: warn instead of a silent NA. Silent inside resampling
 				# (edi_warn_procedure_na()); the CI searches, which call this once per
 				# delta, muffle it (edi_muffle_rand_pval_na_warnings()) and report their own failure.
-				# v1.0.6-TODO-202: when r itself is below the floor, every draw can be finite and the
+				# v1.0.6-TODO-143: when r itself is below the floor, every draw can be finite and the
 				# estimator is not at fault; say so rather than blaming the estimator.
 				detail = if (length(t0s) < min_required) {
 					paste0("Only ", length(t0s), " null-distribution draws were requested (", nsim_adj, " finite); ",
@@ -1042,7 +1048,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		get_randomization_distribution_prefix = function(r, delta, transform_responses, show_progress, permutations, cache_key, batch_size = NULL, zero_one_logit_clamp = .Machine$double.eps, keep_nonfinite_cache = FALSE){
 			private$ensure_resampling_distribution_cache("rand")
 			cached = if (!is.null(cache_key)) private$get_cached_resampling_distribution("rand", cache_key) else NULL
-			# v1.0.6-TODO-166: the sequential-MC loop resumes from its own earlier
+			# v1.0.6-TODO-114: the sequential-MC loop resumes from its own earlier
 			# batches, which can all be non-finite; dropping them here would redraw
 			# the same first batch forever (fixed permutations) or silently discard it.
 			if (!isTRUE(keep_nonfinite_cache) && length(cached) > 0L && !any(is.finite(cached))) {
@@ -1109,7 +1115,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 					)
 					return(private$compute_two_sided_randomization_pval_from_t0s(t0s, t))
 				}
-				# v1.0.6-TODO-166: a prefix with too few finite draws is not a final
+				# v1.0.6-TODO-114: a prefix with too few finite draws is not a final
 				# answer; draw the next batch (the full r draws may have enough). Check
 				# the finite-draw minimum of compute_two_sided_randomization_pval_from_t0s()
 				# here so a short prefix neither warns nor records a hardened failure.
@@ -1272,7 +1278,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			y_shifted[idx_treated] = y_shifted[idx_treated] + signed_delta
 			y_shifted
 		},
-		# v1.0.6-TODO-143 (and its 2026-11-18 owner follow-up): under general (left-/
+		# v1.0.6-TODO-95 (and its 2026-11-18 owner follow-up): under general (left-/
 		# interval-) censoring a censored subject's y is NA, so the sharp null at a
 		# nonzero delta must be imposed on its bounds too. Apply to y_L / y_R exactly
 		# the shift y gets: remove it from the observed treated (inverse, at the
@@ -1296,7 +1302,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 		},
 		setup_randomization_template_and_shifts = function(delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 			# Under general censoring a nonzero delta also shifts y_L / y_R (see
-			# randomization_null_censoring_bounds(); v1.0.6-TODO-143 follow-up): the
+			# randomization_null_censoring_bounds(); v1.0.6-TODO-95 follow-up): the
 			# template carries the delta-removed bounds, and each draw re-imposes the
 			# shift on its own treated units (load_randomization_perm_into_worker(),
 			# run_randomization_iteration()).
@@ -1388,7 +1394,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 			inf_priv$y = y_sim
 			inf_priv$y_temp = y_sim
 			inf_priv$dead = if (!is.null(des_priv)) des_priv$dead else base_template_dead
-			# v1.0.6-TODO-143 follow-up: under general censoring the bounds carry the
+			# v1.0.6-TODO-95 follow-up: under general censoring the bounds carry the
 			# same null shift as y. Set them on every draw, also at delta = 0, so a
 			# worker reused across the deltas of a CI search never keeps the previous
 			# delta's bounds (at delta = 0 they are the observed bounds, as before).
@@ -1503,7 +1509,7 @@ InferenceRand = R6::R6Class("InferenceRand",
 					zero_one_logit_clamp = zero_one_logit_clamp
 				)
 				thread_des_obj$.__enclos_env__$private$y = y_sim
-				# v1.0.6-TODO-143 follow-up: the thread design is a fresh duplicate of
+				# v1.0.6-TODO-95 follow-up: the thread design is a fresh duplicate of
 				# the null template, whose y_L / y_R already have delta removed (and were
 				# resampled in lockstep with w above when no permutations were given);
 				# re-impose the shift on this draw's treated, as for y.

@@ -80,7 +80,7 @@ InferenceMarginalEstimand = R6::R6Class("InferenceMarginalEstimand",
 					)
 				}
 			}
-			# v1.0.6-TODO-184: the resampling distribution caches (randomization,
+			# v1.0.6-TODO-130: the resampling distribution caches (randomization,
 			# bootstrap, BRT, ...) are keyed by draw settings only, not by estimand,
 			# so after a switch a cached distribution of the old estimand's
 			# statistic was reused against the new estimand's estimate (ZOIB: rand p
@@ -148,3 +148,17 @@ InferenceMarginalEstimand = R6::R6Class("InferenceMarginalEstimand",
 		}
 	)
 )
+
+# Refresh the estimand-specific cache before reading its reference distribution.
+edi_estimand_degrees_of_freedom = function(self, private) {
+	self$compute_estimate(estimate_only = FALSE)
+	private$cached_values$df %||% Inf
+}
+
+edi_estimand_mean_difference = function(beta, X, mean_from_coefs) {
+	X1 = X
+	X1[, 2L] = 1
+	X0 = X
+	X0[, 2L] = 0
+	mean(mean_from_coefs(beta, X1)) - mean(mean_from_coefs(beta, X0))
+}

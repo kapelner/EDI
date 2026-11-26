@@ -1,4 +1,4 @@
-# v1.0.6-TODO-48 (owner ruling 2026-11-24, DECISION-v1.0.6-TODO-48): every KK CLMM kernel fit uses a
+# v1.0.6-TODO-13 (owner ruling 2026-11-24, DECISION-v1.0.6-TODO-48): every KK CLMM kernel fit uses a
 # 60-node Gauss-Hermite rule (the kernel default is 20), as the Poisson GLMM does since 2026-10-24. At a
 # fitted sigma of 2-2.6 the 20-node rule's marginal likelihood is off enough that EDI's maximizer was not
 # the MLE (cloglog, n = 60: treatment 0.8146 vs ordinal::clmm's 0.7755); with 60 nodes it lands on clmm's

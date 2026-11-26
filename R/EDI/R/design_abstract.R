@@ -240,7 +240,7 @@ Design = R6::R6Class("Design",
 				)
 			}
 			# Always enforced: an NA prob_T gives NA assignments rather than an
-			# error when asserts are off (v1.0.6-TODO-100).
+			# error when asserts are off (v1.0.6-TODO-58).
 			if (length(prob_T) > 0L && anyNA(prob_T)){
 				stop("prob_T may not be NA.", call. = FALSE)
 			}
@@ -320,10 +320,10 @@ Design = R6::R6Class("Design",
 		#'   interval-censored: the confirmed-by time / interval upper bound.
 		add_one_subject_response = function(t, y = NULL, y_L = NULL, y_R = NULL) {
 			# Always enforced, and before the checkmate asserts so the message is
-			# the same with asserts on or off (v1.0.6-TODO-94): an NA y used to be
+			# the same with asserts on or off (v1.0.6-TODO-53): an NA y used to be
 			# stored silently, and the error only came much later from inference
 			# ("This experiment is incomplete..."), far from the cause. Same
-			# message as add_all_subject_responses() (v1.0.6-TODO-93).
+			# message as add_all_subject_responses() (v1.0.6-TODO-52).
 			if (length(y) == 1L && is.na(y)){
 				stop(missing_response_error_message(private$response_type, t), call. = FALSE)
 			}
@@ -404,7 +404,7 @@ Design = R6::R6Class("Design",
 				}
 			}
 			# Any arrived subject may get its response in any order, with or without a fixed n
-			# (v1.0.6-TODO-78): indexed assignment pads y, y_original, y_L and y_R with NA up to t
+			# (v1.0.6-TODO-40): indexed assignment pads y, y_original, y_L and y_R with NA up to t
 			# (they start as NULL when n = NULL). Only a subject that has not arrived yet is
 			# refused; always on, since storing it would leave y longer than w.
 			if (!isTRUE(private$fixed_sample) && t > private$t){
@@ -441,11 +441,12 @@ Design = R6::R6Class("Design",
 			if (is.null(y_Ls)) y_Ls = rep(NA_real_, private$t)
 			if (is.null(y_Rs)) y_Rs = rep(NA_real_, private$t)
 			if (should_run_asserts()) {
+				if (inherits(self, "DesignFixed")) self$assert_fixed_sample()
 				if (private$response_type == "ordinal" && is.factor(ys)){
 					assertFactor(ys, len = private$t, ordered = TRUE, any.missing = FALSE)
 				} else {
 					# NA allowed: an NA in ys marks a censored subject entered through y_Ls/y_Rs;
-					# non-survival NAs are rejected below, always on (v1.0.6-TODO-93).
+					# non-survival NAs are rejected below, always on (v1.0.6-TODO-52).
 					# checkmate-loose: NA in ys marks a censored row whose response is in y_Ls/y_Rs.
 					assertNumeric(ys, len = private$t)
 				}
@@ -504,7 +505,7 @@ Design = R6::R6Class("Design",
 		#'
 		#' @param w A \{0,1\} vector of subject assignments (1 = treated, 0 = control).
 		overwrite_all_subject_assignments = function(w) {
-			# One body for both families (v1.0.6-TODO-154): DesignFixed no longer overrides it.
+			# One body for both families (v1.0.6-TODO-106): DesignFixed no longer overrides it.
 			# The w being overwritten is the whole trial's, so all subjects must be in: for
 			# a fixed design add_all_subjects_to_experiment() sets t = n, and for a sequential
 			# design with n given every subject must have arrived. A mid-trial overwrite would
@@ -533,7 +534,7 @@ Design = R6::R6Class("Design",
 		assert_all_subjects_arrived = function(){
 			if (should_run_asserts()) {
 				# && with the fixed_sample test first: with n = NULL, private$n is NULL and `&` gave
-				# logical(0), so if() errored "argument is of length zero" (v1.0.6-TODO-77).
+				# logical(0), so if() errored "argument is of length zero" (v1.0.6-TODO-39).
 				if (isTRUE(private$fixed_sample) && private$t < private$n){
 					stop("This experiment is incomplete as all n subjects haven't arrived yet.")
 				}
@@ -552,7 +553,7 @@ Design = R6::R6Class("Design",
 		#'
 		#' @return  \code{TRUE} if experiment is complete, \code{FALSE} otherwise.
 		check_experiment_completed = function(){
-			# An open-ended design (n = NULL) is complete once every enrolled subject has a response (v1.0.6-TODO-77).
+			# An open-ended design (n = NULL) is complete once every enrolled subject has a response (v1.0.6-TODO-39).
 			if (isTRUE(private$fixed_sample) && private$t < private$n){
 				FALSE
 			} else if (sum(!(is.na(private$y) & is.na(private$y_L) & is.na(private$y_R))) != length(private$w)){
@@ -1037,7 +1038,7 @@ Design = R6::R6Class("Design",
 		num_cores = function() get_num_cores()
 	),
 	private = list(
-		# v1.0.6-TODO-350: R6's clone(deep = TRUE) copies a data.table field by reference, and a
+		# v1.0.6-TODO-218: R6's clone(deep = TRUE) copies a data.table field by reference, and a
 		# preallocated Xraw (DesignSeqOneByOnePocockSimon) is filled in place with
 		# data.table::set(), so a copy's new subjects overwrote the original's rows (and the
 		# reverse). Copy data.tables; deep-clone R6 fields as R6's default deep_clone() does.
@@ -1048,6 +1049,10 @@ Design = R6::R6Class("Design",
 		},
 		edi_version_created = NULL,
 		model_matrix_stale = FALSE,
+		# v1.0.7-TODO-190: set only on a bootstrap draw's worker / subset design. TRUE makes a
+		# model-matrix rebuild start from the design's current Ximp (the resampled rows of the
+		# original imputation) instead of re-running the missing-data step on Xraw.
+		rebuild_model_matrix_from_ximp = FALSE,
 		assignment_rule_reads_model_matrix = TRUE,
 		preallocate_Xraw = FALSE,
 		Xraw_preallocated = FALSE,
@@ -1127,7 +1132,7 @@ Design = R6::R6Class("Design",
 		lin_centered_covariates = NULL,
 		draw_bootstrap_indices = function(bootstrap_type = NULL){
 			# get_n(), not private$n: with n = NULL private$n is NULL and the C++ call errored
-			# "Expecting a single value" (v1.0.6-TODO-77). get_n() is private$n when n is fixed.
+			# "Expecting a single value" (v1.0.6-TODO-39). get_n() is private$n when n is fixed.
 			n = self$get_n()
 			list(i_b = sample_int_replace_cpp(n, n), m_vec_b = NULL)
 		},
@@ -1181,11 +1186,15 @@ Design = R6::R6Class("Design",
 			#and this function's data.table `..` syntax below requires a data.table;
 			#as.data.table copies either way, so behavior is unchanged for the
 			#ordinary data.table path)
-			column_has_missingness = columns_have_missingness_cpp(Xraw_current)
+			# v1.0.7-TODO-190: a bootstrap draw's design keeps the original imputation (its Ximp
+			# holds the resampled imputed rows); only the model matrix below is rebuilt.
+			reuse_ximp = isTRUE(private$rebuild_model_matrix_from_ximp) && !is.null(private$Ximp) &&
+				NROW(private$Ximp) == NROW(Xraw_current)
+			column_has_missingness = if (reuse_ximp) rep(FALSE, ncol(Xraw_current)) else columns_have_missingness_cpp(Xraw_current)
 			# Keep Ximp independent of Xraw. get_X_imp() exposes this data.table,
 			# so aliasing the no-missingness path would let a caller's := mutation
 			# silently rewrite the raw covariates as well.
-			private$Ximp = copy(as.data.table(Xraw_current))
+			private$Ximp = if (reuse_ximp) copy(as.data.table(private$Ximp)) else copy(as.data.table(Xraw_current))
 			if (any(column_has_missingness)){
 				if (private$missingness_method == "error"){
 					if (should_run_asserts()) {
@@ -1216,7 +1225,7 @@ Design = R6::R6Class("Design",
 					idx_cols_to_convert_to_factor = which(col_types == "character")
 					private$Ximp[, (idx_cols_to_convert_to_factor) := lapply(.SD, as.factor), .SDcols = idx_cols_to_convert_to_factor]
 					#now do the imputation here by using missRanger (fast but fragile) and if that fails, use missForest (slow but more robust)
-					# v1.0.6-TODO-44: impute from the baseline covariates only. The response used to be
+					# v1.0.6-TODO-9: impute from the baseline covariates only. The response used to be
 					# an extra predictor; since treated subjects have shifted responses, the imputed
 					# covariate then carried part of the treatment effect, and adjusting for it biased
 					# the estimate toward 0 (n = 200, 30% missing: mean 0.90 for a true 1.00, 95% CI
@@ -1256,7 +1265,7 @@ Design = R6::R6Class("Design",
 			num_unique_values_per_column = count_unique_values_cpp(private$Ximp)
 			cols_for_model = which(analysis_col & num_unique_values_per_column > 1)
 			Ximp_for_model = private$Ximp[, .SD, .SDcols = cols_for_model]
-			# v1.0.6-TODO-107: a column the formula names may still be constant among the
+			# v1.0.6-TODO-61: a column the formula names may still be constant among the
 			# subjects enrolled so far; dropping it made model.matrix() fail ("object 'g'
 			# not found"). Put such columns back as placeholders; their model-matrix
 			# columns are constant and are dropped after model.matrix().
@@ -1353,8 +1362,8 @@ Design = R6::R6Class("Design",
 
 # Error message for a missing (NA) exact response. Shared by
 # add_one_subject_response() and both add_all_subject_responses() methods
-# (Design and FixedDesign) so the wording stays the same (v1.0.6-TODO-93,
-# v1.0.6-TODO-94). For a non-survival response there is no censored
+# (Design and FixedDesign) so the wording stays the same (v1.0.6-TODO-52,
+# v1.0.6-TODO-53). For a non-survival response there is no censored
 # alternative, so the message says NA is not allowed and points to the
 # missing-outcomes section of the missing-covariates article; for survival it
 # keeps the y_L/y_R wording, since a censored subject is entered that way.
@@ -1379,7 +1388,7 @@ missing_response_error_message = function(response_type, subject, vectorized = F
 }
 
 # Always-on check for overwrite_all_subject_assignments() (Design and FixedDesign), outside
-# should_run_asserts() by the v1.0.6-TODO-100 rule (v1.0.6-TODO-106): a w of the wrong length
+# should_run_asserts() by the v1.0.6-TODO-58 rule (v1.0.6-TODO-60): a w of the wrong length
 # or with a value other than 0/1 is stored as is and later gives wrong estimates (e.g. a
 # subject with w = 2 is in neither arm), not an error. O(n) and called once per user call.
 assert_overwritten_w_always = function(w, t){

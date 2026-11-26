@@ -32,7 +32,7 @@ X[function_run == "compute_estimate", function_run := "est"]
 X[function_run == "compute_rand_two_sided_pval", function_run := "pval_rand"]
 X[function_run == "compute_rand_two_sided_pval(custom)", function_run := "pval_rand_custom"]
 X[function_run == "compute_rand_two_sided_pval(delta=0.5)", function_run := "pval_rand_shift"]
-# v1.0.6-TODO-81/110: incidence-only refusal row (expected status = "error").
+# v1.0.6-TODO-42 / v1.0.6-TODO-64: incidence-only refusal row (expected status = "error").
 X[function_run == "compute_rand_two_sided_pval(custom)(delta=0.5)", function_run := "pval_rand_custom_shift"]
 table(X$function_run)
 

@@ -8,7 +8,7 @@ library(EDI)
 # test-gcomp-risk-ratio-resampling-coverage.R covers bootstrap/jackknife only.
 # The reference recentres on log(estimate) exactly as documented and is built
 # from the same seeded resampling distribution.
-# v1.0.6-TODO-191: degenerate draws come back NaN and the methods return NA when more than 5%
+# v1.0.6-TODO-137: degenerate draws come back NaN and the methods return NA when more than 5%
 # of the B draws are unusable; at B = 40, m = b = 15 that cap trips, so the arithmetic checks
 # pass min_fraction_usable_samples = 0 (the reference already keeps only the finite draws).
 
@@ -39,13 +39,13 @@ ref_rr_pval <- function(draws, est, size, n_units, delta) {
 	fin <- draws[is.finite(draws) & draws > 0]
 	cs <- sqrt(size) * (log(fin) - log(est))
 	tobs <- sqrt(n_units) * (log(est) - log(delta))
-	# v1.0.6-TODO-230: symmetric centered p-value for the ratio pivot.
+	# v1.0.6-TODO-164: symmetric centered p-value for the ratio pivot.
 	min(1, max(1 / length(cs), mean(abs(cs) >= abs(tobs))))
 }
 
 test_that("m-out-of-n RR interval and p-value match the log-centered reference built from the same draws", {
 	f <- rr_fixture()
-	# v1.0.6-TODO-175: at B = 40, m = 15 the interval ([7.8e-5, 3.5]) is over the log(RR)
+	# v1.0.6-TODO-121: at B = 40, m = 15 the interval ([7.8e-5, 3.5]) is over the log(RR)
 	# stability cap; this test checks the pivot arithmetic, so it reads the unhardened interval.
 	f$priv$harden <- FALSE
 	est <- f$inf$compute_estimate()
@@ -67,7 +67,7 @@ test_that("m-out-of-n RR interval and p-value match the log-centered reference b
 
 test_that("subsampling RR interval and p-value match the same log-centered reference", {
 	f <- rr_fixture()
-	f$priv$harden <- FALSE  # v1.0.6-TODO-175: [0.002, 2.7] is over the log(RR) cap; arithmetic check
+	f$priv$harden <- FALSE  # v1.0.6-TODO-121: [0.002, 2.7] is over the log(RR) cap; arithmetic check
 	est <- f$inf$compute_estimate()
 	d <- f$inf$approximate_subsampling_distribution_beta_hat_T(B = 40, b = 15, show_progress = FALSE)
 	ci <- f$inf$compute_subsampling_confidence_interval(B = 40, b = 15, show_progress = FALSE, min_fraction_usable_samples = 0)

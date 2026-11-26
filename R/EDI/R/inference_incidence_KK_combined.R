@@ -40,13 +40,13 @@
 #' inf$compute_estimate()
 #' }
 #' @section Subsampling and m-out-of-n:
-#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' (v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 #' \emph{degenerate}: a treatment arm with no events or only events. Its log odds ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 #' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 #' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
@@ -84,34 +84,7 @@ InferenceIncidKKGEE = define_inference_class(
 			private$init_kk_gee_shared(des_obj, use_rcpp = use_rcpp, model_formula = model_formula)
 		}
 	),
-	private = list(
-		gee_response_type = function() "incidence",
-		gee_family        = function() stats::binomial(link = "logit"),
-		shared_gee_dispatch = function(estimate_only = FALSE) private$shared_gee_default(estimate_only)
-	),
+	private = kk_binomial_gee_private("incidence"),
 	metadata = list(likelihood_tier = "quasi"),
-	overrides = list(
-		public = c(
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_rand_two_sided_pval"
-		),
-		private = c(
-			"shared",
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"jackknife_full_fit_is_separated",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"compute_treatment_estimate_during_randomization_inference",
-			"compute_wald_confidence_interval_impl",
-			"compute_wald_two_sided_pval_impl",
-			"get_complexity_tier"
-		)
-	)
+	overrides = kk_binomial_gee_overrides
 )

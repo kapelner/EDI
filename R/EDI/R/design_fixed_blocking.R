@@ -124,9 +124,9 @@ largest_divisor_at_most = function(n, target) {
 #'     \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
 #'     \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A block of one subject
 #'     contributes nothing. The jackknife-Wald test and interval use the t distribution
-#'     with \eqn{\sum_h (n_h - 1)} degrees of freedom (v1.0.6-TODO-231). Before EDI 1.0.6
+#'     with \eqn{\sum_h (n_h - 1)} degrees of freedom (v1.0.6-TODO-165). Before EDI 1.0.6
 #'     a replicate deleted a whole block, which left only as many replicates as blocks
-#'     (v1.0.6-TODO-4).
+#'     (v1.0.6-TODO-1).
 #'   \item \strong{Not block-aware:} the regression-type classes (OLS, Lin, robust,
 #'     quantile, GLM, ordinal, survival regressions, ...) add \emph{no} block fixed
 #'     effects automatically; the blocks enter the model only if the blocking column is

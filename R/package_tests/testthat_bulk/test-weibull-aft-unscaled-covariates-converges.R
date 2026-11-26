@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-163: fast_weibull_regression_cpp did not converge on covariates
+# v1.0.6-TODO-112: fast_weibull_regression_cpp did not converge on covariates
 # left on their raw scale (age in years, lymph-node counts) next to an
 # intercept -- both L-BFGS and Newton-Raphson hit maxit with a gradient norm in
 # the tens, and InferenceSurvivalWeibullRegr then dropped covariates

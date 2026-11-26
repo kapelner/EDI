@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-380 (owner decisions 2026-11-21): testing_type
+# v1.0.6-TODO-225 (owner decisions 2026-11-21): testing_type
 # "lik_ratio_bartlett_approx_design_conservative" on InferenceCountPoisson,
 # InferenceCountKKCondPoissonOneLik and InferenceCountKKHurdlePoissonOneLik is
 # the larger of the model-only Bartlett-corrected LR p-value and the design Wald

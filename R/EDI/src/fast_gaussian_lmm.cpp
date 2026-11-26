@@ -266,7 +266,7 @@ Eigen::MatrixXd lmm_analytic_hessian(const LMMData& dat,
         // Built column by column as sum_i P(i,j) * Xg.row(i)^T rather than as the product
         // Xg^T * P: GCC 16 at -O3 vectorizes that product into 2-double loads from P's
         // inline storage and, unable to prove m <= 2, reports a false -Warray-bounds that
-        // R CMD check counts as a significant warning (CRAN gcc16 check, v1.0.6-TODO-426).
+        // R CMD check counts as a significant warning (CRAN gcc16 check, v1.0.6-TODO-233).
         for (int j = 0; j < m; ++j) {
             buf_XtA.col(j).noalias() = P(0, j) * dat.X_s.row(s).transpose();
             for (int i = 1; i < m; ++i)
@@ -386,6 +386,17 @@ Eigen::VectorXd make_start(const LMMData& dat)
 
 } // anonymous namespace
 
+static std::vector<int> remap_lmm_group_ids(const int* labels, int n) {
+    std::vector<int> groups(n);
+    std::vector<int> unique_ids(labels, labels + n);
+    std::sort(unique_ids.begin(), unique_ids.end());
+    unique_ids.erase(std::unique(unique_ids.begin(), unique_ids.end()), unique_ids.end());
+    for (int i = 0; i < n; ++i) {
+        groups[i] = static_cast<int>(std::lower_bound(unique_ids.begin(), unique_ids.end(), labels[i]) - unique_ids.begin());
+    }
+    return groups;
+}
+
 // Portable core. Unlike the R wrapper below, "b" here is a plain (unnamed)
 // Eigen::VectorXd -- R's b_r carries a names() attribute (b0, b1, ...,
 // log_sigma_e, log_sigma_b) that has no ResultMap equivalent; the Python
@@ -410,16 +421,7 @@ edi::ResultMap fast_gaussian_lmm_internal(
     if (warm_start_beta.has_value() && warm_start_beta->size() != p && warm_start_beta->size() != p + 2)
         throw std::invalid_argument("warm_start_beta must have length ncol(X) or ncol(X) + 2");
 
-    std::vector<int> gid(n);
-    {
-        const int* gid_ptr = group_id.data();
-        std::vector<int> gid_r(gid_ptr, gid_ptr + n);
-        std::vector<int> uniq = gid_r;
-        std::sort(uniq.begin(), uniq.end());
-        uniq.erase(std::unique(uniq.begin(), uniq.end()), uniq.end());
-        for (int i = 0; i < n; ++i)
-            gid[i] = (int)(std::lower_bound(uniq.begin(), uniq.end(), gid_r[i]) - uniq.begin());
-    }
+    const auto gid = remap_lmm_group_ids(group_id.data(), n);
 
     std::vector<double> w_vec;
     if (weights.has_value()) {
@@ -558,6 +560,25 @@ List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, con
     return out;
 }
 
+// ── Shared input handling for the GLS / score / Fisher exports (v1.0.7-TODO-54) ──
+// Coerces y, checks dimensions, remaps group ids to 0-based contiguous ids and
+// builds the sorted LMMData.
+static LMMData build_lmm_data(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
+	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
+	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
+	}
+    const int n = y_r_vec_coerced.size();
+    const auto gid = remap_lmm_group_ids(group_id_r.data(), n);
+    std::vector<double> w_vec;
+    if (weights.isNotNull()) {
+        NumericVector wts(weights);
+        w_vec.assign(wts.begin(), wts.end());
+    }
+    return LMMData(y_r_vec_coerced, X_r, gid, w_vec);
+}
+
 // ── R-exported: GLS estimator with fixed variance components ─────────────────
 // Given fixed log_sigma_e and log_sigma_b (from a prior full fit), solve for
 // beta via GLS without any L-BFGS optimization.  ~100x faster than full MLE.
@@ -571,31 +592,8 @@ List fast_gaussian_lmm_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, con
 //       sx_g = X_g'1_m,  sy_g = 1_m'y_g.
 // [[Rcpp::export]]
 Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, double log_sigma_e, double log_sigma_b, Rcpp::Nullable<Rcpp::NumericVector> weights = R_NilValue) {
-	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-
-    const int n = y_r_vec_coerced.size(), p = X_r.cols();
-
-    std::vector<int> gid(n);
-    {
-        const int* gid_ptr = group_id_r.data();
-        std::vector<int> gid_r(gid_ptr, gid_ptr + n);
-        std::vector<int> uniq = gid_r;
-        std::sort(uniq.begin(), uniq.end());
-        uniq.erase(std::unique(uniq.begin(), uniq.end()), uniq.end());
-        for (int i = 0; i < n; ++i)
-            gid[i] = (int)(std::lower_bound(uniq.begin(), uniq.end(), gid_r[i]) - uniq.begin());
-    }
-
-    std::vector<double> w_vec;
-    if (weights.isNotNull()) {
-        NumericVector wts(weights);
-        w_vec.assign(wts.begin(), wts.end());
-    }
-    LMMData dat(y_r_vec_coerced, X_r, gid, w_vec);
+    const int p = X_r.cols();
+    const auto dat = build_lmm_data(X_r, y_r, group_id_r, weights);
 
     const double v_e = std::exp(2.0 * log_sigma_e);
     const double v_b = std::exp(2.0 * log_sigma_b);
@@ -636,29 +634,6 @@ Rcpp::NumericVector fast_gaussian_lmm_gls_cpp(const Eigen::Map<Eigen::MatrixXd>&
     }
     result.names() = names;
     return result;
-}
-
-// ── Shared input handling for the score / Fisher exports (v1.0.6-TODO-193) ──
-// Coerces y, checks dimensions, remaps group ids to 0-based contiguous ids and
-// builds the sorted LMMData.
-static LMMData build_lmm_data(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r) {
-	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-    const int n = y_r_vec_coerced.size();
-    std::vector<int> gid(n);
-    {
-        const int* gid_ptr = group_id_r.data();
-        std::vector<int> gid_r(gid_ptr, gid_ptr + n);
-        std::vector<int> uniq = gid_r;
-        std::sort(uniq.begin(), uniq.end());
-        uniq.erase(std::unique(uniq.begin(), uniq.end()), uniq.end());
-        for (int i = 0; i < n; ++i)
-            gid[i] = (int)(std::lower_bound(uniq.begin(), uniq.end(), gid_r[i]) - uniq.begin());
-    }
-    return LMMData(y_r_vec_coerced, X_r, gid);
 }
 
 // ── R-exported: score (gradient of log_lik) at arbitrary par ─────────────────

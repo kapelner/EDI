@@ -1,10 +1,10 @@
-# v1.0.6-TODO-143 follow-up (owner decision 2026-11-18): the plain randomization test and the
+# v1.0.6-TODO-95 follow-up (owner decision 2026-11-18): the plain randomization test and the
 # randomization CI used to refuse a nonzero delta under left-/interval-censoring, because the
 # sharp-null shift reached y (NA for censored subjects) but not y_L / y_R. They now shift the
 # bounds exactly as y is shifted (multiplicatively, exp(delta), on the default "log" scale for
 # survival; 0 and Inf bounds stay put), on the reusable-worker path and the slow path alike,
 # through the shared randomization_null_censoring_bounds() helper that the bootstrap
-# randomization test (v1.0.6-TODO-143 itself) also uses.
+# randomization test (v1.0.6-TODO-95 itself) also uses.
 
 rand_bounds_interval_design = function(n = 60L, all_interval = FALSE){
 	set.seed(2)
@@ -79,7 +79,7 @@ test_that("the slow path matches the reusable worker at nonzero delta for every 
 	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalRestrictedMeanDiff",
 			"InferenceSurvivalLogRank", "InferenceSurvivalGehanWilcox", "InferenceSurvivalCoxPHRegr")) {
-		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		# v1.0.6-TODO-126: skip a class whose interval-censored fit needs an absent Suggests package
 		missing_pkg = general_censoring_missing_package(cls, des)
 		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		fast = rand_bounds_null_draws(cls, des, 0.7, TRUE)
@@ -119,7 +119,7 @@ test_that("the rand p-value and the Weibull rand CI run at nonzero delta on inte
 	expect_true(all(is.finite(ci)) && ci[1L] < ci[2L])
 	est = inf$compute_estimate()
 	expect_true(ci[1L] <= est && est <= ci[2L])
-	skip_if_not_installed("interval")  # KMDiff's interval-censored fit (v1.0.6-TODO-180)
+	skip_if_not_installed("interval")  # KMDiff's interval-censored fit (v1.0.6-TODO-126)
 	km = suppressWarnings(InferenceSurvivalKMDiff$new(des, verbose = FALSE))
 	km$num_cores = 1L
 	km$set_seed(1)

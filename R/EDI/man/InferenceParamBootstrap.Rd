@@ -61,10 +61,12 @@ that are intentionally unsupported are kept off this branch entirely.
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-compute_score_two_sided_pval'><code>InferenceAsympLik$compute_score_two_sided_pval()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_preference'><code>InferenceAsympLik$get_information_preference()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_information_source_used'><code>InferenceAsympLik$get_information_source_used()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_likelihood_test_variance'><code>InferenceAsympLik$get_likelihood_test_variance()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_information_preferences'><code>InferenceAsympLik$get_supported_information_preferences()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_supported_testing_types'><code>InferenceAsympLik$get_supported_testing_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-get_testing_type'><code>InferenceAsympLik$get_testing_type()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_information_preference'><code>InferenceAsympLik$set_information_preference()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_likelihood_test_variance'><code>InferenceAsympLik$set_likelihood_test_variance()</code></a></li>
   <li><a href='../../EDI/html/InferenceAsympLik.html#method-InferenceAsympLik-set_testing_type'><code>InferenceAsympLik$set_testing_type()</code></a></li>
 </ul>
 </details>
@@ -489,8 +491,8 @@ $lr), $used_worker_path, and $used_deterministic_mode.
 
 Sets private$active_resampling_operation = "param_boot" for the
 replicate loop only and restores the caller's value on exit
-(v1.0.6-TODO-185), so the callers' own top-level code stays outside
-the flag and its procedure-NA warnings can fire (v1.0.6-TODO-207).
+(v1.0.6-TODO-131), so the callers' own top-level code stays outside
+the flag and its procedure-NA warnings can fire (v1.0.6-TODO-148).
 Simulate a bootstrap dataset under the fitted null likelihood and return
 a minimal spec list for refitting.
 

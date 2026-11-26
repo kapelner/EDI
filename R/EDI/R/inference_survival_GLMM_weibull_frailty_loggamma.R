@@ -233,7 +233,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 					X_r_int = cbind("(Intercept)" = 1, as.matrix(X_r))
 					p_r = ncol(X_r_int)
 					# log sigma is parameter p_r + 1 (one-based); p_r pinned the last
-					# coefficient instead (v1.0.6-TODO-217).
+					# coefficient instead (v1.0.6-TODO-158).
 					fit_fast_r = tryCatch(
 						fast_weibull_regression_cpp(
 							y = y_r, dead = dead_r, X = X_r_int,
@@ -256,8 +256,8 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 					if (!is.null(fit_r) && is.finite(fit_r$beta)) { beta_r = fit_r$beta; ssq_r = fit_r$ssq %||% NA_real_ }
 				}
 			}
-			# Pooling (v1.0.6-TODO-217): weights from this draw's own variances, as in
-			# shared() (v1.0.6-TODO-132 rule); a half without a usable variance is
+			# Pooling (v1.0.6-TODO-158): weights from this draw's own variances, as in
+			# shared() (v1.0.6-TODO-86 rule); a half without a usable variance is
 			# dropped. It used to pool with the observed data's cached variances, or
 			# 50/50 when that cache was empty (a duplicate or a reused worker after
 			# its per-draw reset), so observed and permuted statistics differed.
@@ -321,56 +321,12 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			candidates
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			# v1.0.6-TODO-132 (owner decision 2026-11-19): estimate_only = TRUE used to
-			# fit the halves without variances and pool them 50/50 (or accept a half
-			# with no finite variance), a different estimator from the reported
-			# inverse-variance-weighted one, and an estimate_only call left no SE
-			# behind for a later full call (the early return on a cached beta_hat_T
-			# below). Resampling replicates (jackknife, reusable worker, slow subset
-			# refit) all use estimate_only = TRUE, so they were not of the reported
-			# quantity. The IVW weights need both halves' variances, so every call
-			# now runs the full fit; estimate_only only selects the cache check.
-			if (is.null(private$cached_values$KKstats)){
-				private$compute_basic_match_data()
-			}
-			KKstats = private$cached_values$KKstats
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			if (m > 0){
-				private$clayton_copula_for_matched_pairs(estimate_only = FALSE)
-			}
-			beta_m = private$cached_values$beta_T_matched
-			ssq_m = private$cached_values$ssq_beta_T_matched
-			m_ok = !is.null(beta_m) && is.finite(beta_m) && 
-			       !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
-			if (nRT > 0 && nRC > 0){
-				private$weibull_for_reservoir(estimate_only = FALSE)
-			}
-			beta_r = private$cached_values$beta_T_reservoir
-			ssq_r = private$cached_values$ssq_beta_T_reservoir
-			r_ok = !is.null(beta_r) && is.finite(beta_r) &&
-			       !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0
-			if (m_ok && r_ok){
-				# Both variances are finite here (m_ok/r_ok); the 2026-09-22 50/50
-				# fallback for estimate_only = TRUE (glmm_weibull_frailty_ivwc_
-				# estimate_only_na_pooling.md) is gone with v1.0.6-TODO-132.
-				w_star = ssq_r / (ssq_r + ssq_m)
-				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
-			} else if (m_ok){
-				private$cached_values$beta_hat_T = beta_m
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
-			} else if (r_ok){
-				private$cached_values$beta_hat_T = beta_r
-				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
-			} else {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
+			if (kk_ivwc_cache_is_current(private, estimate_only, full_fit_cached = TRUE)) return(invisible(NULL))
+			KKstats = kk_ivwc_match_stats(private)
+			fit_and_pool_kk_ivwc_halves(private, KKstats,
+				private$clayton_copula_for_matched_pairs(estimate_only = FALSE),
+				private$weibull_for_reservoir(estimate_only = FALSE),
+				cache_se = TRUE)
 		},
 		clayton_copula_for_matched_pairs = function(estimate_only = FALSE){
 			split = split_kk_matched_reservoir_idx(private$m, private$n)
@@ -415,7 +371,7 @@ SurvivalGLMMWeibullFrailtyLoggammaIVWCSource = list(
 			# KKstats$X_reservoir carries no column names, so best_X_colnames_reservoir
 			# used to be c("w", "", ...) and the randomization statistic's
 			# fixed-sigma reservoir refit, which selects covariates by name, silently
-			# dropped every covariate (v1.0.6-TODO-217). Name them after get_X().
+			# dropped every covariate (v1.0.6-TODO-158). Name them after get_X().
 			X_names = colnames(private$get_X())
 			if (is.null(colnames(X_r)) && length(X_names) == ncol(X_r)) colnames(X_r) = X_names
 			# Candidate reduced design matrices for the reservoir
@@ -541,7 +497,7 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
-		# v1.0.6-TODO-235 (1): no Bayesian bootstrap. The class's own weighted hook
+		# v1.0.6-TODO-169 (1): no Bayesian bootstrap. The class's own weighted hook
 		# refit a marginal Weibull AFT surrogate (no copula, no IVW pooling), a
 		# different estimator from compute_estimate() (bootstrap mean 0.55 vs
 		# estimate 0.63); the Clayton/Weibull fitter takes no case weights. The
@@ -652,19 +608,10 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			# TODO-121: dispatch on the testing type (was: always Wald).
-			switch(
-				private$testing_type,
-				wald = {
-					private$shared()
-					private$compute_z_or_t_ci_from_s_and_df(alpha)
-				},
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+			edi_likelihood_asymp_ci(private, alpha, {
+				private$shared()
+				private$compute_z_or_t_ci_from_s_and_df(alpha)
+			})
 		},
 		#' @description Compute the one-likelihood Clayton-copula survival
 		#'   asymptotic p-value for the treatment effect using the fitted dependence
@@ -675,19 +622,10 @@ SurvivalGLMMWeibullFrailtyLoggammaOneLikSource = list(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			# TODO-121: dispatch on the testing type (was: always Wald).
-			switch(
-				private$testing_type,
-				wald = {
-					private$shared()
-					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-				},
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+			edi_likelihood_asymp_pval(private, delta, {
+				private$shared()
+				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			})
 		},
 		# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban
 		# eval(body(Inference...))"): removed the redundant
@@ -1130,7 +1068,7 @@ InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
-		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# v1.0.6-TODO-158: no Bayesian bootstrap. Without a weighted refit of this
 		# estimator the replicate fell through to the KK compound's generic
 		# mean-difference fallback, a different estimator from compute_estimate();
 		# the Clayton/Weibull fitter takes no case weights.

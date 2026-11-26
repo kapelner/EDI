@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-210 (owner follow-up 2026-11-19): run_all_inference() runs the parametric-bootstrap
+# v1.0.6-TODO-151 (owner follow-up 2026-11-19): run_all_inference() runs the parametric-bootstrap
 # likelihood-ratio CI (sentinel "param_boot") at the method's default B = 199. Its smallest
 # attainable p-value is 2 / (B + 1) = 0.01, so for alpha < 0.01 the suite errors before any fitting
 # instead of reporting a per-row error. Only when that CI is actually in the run.

@@ -214,7 +214,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
 				score = private$compute_score_confidence_interval_impl(alpha),
 				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				# v1.0.6-TODO-327: listed by get_supported_testing_types() but used to
+				# v1.0.6-TODO-208: listed by get_supported_testing_types() but used to
 				# fall through to the stop() below.
 				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
 				stop("Unsupported testing_type for ", class(self)[1L], ": ", self$get_testing_type())
@@ -257,13 +257,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			if (!isTRUE(private$use_rcpp)) {
 				return(private$compute_weighted_glmm_bootstrap_estimate_generic(row_weights))
 			}
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			reservoir_idx = which(group_id == 0L)
-			if (length(reservoir_idx) > 0L)
-				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			group_id = kk_glmm_group_ids(private$m, private$n)
 			# drop rows with zero or non-finite weight
 			ok = is.finite(row_weights) & row_weights > 0 & is.finite(as.numeric(private$y))
 			if (!any(ok)) return(NA_real_)
@@ -315,26 +309,12 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			if (isTRUE(private$use_rcpp)) c("wald", "score", "lik_ratio", "gradient") else "wald"
 		},
 		shared = function(estimate_only = FALSE){
-			if (private$use_rcpp) {
-				private$shared_rcpp(estimate_only)
-			} else {
-				private$shared_glmm_tmb(estimate_only)
-			}
+			fit_kk_glmm(private, estimate_only)
 			if (!estimate_only) .inflate_kk_onelik_standard_error_with_jackknife(private, self)
 		},
 		shared_rcpp = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			private$clear_nonestimable_state()
-			private$cached_mod = NULL
-			private$cached_values$likelihood_test_context = NULL
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			reservoir_idx = which(group_id == 0L)
-			if (length(reservoir_idx) > 0L)
-				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			if (!prepare_kk_glmm_fit(private, estimate_only)) return(invisible(NULL))
+			group_id = kk_glmm_group_ids(private$m, private$n)
 			if (ncol(as.matrix(private$get_X())) > 0){
 				X_fit = private$create_design_matrix()
 			} else {
@@ -391,13 +371,7 @@ InferenceCountKKGLMM = define_inference_class("InferenceCountKKGLMM",
 			if (!isTRUE(private$use_rcpp) || is.null(private$cached_vc_params)) {
 				return(self$compute_estimate(estimate_only = estimate_only))
 			}
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			reservoir_idx = which(group_id == 0L)
-			if (length(reservoir_idx) > 0L)
-				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			group_id = kk_glmm_group_ids(private$m, private$n)
 			if (ncol(as.matrix(private$get_X())) > 0) {
 				X_fit = private$create_design_matrix()
 			} else {

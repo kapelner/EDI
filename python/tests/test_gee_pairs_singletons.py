@@ -4,9 +4,8 @@ This does NOT re-verify the statistical correctness of the matched-pair/
 singleton GEE fit itself -- that's the same gee_pairs_singletons_cpp_impl
 object code the R package's own test suite already exercises via
 gee_pairs_singletons_cpp. What this test covers, which nothing on the R
-side can: the pybind11 binding layer itself (argument marshaling, the
-group_id -> grp_start/grp_size sort+partition logic reimplemented in the
-Python binding, edi::to_py_dict field conversion) and the EDI_CORE_ONLY
+side can: the pybind11 binding layer itself (argument marshaling, calls to
+the shared grouping code, and result conversion) and the EDI_CORE_ONLY
 compiled path (this extension links fetched Eigen + LBFGSpp, not the R
 build's RcppEigen/RcppNumerical).
 
@@ -76,6 +75,16 @@ def test_result_shape_and_types():
     assert isinstance(res["converged"], bool)
     assert isinstance(res["quasi_loglik"], float)
     assert isinstance(res["niter"], int)
+
+
+def test_negative_first_cluster_label_matches_positive_relabeling():
+    X, y, group_id = _synthetic_data()
+    expected = gee_pairs_singletons(X, y, group_id, "gaussian")
+    actual = gee_pairs_singletons(X, y, group_id - 2, "gaussian")
+
+    assert actual.keys() == expected.keys()
+    for name, value in expected.items():
+        np.testing.assert_array_equal(actual[name], value)
 
 
 def test_family_argument_accepted():

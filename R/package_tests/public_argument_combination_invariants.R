@@ -116,7 +116,7 @@ invariant_output_names_stable_when_documented = function(output, execution_statu
 	invariant_result("output_names_stable_when_documented", "failed", "output names do not match documented names")
 }
 
-# Data-shape cells with effect = "strong" (v1.0.6-TODO-97) shift the response so far that 0 lies
+# Data-shape cells with effect = "strong" (v1.0.7-TODO-41) shift the response so far that 0 lies
 # outside the bootstrap distribution; any p-value that does not reject at 0.05 there is wrong.
 invariant_strong_effect_detected = function(output, execution_status, context = list()) {
 	if (!identical(execution_status, "ok")) return(invariant_result("strong_effect_detected", "skipped", "execution did not complete"))
@@ -127,7 +127,7 @@ invariant_strong_effect_detected = function(output, execution_status, context = 
 }
 
 # A call the documentation says must be refused (e.g. a custom statistic returning several values,
-# v1.0.6-TODO-83, or a nonzero delta on an incidence response, v1.0.6-TODO-81).
+# v1.0.6-TODO-44, or a nonzero delta on an incidence response, v1.0.6-TODO-42).
 invariant_documented_refusal = function(output, execution_status, context = list()) {
 	if (!identical(execution_status, "ok")) return(invariant_result("documented_refusal", "ok", "call was refused as documented"))
 	invariant_result("documented_refusal", "failed", "documented refusal did not happen: the call returned a value")

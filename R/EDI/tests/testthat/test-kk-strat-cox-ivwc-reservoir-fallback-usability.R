@@ -1,4 +1,4 @@
-# v1.0.6-TODO-133: InferenceSurvivalKKStratCoxPHIVWC's reservoir treatment-only fallback
+# v1.0.6-TODO-87: InferenceSurvivalKKStratCoxPHIVWC's reservoir treatment-only fallback
 # (run when no covariate-adjusted reservoir candidate fit is usable) was accepted without
 # rcpp_cox_fit_is_usable(), so a separated reservoir passed an infinite-coefficient Cox
 # fit (beta ~ -21.8, SE ~ 4.6e4) into the estimate. It also ran when a reservoir arm was

@@ -27,7 +27,7 @@
 #' jackknife of Wolter 2007, Sec. 4.5, formulas in
 #' \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}), with the t reference on
 #' \eqn{\sum_h (n_h - 1)} degrees of freedom. Either unit can be requested explicitly
-#' (v1.0.6-TODO-231).
+#' (v1.0.6-TODO-165).
 #'
 #' \strong{No auto-derived n.} Unlike plain \code{ObservationalDesign}, \code{n} is not a
 #' constructor argument here at all -- it is always \code{length(m)}, since a block

@@ -25,7 +25,7 @@ expect_true(!any(out$report$gate == "internal_safety_net_without_rationale"), "I
 expect_true(!any(out$report$gate == "unknown_skip_or_support_status"), "Skip/support status gate should be clean.")
 expect_true(!any(out$report$gate == "expired_exemption"), "Expired exemption gate should be clean.")
 expect_true(!isTRUE(out$summary$ci_should_fail[1L]), "Report-mode comprehensive gates should not fail current artifacts.")
-# NA audit (v1.0.6-TODO-95, na_audit_gate.R): the allowlist must cite only open TODOs, and when
+# NA audit (v1.0.6-TODO-54, na_audit_gate.R): the allowlist must cite only open TODOs, and when
 # the NA digest is present its rows reach the report.
 expect_true(!any(out$report$gate == "na_allowlist_invalid"), "na_audit_allowlist.csv has invalid rows (closed/missing TODO, bad kind or regex).")
 if (file.exists(gate_paths$na_digest) && nrow(read.csv(gate_paths$na_digest))) {

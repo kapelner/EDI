@@ -2,7 +2,7 @@
 #include "_helper_functions_core.h"
 #else
 #include "_helper_functions.h"
-#include "result_map_rcpp.h"
+#include "glm_regression_rcpp.h"
 #include <RcppEigen.h>
 #endif
 #include "internal_fn_decls.h"
@@ -298,7 +298,7 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
     // would have fired first otherwise -- so this blanket rule needs no
     // special-casing, matching the template's analysis.
     res.converged = (res.gradient_norm < tol);
-    // v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): scale-aware
+    // v1.0.6-TODO-118 (2026-11-20; PATCHED, needs owner build): scale-aware
     // fallback. With a large-scale or offset covariate (colon age + 1e5) IRLS
     // reaches the optimum but rounding keeps |score| above the absolute tol, so a
     // correct fit was reported converged = FALSE and the classes dropped
@@ -330,7 +330,7 @@ ModelResult fast_poisson_internal(const Eigen::Ref<const Eigen::MatrixXd>& X,
         }
     }
     res.hit_iteration_cap = (res.num_iter >= maxit) && !res.converged;
-    // v1.0.6-TODO-394/395/396 (2026-11-23): with large counts (cell means ~2e4)
+    // v1.0.6-TODO-199 / v1.0.6-TODO-200 / v1.0.6-TODO-201 (2026-11-23): with large counts (cell means ~2e4)
     // the first IRLS step from the default zero start overshoots by ~1e4, no
     // step-halving is accepted and the loop stops at beta = 0 unconverged.
     // When the zero cold start (no warm start, no smart start) fails, refit once
@@ -448,42 +448,11 @@ Eigen::MatrixXd get_poisson_regression_weighted_hessian_cpp(const Eigen::Map<Eig
 
 // [[Rcpp::export]]
 List fast_poisson_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = false, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "irls", Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-	
-
-	ModelResult res = fast_poisson_internal(
-		X, y_vec_coerced, Eigen::VectorXd(),
-		nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-		smart_cold_start, maxit, tol,
-		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-		nullable_to_optional<Eigen::VectorXd>(fixed_values),
-		optimization_alg,
-		nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-		estimate_only);
-	if (estimate_only) {
-		return edi::to_rcpp_list(edi::ResultMap()
-			.set("b", res.b)
-			.set("converged", res.converged)
-			.set("num_iter", res.num_iter)
-			.set("hit_iteration_cap", res.hit_iteration_cap)
-			.set("gradient_norm", res.gradient_norm)
-			.set("min_eigenvalue_information", res.min_eigenvalue_information));
-	}
-	return edi::to_rcpp_list(edi::ResultMap()
-		.set("b", res.b)
-		.set("mu", res.mu)
-		.set("XtWX", res.XtWX)
-		.set("fisher_information", res.XtWX)
-		.set("score", res.score)
-		.set("neg_ll", res.neg_ll)
-		.set("converged", res.converged)
-		.set("num_iter", res.num_iter)
-		.set("hit_iteration_cap", res.hit_iteration_cap)
-		.set("gradient_norm", res.gradient_norm)
-		.set("min_eigenvalue_information", res.min_eigenvalue_information));
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_poisson_internal, X, y, warm_start_beta, smart_cold_start, maxit, tol, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, estimate_only);
+    if (estimate_only) return edi_glm::estimate_result(res);
+    return edi_glm::fit_result_with_mean(res);
 }
 
 // [[Rcpp::export]]
@@ -504,18 +473,7 @@ List fast_poisson_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, 
 		optimization_alg,
 		nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
 		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-	return edi::to_rcpp_list(edi::ResultMap()
-		.set("b", res.b)
-		.set("mu", res.mu)
-		.set("XtWX", res.XtWX)
-		.set("fisher_information", res.XtWX)
-		.set("score", res.score)
-		.set("neg_ll", res.neg_ll)
-		.set("converged", res.converged)
-		.set("num_iter", res.num_iter)
-		.set("hit_iteration_cap", res.hit_iteration_cap)
-		.set("gradient_norm", res.gradient_norm)
-		.set("min_eigenvalue_information", res.min_eigenvalue_information));
+    return edi_glm::fit_result_with_mean(res);
 }
 
 // [[Rcpp::export]]
@@ -531,57 +489,10 @@ List fast_poisson_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		std::string optimization_alg = "irls",
 		Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-
-	// See fast_logistic_regression_with_var_cpp for why y is coerced here
-	// rather than taken as a direct Eigen::Map.
-	NumericVector y_r(y);
-	Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-	ModelResult res = fast_poisson_internal(
-		X, y_vec, Eigen::VectorXd(),
-		nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-		smart_cold_start, maxit, tol,
-		nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-		nullable_to_optional<Eigen::VectorXd>(fixed_values),
-		optimization_alg,
-		nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-		nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-    FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols(),
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values));
-    MatrixXd info_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
-
-    auto free_idx_of = [&](int k) -> int {
-        for (int jj = 0; jj < (int)fixed_spec.free_idx.size(); ++jj)
-            if (fixed_spec.free_idx[jj] == k) return jj + 1;
-        return -1;
-    };
-    int free_j = (j > 0 && j <= X.cols()) ? free_idx_of(j - 1) : -1;
-    res.ssq_b_j = (free_j > 0) ? compute_diagonal_inverse_entry(info_free, free_j) : NA_REAL;
-    int free_2 = (X.cols() >= 2) ? free_idx_of(1) : -1;
-    res.ssq_b_2 = (free_2 > 0) ? compute_diagonal_inverse_entry(info_free, free_2) : NA_REAL;
-
-	Eigen::MatrixXd neg_XtWX = -res.XtWX;
-	return edi::to_rcpp_list(edi::ResultMap()
-		.set("b", res.b)
-		.set("params", res.b)
-		.set("ssq_b_j", res.ssq_b_j)
-		.set("ssq_b_2", res.ssq_b_2)
-		.set("mu", res.mu)
-		.set("converged", res.converged)
-		.set("num_iter", res.num_iter)
-		.set("hit_iteration_cap", res.hit_iteration_cap)
-		.set("score", res.score)
-		.set("observed_information", res.XtWX)
-		.set("fisher_information", res.XtWX)
-		.set("information", res.XtWX)
-		.set("information_type", std::string("fisher"))
-		.set("hessian", neg_XtWX)
-		.set("neg_loglik", res.neg_ll)
-		.set("neg_ll", res.neg_ll)
-		.set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
-		.set("gradient_norm", res.gradient_norm)
-		.set("min_eigenvalue_information", res.min_eigenvalue_information));
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_poisson_internal, X, y, warm_start_beta, smart_cold_start, maxit, tol, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, false);
+    return edi_glm::variance_result(res, X.cols(), j, make_fixed_param_spec(X.cols(), fixed_idx, fixed_values), true);
 }
 
 // [[Rcpp::export]]

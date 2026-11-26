@@ -8,3 +8,6 @@
 #' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
 #'   finite when \code{na.rm = TRUE}. Default 0.95. See
 #'   \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
+#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+#'   (default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+#'   resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.

@@ -73,7 +73,7 @@ test_that("RMST class fast BRT hook is used for a user tau and equals the kernel
 	direct = kernel_fn(as.numeric(p$y), as.integer(p$dead), mats$i_mat, mats$w_mat, 0, TRUE, NULL, 1L, rmst_tau = 4)
 	expect_equal(got, direct, tolerance = 1e-12)
 	# unset tau: the kernel gets the observed-data default horizon, held fixed across draws
-	# (v1.0.6-TODO-115), not NA (which would recompute min(arm maxima) per draw)
+	# (v1.0.6-TODO-69), not NA (which would recompute min(arm maxima) per draw)
 	inf0 = InferenceSurvivalRestrictedMeanDiff$new(des, verbose = FALSE)
 	p0 = inf0$.__enclos_env__$private
 	tau_obs = min(max(p0$y[p0$w == 1]), max(p0$y[p0$w == 0]))

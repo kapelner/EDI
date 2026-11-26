@@ -1,4 +1,4 @@
-# v1.0.6-TODO-134: InferencePropGCompMeanDiff (and the incidence G-computation RD/RR classes,
+# v1.0.6-TODO-88: InferencePropGCompMeanDiff (and the incidence G-computation RD/RR classes,
 # same cause) left cached_values$s_beta_hat_T unset, so the studentized nonparametric bootstrap
 # (replicate and original SEs) and the studentized Bayesian bootstrap were NA on every design.
 # The weighted refit (compute_estimate_with_bootstrap_weights) also returned no SE.

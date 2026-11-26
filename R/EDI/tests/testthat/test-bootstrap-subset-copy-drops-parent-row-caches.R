@@ -1,4 +1,4 @@
-# v1.0.6-TODO-131: bootstrap_subset_inference() builds the slow-path subset refit by
+# v1.0.6-TODO-85: bootstrap_subset_inference() builds the slow-path subset refit by
 # duplicating the Inference object and its design, then subsetting the per-subject fields
 # it knows about. Two gaps:
 # (1) The design copy kept the parent's n-row y_L / y_R / y_original. get_effective_time()
@@ -7,7 +7,7 @@
 #     y_L / y_R into the subset Inference on interval-censored data (all-NA Weibull and
 #     log-rank null distributions, wrong KM-difference draws).
 # (2) Any other private cache holding the parent's rows (za_X_cov_all was the
-#     v1.0.6-TODO-126 case) survived into the copy. A generic guard now clears every
+#     v1.0.6-TODO-80 case) survived into the copy. A generic guard now clears every
 #     remaining private field with the parent's NROW.
 
 subset_copy_survival_design = function(n = 60L, interval = FALSE){
@@ -60,7 +60,7 @@ test_that("the rand-bootstrap slow path matches the reusable worker on interval-
 	des = subset_copy_survival_design(interval = TRUE)
 	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank")) {
-		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		# v1.0.6-TODO-126: skip a class whose interval-censored fit needs an absent Suggests package
 		missing_pkg = general_censoring_missing_package(cls, des)
 		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		draws = lapply(c(TRUE, FALSE), function(worker){

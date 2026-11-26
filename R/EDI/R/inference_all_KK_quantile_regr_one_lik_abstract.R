@@ -104,23 +104,8 @@ KKQuantileRegrOneLikSource = list(
 		#' @param estimate_only Logical. If TRUE, skip variance component calculations.
 		#' @return The treatment estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
-				self$compute_estimate(estimate_only = estimate_only)
-				beta_hat_T = as.numeric(private$cached_values$beta_hat_T)[1L]
-				if (is.finite(beta_hat_T)) {
-					return(private$cached_values$beta_hat_T)
-				}
-			}
-			result = private$compute_weighted_combined_estimate(row_weights, estimate_only = estimate_only)
-			if (is.list(result)) {
-				private$cached_values$beta_hat_T = result$beta
-				private$cached_values$s_beta_hat_T = result$se
-			} else {
-				private$cached_values$beta_hat_T = result
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
-			private$cached_values$beta_hat_T
+			kk_stacked_weighted_estimate(self, private, subject_or_block_weights, estimate_only,
+				private$compute_weighted_combined_estimate)
 		},
 		#' @description Compute an asymptotic confidence interval.
 		#' @param alpha Significance level.

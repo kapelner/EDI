@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-205: InferenceIncidBinomialIdentityRiskDiff's randomization p-value was not reproducible
+# v1.0.6-TODO-146: InferenceIncidBinomialIdentityRiskDiff's randomization p-value was not reproducible
 # (two seeded calls on one object gave 1 vs 0.555) and the reusable-worker and slow paths disagreed
 # (1.000 vs 0.587). Cause: the warm start carried into each draw holds the Fisher information of a fit
 # on another assignment; the constrained line search then rejected every step and the kernel returned

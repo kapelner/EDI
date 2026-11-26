@@ -147,7 +147,7 @@ ContinKKOLSIVWCSource = list(
 				}
 			}
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate. It used to fall through to
 		# the KK compound's generic fallback (an unadjusted mean difference pooled with
 		# the observed-data weight), not this covariate-adjusted estimator. Now both
 		# halves are refit by weighted least squares with their HC2 variances and
@@ -189,7 +189,7 @@ ContinKKOLSIVWCSource = list(
 		},
 		fit_ols_with_treatment = function(X, y, j_treat, estimate_only = FALSE, weights = NULL){
 			if (nrow(X) <= ncol(X)) return(NULL)
-			# Weighted least squares (v1.0.6-TODO-217, Bayesian-bootstrap replicates):
+			# Weighted least squares (v1.0.6-TODO-158, Bayesian-bootstrap replicates):
 			# OLS and its HC2 sandwich on sqrt(weight)-scaled rows.
 			if (!is.null(weights)) {
 				sw = sqrt(as.numeric(weights))

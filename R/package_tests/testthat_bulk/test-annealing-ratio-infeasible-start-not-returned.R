@@ -9,10 +9,10 @@
 # Where: R/EDI/src/design_optimal_annealing_search.cpp:77 (kind: near_zero_division).
 # On commit 4fc58cd063bc this test failed with: Expected `den` > 0. Actual comparison: -0.50 <= 0.00
 # Difference: -0.50 <= 0
-# Tracked by v1.0.6-TODO-52; remove the skip() when that fix lands.
+# Tracked by v1.0.7-TODO-35; remove the skip() when that fix lands.
 
 test_that("ratio annealing never returns an infeasible allocation with a non-positive denominator", {
-	skip("known bug, v1.0.6-TODO-52")
+	skip("known bug, v1.0.7-TODO-35")
 		set.seed(1)
 		n = 10L
 		n_T = 5L

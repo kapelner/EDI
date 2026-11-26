@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-294 (DECISION-v1.0.6-TODO-294, option (b), owner 2026-11-23): with
+# v1.0.6-TODO-181 (DECISION-v1.0.6-TODO-294, option (b), owner 2026-11-23): with
 # prop_acceptable, DesignFixedRerandomization realizes its allocation as the best of
 # k = round(1 / prop_acceptable) draws, but the randomization reference used to keep the
 # best r of r / prop_acceptable draws, a tighter law (n = 40, two covariates,

@@ -22,7 +22,7 @@ library(EDI)
 # context wiring the real bootstrap loop uses (inference_all_abstract_bayesian_bootstrap.R), and
 # independently cross-checking every branch against the KKstats cache's own d_bar/r_bar/w_star.
 #
-# v1.0.6-TODO-217 (2026-11-19): that fallback is gone. It was a raw mean difference pooled with
+# v1.0.6-TODO-158 (2026-11-19): that fallback is gone. It was a raw mean difference pooled with
 # the observed w_star, not the estimator of the class reaching it (all zeros for
 # InferenceSurvivalKKStratCoxPHIVWC, raw survival-time differences for the other Cox / AFT
 # classes, ...). The host now delegates to the class's compute_weighted_estimate_ivwc(), passing

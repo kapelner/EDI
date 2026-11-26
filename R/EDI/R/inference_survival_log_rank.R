@@ -143,7 +143,7 @@ InferenceSurvivalLogRank = define_inference_class(
 		#' normality of the martingale-residual mean-difference estimate.
 		#' When the estimated standard error is unavailable the interval is \code{NA},
 		#' with the reason recorded and an \code{edi_wald_unavailable_warning}; no
-		#' bootstrap interval is substituted (v1.0.6-TODO-380; call
+		#' bootstrap interval is substituted (v1.0.6-TODO-225; call
 		#' \code{compute_bootstrap_confidence_interval()} for one).
 		#' @param alpha Significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
@@ -152,7 +152,7 @@ InferenceSurvivalLogRank = define_inference_class(
 			}
 			private$compute_shared()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -175,7 +175,7 @@ InferenceSurvivalLogRank = define_inference_class(
 		#'   unavailable the p-value is \code{NA}, with the reason recorded under
 		#'   \code{procedure_failure_reason$rank_test} and an
 		#'   \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
-		#'   substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+		#'   substituted (v1.0.6-TODO-231; call \code{compute_bootstrap_two_sided_pval()}
 		#'   for one).
 		#' @param delta Null treatment effect to test against. Only \code{0} is supported.
 		compute_asymp_log_rank_two_sided_pval_for_treatment_effect = function(delta = 0){
@@ -188,7 +188,7 @@ InferenceSurvivalLogRank = define_inference_class(
 					stop("Testing non-zero delta is not yet implemented for InferenceSurvivalLogRank.")
 				}
 			}
-			# v1.0.6-TODO-417 (DECISION-v1.0.6-TODO-380d): both branches used to fall back
+			# v1.0.6-TODO-231 (DECISION-v1.0.6-TODO-380d): both branches used to fall back
 			# to the bootstrap p-value; the asymptotic rank test is that test or NA.
 			if (isTRUE(private$has_general_censoring)) {
 				pv = private$cached_values$icen_pval
@@ -234,7 +234,7 @@ InferenceSurvivalLogRank = define_inference_class(
 			)
 		},
 		weighted_logrank_mean_difference = function(row_weights){
-			# Shared with InferenceSurvivalGehanWilcox (v1.0.6-TODO-193).
+			# Shared with InferenceSurvivalGehanWilcox (v1.0.7-TODO-54).
 			survival_null_martingale_mean_difference(private$y, private$dead, private$w, row_weights, peto_prentice = FALSE)
 		},
 		# interval::ictest() dispatch for left-/interval-censored data (TODO-7,
@@ -283,7 +283,7 @@ InferenceSurvivalLogRank = define_inference_class(
 # groups by first appearance (unique()), so its two-sample estimate and Z are
 # "mean score of the arm that appears first minus the other arm". Which arm
 # comes first depends on row order, so on a bootstrap or randomization draw it
-# is random (v1.0.6-TODO-117). This returns +1 when the treatment arm came
+# is random (v1.0.6-TODO-71). This returns +1 when the treatment arm came
 # first and -1 when control did, so multiplying fit$estimate and
 # fit$statistic by it gives treatment minus control. NA if the fit does not
 # name exactly the two arms 0/1.
@@ -299,9 +299,9 @@ ictest_treatment_minus_control_sign = function(fit) {
 }
 
 # Shared by InferenceSurvivalLogRank and InferenceSurvivalGehanWilcox
-# (v1.0.6-TODO-193, code-duplication audit dup-47b3c5848e6a): the two classes
+# (v1.0.7-TODO-54, code-duplication audit dup-47b3c5848e6a): the two classes
 # differ only in the ictest() score, the fused C++ kernel and the Peto-Prentice
-# weights, so a fix here (e.g. the v1.0.6-TODO-117/121 arm-sign fixes) lands in
+# weights, so a fix here (e.g. the v1.0.6-TODO-71 / v1.0.6-TODO-75 arm-sign fixes) lands in
 # both.
 
 # Weighted difference in mean null-model martingale residuals (treatment minus
@@ -380,7 +380,7 @@ survival_ictest_compute_shared = function(private, class_name, estimate_only, sc
 	}
 	# ictest()'s estimate and Z are "first group minus second group", where the
 	# first group is whichever arm appears first in the data, not a fixed arm
-	# (v1.0.6-TODO-117, v1.0.6-TODO-121). Orient both as treatment minus control.
+	# (v1.0.6-TODO-71, v1.0.6-TODO-75). Orient both as treatment minus control.
 	arm_sign = ictest_treatment_minus_control_sign(fit)
 	beta_hat = arm_sign * as.numeric(fit$estimate)
 	private$cached_values$beta_hat_T = beta_hat

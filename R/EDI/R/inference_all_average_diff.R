@@ -268,24 +268,8 @@ SimpleMeanDifferenceSource = list(
 			"wald"
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			b_null = as.numeric(null_fit$b)
-			vt = spec$full_fit$vt; vc = spec$full_fit$vc
-			w = spec$X[, 2]; n = length(w)
-			y_sim = numeric(n)
-			y_sim[w == 1] = b_null[1] + b_null[2] + rnorm(sum(w == 1), 0, sqrt(vt))
-			y_sim[w == 0] = b_null[1] + rnorm(sum(w == 0), 0, sqrt(vc))
-			
-			list(
-				full_fit = list(b = c(mean(y_sim[w==0]), mean(y_sim[w==1]) - mean(y_sim[w==0])), vt = var(y_sim[w==1]), vc = var(y_sim[w==0])),
-				fit_null = function(d, start = NULL){
-					m_joint = mean(y_sim - w * d)
-					list(b = c(m_joint, d), vt = var(y_sim[w==1]), vc = var(y_sim[w==0]))
-				},
-				neg_loglik = function(fit){
-					mu = fit$b[1] + fit$b[2]*w
-					sum((y_sim - mu)^2)
-				}
-			)
+			simulate_gaussian_two_arm_null(spec, null_fit,
+				function(y_sim, w) c(mean(y_sim[w == 0]), mean(y_sim[w == 1]) - mean(y_sim[w == 0])))
 		},
 		# C++ fast path for studentized/symmetric-percentile-t BRT: computes (t0_b, se0_b) in
 		# one pass per replicate, bypassing the R worker loop entirely.
@@ -476,3 +460,26 @@ NULL
 #' @R6method InferenceAllSimpleAverageDiff$compute_estimate_with_bootstrap_weights
 #' @template simple-mean-diff-bootstrap-weights
 NULL
+
+simulate_gaussian_two_arm_null = function(spec, null_fit, estimate_coefficients) {
+	b_null = as.numeric(null_fit$b)
+	vt = spec$full_fit$vt
+	vc = spec$full_fit$vc
+	w = spec$X[, 2]
+	n = length(w)
+	y_sim = numeric(n)
+	y_sim[w == 1] = b_null[1] + b_null[2] + rnorm(sum(w == 1), 0, sqrt(vt))
+	y_sim[w == 0] = b_null[1] + rnorm(sum(w == 0), 0, sqrt(vc))
+
+	list(
+		full_fit = list(b = estimate_coefficients(y_sim, w), vt = var(y_sim[w==1]), vc = var(y_sim[w==0])),
+		fit_null = function(d, start = NULL){
+			m_joint = mean(y_sim - w * d)
+			list(b = c(m_joint, d), vt = var(y_sim[w==1]), vc = var(y_sim[w==0]))
+		},
+		neg_loglik = function(fit){
+			mu = fit$b[1] + fit$b[2]*w
+			sum((y_sim - mu)^2)
+		}
+	)
+}

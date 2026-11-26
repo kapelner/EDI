@@ -1,9 +1,9 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-203: the fixed-link cumulative ordinal kernels (cauchit, cloglog, probit; shared pipeline in
+# v1.0.6-TODO-144: the fixed-link cumulative ordinal kernels (cauchit, cloglog, probit; shared pipeline in
 # R/EDI/src/ordinal_fixed_link_internal.h) used to differ on edge cases, kept as FixedLinkFitSpec policy flags by the
-# v1.0.6-TODO-193 refactor. One behavior for all three now:
+# v1.0.7-TODO-54 refactor. One behavior for all three now:
 #   * inputs are validated before the K < 2 early return (cauchit returned first);
 #   * y with fewer than 2 levels gives an empty list (probit fitted a threshold-free model and returned b = 0);
 #   * a non-finite or non-positive ssq_b_j is NaN (cauchit and cloglog returned e.g. 0);

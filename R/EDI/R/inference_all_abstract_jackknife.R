@@ -22,14 +22,14 @@
 #'     units, one subject grouped by its stratum (\code{"observation_within_block"})
 #'     instead: with few blocks in a stratum the permuted-block jackknife-Wald test
 #'     rejected a true null too often (about 0.06 at a nominal 0.05 with 3-9 blocks in
-#'     the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.6-TODO-270);
+#'     the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.7-TODO-122);
 #'   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
 #'     grouped by its stratum (\code{"observation_within_block"});
 #'   \item \code{\link[EDI:ObservationalDesignBlocks]{ObservationalDesignBlocks}}: one whole
 #'     block (\code{"block"}, right for matched sets and clusters) when there are at least
 #'     5 blocks; with fewer, one subject grouped by its block as a stratum
 #'     (\code{"observation_within_block"}), since leave-one-block-out would have too few
-#'     units (v1.0.6-TODO-231);
+#'     units (v1.0.6-TODO-165);
 #'   \item other blocking designs: one whole block (\code{"block"});
 #'   \item all other designs: one subject (\code{"observation"}).
 #' }
@@ -73,7 +73,7 @@
 #' ordinary unstratified bias \eqn{(N - 1)(\bar\theta - \hat\theta)}, which also counts the
 #' spread of the outcome between strata. For a linear estimator (a difference in means)
 #' both are 0; for a nonlinear one with strongly different strata the bias correction can
-#' be too large (v1.0.6-TODO-231). The jackknife-Wald test and interval are centred at the
+#' be too large (v1.0.6-TODO-165). The jackknife-Wald test and interval are centred at the
 #' bias-corrected estimate.
 #' The strata are fixed by the design and treatment is randomized within them, so only
 #' the within-stratum spread of the replicates enters the variance. A stratum with a
@@ -83,14 +83,14 @@
 #' unstratified units and, since EDI 1.0.6, the t distribution with
 #' \eqn{\sum_h (n_h - 1)} degrees of freedom (the degrees of freedom of the stratified
 #' variance) for the stratified units \code{"permuted_block"} and
-#' \code{"observation_within_block"} (v1.0.6-TODO-231: on SPBR with about 31 degrees of
+#' \code{"observation_within_block"} (v1.0.6-TODO-165: on SPBR with about 31 degrees of
 #' freedom the normal-reference 95\% interval covered 0.930 and the t interval 0.943).
 #' They are \code{NA} when the variance has fewer than 4 degrees of freedom
 #' (\eqn{G - 1}, or \eqn{\sum_h (n_h - 1)} for the stratified units).
 #'
 #' Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
 #' block, which on these designs is the stratum, so a replicate deleted a whole stratum
-#' and the jackknife had only 2-4 units (v1.0.6-TODO-4).
+#' and the jackknife had only 2-4 units (v1.0.6-TODO-1).
 #'
 #' \strong{BCa acceleration.} The BCa bootstrap interval and p-value of the nonparametric
 #' bootstrap take their acceleration from the same jackknife. On the stratified units it is
@@ -315,7 +315,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 		# duplicate copies here were removed 2026-10-22 so there is one path: the
 		# NonparametricBootstrap body re-raises EDI resampling control conditions
 		# (interrupts/timeouts) from get_block_ids() and swallows only other errors.
-		# v1.0.6-TODO-122: TRUE when the full-data fit is (quasi-)completely
+		# v1.0.6-TODO-76: TRUE when the full-data fit is (quasi-)completely
 		# separated, so compute_jackknife_summary() returns NA (reason
 		# "jackknife_full_data_separation") instead of jackknifing a fit with no
 		# finite solution. Default FALSE; the KK GEE classes override it.
@@ -347,7 +347,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
-			# v1.0.6-TODO-122: when the full-data fit is (quasi-)completely
+			# v1.0.6-TODO-76: when the full-data fit is (quasi-)completely
 			# separated, every leave-one-unit-out fit stops wherever the fitter
 			# gave up too, so the jackknife bias, SE and bias-corrected estimate
 			# describe the fitter's stopping rule, not the data (KK incidence GEE
@@ -368,7 +368,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
-			# v1.0.6-TODO-135: with G deletion units the delete-1 jackknife variance
+			# v1.0.6-TODO-89: with G deletion units the delete-1 jackknife variance
 			# has G - 1 degrees of freedom, but the Wald p-value and CI below use
 			# the normal reference. See EDI_JACKKNIFE_MIN_DELETION_UNITS.
 			if (edi_jackknife_effective_units(n_units, jack_strata) < EDI_JACKKNIFE_MIN_DELETION_UNITS) {
@@ -405,7 +405,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 				private$cached_values$jackknife_summary[[cache_key]] = summary
 				return(summary)
 			}
-			# v1.0.6-TODO-231 (owner decision 2026-11-20): the stratified units' Wald test and interval
+			# v1.0.6-TODO-165 (owner decision 2026-11-20): the stratified units' Wald test and interval
 			# use t with sum_h (n_h - 1) degrees of freedom; every other unit keeps the normal (df = Inf).
 			df_j = if (is.null(jack_strata)) Inf else edi_jackknife_effective_units(n_units, jack_strata) - 1L
 			summary = list(estimate = theta_j, bias = bias_j, std_error = se_j, distribution = jack, df = df_j)
@@ -415,7 +415,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 	)
 )
 
-# v1.0.6-TODO-135: fewest deletion units (blocks, clusters, pairs, matched sets
+# v1.0.6-TODO-89: fewest deletion units (blocks, clusters, pairs, matched sets
 # or observations) for which compute_jackknife_summary() reports a jackknife
 # estimate, bias and SE; below it they are NA with an edi_procedure_na_warning.
 # With G units the delete-1 jackknife variance behaves like a chi-square with
@@ -429,7 +429,7 @@ InferenceJackknife = R6::R6Class("InferenceJackknife",
 # units. Fewer than 5 is therefore NA; 5 or more is unchanged.
 EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
 
-# v1.0.6-TODO-270 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and
+# v1.0.7-TODO-122 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and
 # DesignSeqOneByOneRandomBlockSize the automatic jackknife unit is the permuted
 # block only when every stratum holds at least this many permuted-block units;
 # otherwise resolve_jackknife_unit("auto") deletes one subject within its stratum
@@ -442,7 +442,7 @@ EDI_JACKKNIFE_MIN_DELETION_UNITS = 5L
 # smallest stratum, size about 0.062 with the permuted block) switches too.
 EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM = 10L
 
-# v1.0.6-TODO-4: jackknife bias and variance from the replicate estimates `jack`
+# v1.0.6-TODO-1: jackknife bias and variance from the replicate estimates `jack`
 # (theta_(i), one per deletion unit) and the full-data estimate `theta_hat`.
 # strata = NULL: the ordinary delete-1 / delete-a-group jackknife with G units,
 #   bias = (G - 1) (theta_bar - theta_hat), v = ((G - 1) / G) sum_i (theta_(i) - theta_bar)^2
@@ -470,7 +470,7 @@ EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM = 10L
 #   Centring at theta_bar_h drops the between-stratum spread of the replicate means, which
 #   is not randomization variance when strata are fixed by the design. A stratum with one
 #   unit (n_h = 1) contributes 0 to both sums (its weight n_h - 1 is 0).
-#   v1.0.6-TODO-231 check of the bias (2026-11-19): sum_h (n_h - 1)(theta_bar_h - theta_hat) on
+#   v1.0.6-TODO-165 check of the bias (2026-11-19): sum_h (n_h - 1)(theta_bar_h - theta_hat) on
 #   REWEIGHTED replicates is the stratified jackknife bias of Jones (1974) / Krewski & Rao (1981),
 #   the form Wolter Sec. 4.5 uses; a second-order Taylor expansion of g(sum_h W_h ybar_h) gives
 #   (n_h - 1) E(theta_bar_h - theta_hat) = g''/2 W_h^2 s_h^2 / n_h, stratum h's own bias term.
@@ -504,10 +504,10 @@ edi_jackknife_bias_variance = function(jack, theta_hat, strata = NULL){
 	list(bias = bias, variance = variance)
 }
 
-# v1.0.6-TODO-231: BCa acceleration from the jackknife replicates `jack` (finite, one per deletion
+# v1.0.6-TODO-165: BCa acceleration from the jackknife replicates `jack` (finite, one per deletion
 # unit). strata = NULL: Efron's a = sum (theta_bar - theta_(i))^3 / (6 (sum (theta_bar - theta_(i))^2)^(3/2))
 #   (the expressions are kept exactly as before, so these results are unchanged).
-# strata = stratum id per replicate (the stratified units of v1.0.6-TODO-4): the acceleration is the
+# strata = stratum id per replicate (the stratified units of v1.0.6-TODO-1): the acceleration is the
 #   skewness of the empirical influence values, and with strata fixed by the design those are centred
 #   within their stratum, l_(h,i) = (n_h - 1)(theta_bar*_h - theta*_(h,i)), with theta* the
 #   reweighting-equivalent replicates of edi_jackknife_bias_variance() (theta* - theta_bar*_h =
@@ -544,7 +544,7 @@ edi_jackknife_acceleration = function(jack, strata = NULL){
 	if (is.finite(den) && den > 0) num / den else 0
 }
 
-# v1.0.6-TODO-231 (owner decision 2026-11-20): reference distribution of the jackknife-Wald test and
+# v1.0.6-TODO-165 (owner decision 2026-11-20): reference distribution of the jackknife-Wald test and
 # interval. df = Inf (every unstratified unit) keeps the normal, with the exact expressions used before
 # (pnorm / qnorm), so those results are unchanged; a finite df (the stratified units, df = sum_h (n_h - 1))
 # uses t_df. With ~31 df on SPBR (n = 148, 4 strata) the z interval covered 0.930 and t_31 0.943.
@@ -557,7 +557,7 @@ edi_jackknife_wald_pval = function(stat, df = Inf){
 	if (is.finite(df) && df > 0) 2 * stats::pt(-abs(stat), df) else 2 * stats::pnorm(-abs(stat))
 }
 
-# v1.0.6-TODO-4: the unit count compared with EDI_JACKKNIFE_MIN_DELETION_UNITS. With G
+# v1.0.6-TODO-1: the unit count compared with EDI_JACKKNIFE_MIN_DELETION_UNITS. With G
 # unstratified units the jackknife variance has G - 1 degrees of freedom; with strata it
 # has sum_h (n_h - 1), so the stratified count is that plus 1 (the same df threshold).
 edi_jackknife_effective_units = function(n_units, strata = NULL){
@@ -566,14 +566,14 @@ edi_jackknife_effective_units = function(n_units, strata = NULL){
 	sum(n_h - 1L) + 1L
 }
 
-# Warn when a public jackknife method hands back NA (v1.0.6-TODO-113, the
-# v1.0.6-TODO-95 rule). Names the specific reason compute_jackknife_summary()
+# Warn when a public jackknife method hands back NA (v1.0.6-TODO-67, the
+# v1.0.6-TODO-54 rule). Names the specific reason compute_jackknife_summary()
 # recorded (the public methods overwrite it with the generic
 # "jackknife_estimate_unavailable" right after this call), or fallback_reason. Silent during
 # resampling (see edi_warn_procedure_na()).
 edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackknife_estimate_unavailable", reason = NULL){
 	# `reason`: the caller knows the reason it just recorded (the g-computation
-	# risk-ratio path, v1.0.6-TODO-137), so a stale cached reason cannot be named.
+	# risk-ratio path, v1.0.6-TODO-91), so a stale cached reason cannot be named.
 	why = reason %||% private$cached_values$procedure_failure_reason$jackknife
 	if (!is.character(why) || !length(why) || is.na(why[1L])) why = private$cached_values$nonestimable_reason
 	if (!is.character(why) || !length(why) || is.na(why[1L])) why = fallback_reason
@@ -623,7 +623,7 @@ edi_warn_jackknife_na = function(self, private, method, fallback_reason = "jackk
 	edi_warn_procedure_na(self, private, procedure = method, reason = why, detail = detail)
 }
 
-# v1.0.6-TODO-137: jackknife-Wald inference for a risk-ratio estimand on the log
+# v1.0.6-TODO-91: jackknife-Wald inference for a risk-ratio estimand on the log
 # scale, shared by the incidence g-computation classes
 # (inference_incidence_gcomp_abstract.R and inference_incidence_KK_gcomp_abstract.R,
 # whose private compute_rr_jackknife_* methods delegate here). It applies the

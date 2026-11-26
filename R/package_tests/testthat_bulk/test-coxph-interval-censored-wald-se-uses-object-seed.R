@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-313 (docs-scenarios survival-censoring F9): on interval-censored data
+# v1.0.6-TODO-195 (docs-scenarios survival-censoring F9): on interval-censored data
 # InferenceSurvivalCoxPHRegr's Wald SE comes from icenReg::ic_sp()'s bootstrap, which drew from the
 # session RNG, so the CI and p-value changed with the global seed even after set_seed().
 

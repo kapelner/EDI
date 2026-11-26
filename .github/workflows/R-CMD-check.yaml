@@ -471,7 +471,7 @@ jobs:
           mkdir -p "$inc/unsupported"; cp -r "$RUNNER_TEMP/eigen-master/unsupported/Eigen" "$inc/unsupported/Eigen"
           # Eigen 5.x renamed unsupported/ to contrib/; unsupported/Eigen/* are now shims
           # that include "../../contrib/Eigen/*" (RcppEigen.h pulls in IterativeSolvers),
-          # so contrib/ must sit next to unsupported/ (v1.0.6-TODO-426).
+          # so contrib/ must sit next to unsupported/ (v1.0.6-TODO-233).
           if [ -d "$RUNNER_TEMP/eigen-master/contrib/Eigen" ]; then
             rm -rf "$inc/contrib/Eigen"; mkdir -p "$inc/contrib"
             cp -r "$RUNNER_TEMP/eigen-master/contrib/Eigen" "$inc/contrib/Eigen"
@@ -1034,7 +1034,7 @@ jobs:
             # cache version "1"), so the two Ubuntu 26.04 R-devel legs share a key prefix,
             # and nold restored clang23's cache, whose packages
             # are built against libc++, and failed loading digest.so ("libc++.so.1: cannot
-            # open shared object file"; v1.0.6-TODO-426). actions/cache only restores an
+            # open shared object file"; v1.0.6-TODO-233). actions/cache only restores an
             # entry saved under the same paths, so a per-leg path keeps the caches apart.
             echo "R_LIBS_USER=${HOME}/R/rhub-${{ matrix.config.label }}-library"
             if [ "${{ matrix.config.compile_only }}" = "true" ]; then

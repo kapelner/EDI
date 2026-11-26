@@ -13,7 +13,7 @@ name in ``edi_kernels._core``: it checks its inputs (finite numeric data, 0/1
 treatment and event vectors, matching lengths, valid choices; see
 ``edi_kernels._checks``) and raises ``ValueError`` naming the bad argument, then
 calls the kernel unchanged. ``set_checks(False)`` skips the optional checks for
-speed; the 0/1 and matching-length checks always run (v1.0.6-TODO-101).
+speed; the 0/1 and matching-length checks always run (v1.0.6-TODO-59).
 """
 
 from . import _core

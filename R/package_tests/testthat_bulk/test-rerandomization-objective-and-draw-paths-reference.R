@@ -21,7 +21,7 @@ ref_mahal <- function(X, w) {
 	d <- colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
 	as.numeric(t(d) %*% solve(var(X)) %*% d)
 }
-# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-70).
+# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-33).
 ref_abs <- function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])) / apply(X, 2, sd))
 
 test_that("compute_obj matches the Mahalanobis and absolute-sum-difference definitions", {
@@ -87,7 +87,7 @@ test_that("an impossible cutoff makes the search fail loudly", {
 	expect_error(f$des$draw_ws_according_to_design(r = 5), "could not find 5 acceptable allocation")
 })
 
-# v1.0.6-TODO-294: each draw is the best of its own group of round(1 / prop) consecutive pool
+# v1.0.6-TODO-181: each draw is the best of its own group of round(1 / prop) consecutive pool
 # draws (the realized allocation's rule), not the best r of the pooled r / prop draws.
 test_that("prop_acceptable returns the best of each consecutive group of a seeded pool", {
 	seed <- 41L; r <- 5L; prop <- 0.1; n <- 20L; k <- round(1 / prop)

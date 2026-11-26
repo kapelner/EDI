@@ -91,7 +91,7 @@ test_that("proportion_use_speedup = TRUE calls kk21_stepwise_continuous_weights_
 		y_fn = function(x1, x2, w) plogis(0.5 * x1 - 0.4 * x2 + 0.2 * w + rnorm(1, sd = 0.15)),
 		proportion_use_speedup = TRUE)
 	res <- kk21sw_dispatch(des)
-	# v1.0.6-TODO-60: the speedup uses the Smithson-Verkuilen logit, not an eps clamp; with no
+	# v1.0.6-TODO-24: the speedup uses the Smithson-Verkuilen logit, not an eps clamp; with no
 	# 0/1 responses here it is the plain logit.
 	y <- res$asd$y_all
 	expect_true(all(y > 0 & y < 1))

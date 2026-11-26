@@ -56,7 +56,7 @@ test_that("per_estimand_breakdown_lines: one line per usable estimand group, its
 	md_combined <- combine_pvalues(c(0.1, 0.2))
 	expect_match(lines[1], sprintf("Estimand: mean %s \\(2 inferences\\).*p = %s", "Δ", sub("^0", "0", sprintf("%.3f", md_combined$pval))))
 	# the RR group has only 1 usable row (row 5 is status = error): it reports that row's own p-value
-	# (was NA before v1.0.6-TODO-312)
+	# (was NA before v1.0.6-TODO-194)
 	expect_match(lines[2], "Estimand: risk ratio \\(1 inferences\\).*p =\\s*0\\.050")
 })
 

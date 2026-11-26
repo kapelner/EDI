@@ -34,7 +34,7 @@ fx_cluster <- function(n = 24L) {
 
 test_that("unit resolution: observation by default, observation_within_block for DesignFixedBlocking, cluster for cluster designs; explicit units pass through", {
 	expect_equal(fx_plain()$p$resolve_jackknife_unit("auto"), "observation")
-	# v1.0.6-TODO-4: DesignFixedBlocking's automatic unit is the subject within its stratum (was "block").
+	# v1.0.6-TODO-1: DesignFixedBlocking's automatic unit is the subject within its stratum (was "block").
 	expect_equal(fx_block()$p$resolve_jackknife_unit("auto"), "observation_within_block")
 	expect_equal(fx_cluster()$p$resolve_jackknife_unit("auto"), "cluster")
 	for (u in c("observation", "block", "cluster", "pair", "matched_set", "permuted_block", "observation_within_block")) expect_equal(fx_plain()$p$resolve_jackknife_unit(u), u)
@@ -43,7 +43,7 @@ test_that("unit resolution: observation by default, observation_within_block for
 
 test_that("block-size guard: only observation-level deletion inside multi-member blocks is unsupported", {
 	b <- fx_block()
-	expect_false(b$p$jackknife_block_size_gt_one_unsupported("auto"))           # stratified delete-1 (v1.0.6-TODO-4)
+	expect_false(b$p$jackknife_block_size_gt_one_unsupported("auto"))           # stratified delete-1 (v1.0.6-TODO-1)
 	expect_false(b$p$jackknife_block_size_gt_one_unsupported("block"))          # deletes whole blocks
 	expect_false(b$p$jackknife_block_size_gt_one_unsupported("observation_within_block"))
 	expect_false(b$p$jackknife_block_size_gt_one_unsupported("pair"))

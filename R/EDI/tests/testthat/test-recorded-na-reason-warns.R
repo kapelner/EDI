@@ -1,4 +1,4 @@
-# v1.0.6-TODO-113: an NA whose reason is only recorded on the object must also warn (the v1.0.6-TODO-95 rule).
+# v1.0.6-TODO-67: an NA whose reason is only recorded on the object must also warn (the v1.0.6-TODO-54 rule).
 # Covers InferenceCountPoisson asymptotic inference on DesignFixedBlockedCluster (a documented gate, so
 # edi_unsupported_procedure), the bootstrap CI's "extreme interval" NA, and the jackknife NA on a separated
 # KK21 ordinal fit. None of these warnings may fire inside a resampling inner loop.
@@ -54,7 +54,7 @@ test_that("a bootstrap CI rejected as extreme warns with its recorded reason", {
 	inf = InferenceOrdinalPropOddsRegr$new(cluster_ordinal_113())
 	# Force the "extreme interval" branch: any finite interval is wider than this cap.
 	inf$.__enclos_env__$private$bootstrap_extreme_ci_width_threshold = 1e-8
-	# v1.0.6-TODO-157: a log-odds interval over that cap is kept when it is narrow relative to the
+	# v1.0.6-TODO-104: a log-odds interval over that cap is kept when it is narrow relative to the
 	# replicates' spread, so the spread allowance is forced to ~0 too.
 	inf$.__enclos_env__$private$bootstrap_extreme_ci_width_spread_multiple = 1e-8
 	set.seed(1)

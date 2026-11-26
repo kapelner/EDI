@@ -66,7 +66,7 @@ DesignSeqOneByOneEfron = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			# v1.0.6-TODO-70: the docs promised p > 0.5 but nothing checked it; a p outside
+			# v1.0.6-TODO-33: the docs promised p > 0.5 but nothing checked it; a p outside
 			# (0.5, 1] gave NA draws (p > 1) or a coin that pushes toward imbalance (p < 0.5).
 			# p = 1 (the deterministic limit) stays valid; tests rely on it.
 			if (!is.numeric(weighted_coin_prob) || length(weighted_coin_prob) != 1L || is.na(weighted_coin_prob) ||
@@ -102,7 +102,7 @@ DesignSeqOneByOneEfron = define_design_class(
 	private = list(
 		weighted_coin_prob = NULL,
 		draw_ws_raw = function(r = 100){
-			# v1.0.6-TODO-183: one row per enrolled subject (t), like every other
+			# v1.0.6-TODO-129: one row per enrolled subject (t), like every other
 			# sequential design; the coin depends only on the running counts, so a t-row
 			# replay has the law of the first t subjects. Identical to n once complete.
 			generate_permutations_efron_cpp(

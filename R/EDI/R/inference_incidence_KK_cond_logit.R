@@ -735,7 +735,7 @@ InferenceIncidKKCondLogitOneLik = define_inference_class(
 				permutations = permutations, type = type,
 				args_for_type = args_for_type,
 				zero_one_logit_clamp = zero_one_logit_clamp,
-				alternative = alternative # v1.0.6-TODO-328
+				alternative = alternative # v1.0.6-TODO-209
 			)
 		}
 	),
@@ -854,52 +854,17 @@ IncidKKCondLogitIVWCSource = list(
 			if (is.null(se) || length(se) != 1L) NA_real_ else se
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			private$compute_basic_match_data()
-			KKstats = private$cached_values$KKstats
+			if (kk_ivwc_cache_is_current(private, estimate_only, full_fit_cached = TRUE)) return(invisible(NULL))
+			KKstats = kk_ivwc_match_stats(private, refresh = TRUE)
 			if (is.null(KKstats)) return(invisible(NULL))
 			X_covars = private$get_X()
-			
-			# --- Matched pairs: Conditional Logistic ---
-			if (KKstats$m > 0){
-				private$clogit_for_matched_pairs(KKstats, X_covars)
-			}
-			beta_m   = private$cached_values$beta_T_matched
-			ssq_m    = private$cached_values$ssq_beta_T_matched
-			m_ok     = !is.null(beta_m) && is.finite(beta_m) &&
-			           !is.null(ssq_m)  && is.finite(ssq_m) && ssq_m > 0
-			# --- Reservoir: Logistic Regression ---
-			if (KKstats$nRT > 0 && KKstats$nRC > 0){
-				private$logistic_for_reservoir(KKstats, X_covars)
-			}
-			beta_r   = private$cached_values$beta_T_reservoir
-			ssq_r    = private$cached_values$ssq_beta_T_reservoir
-			r_ok     = !is.null(beta_r) && is.finite(beta_r) &&
-			           !is.null(ssq_r)  && is.finite(ssq_r) && ssq_r > 0
-			# --- Variance-weighted combination ---
-			if (m_ok && r_ok){
-				w_star = ssq_r / (ssq_r + ssq_m)
-				private$cached_values$beta_hat_T   = w_star * beta_m + (1 - w_star) * beta_r
-				# v1.0.6-TODO-132: no early return for estimate_only here. The component
-				# variances are already computed, and shared() returns early on a cached
-				# beta_hat_T, so returning before the SE left a later full call with
-				# no standard error (NA CIs and p-values after an estimate_only call).
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
-			} else if (m_ok){
-				private$cached_values$beta_hat_T   = beta_m
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
-			} else if (r_ok){
-				private$cached_values$beta_hat_T   = beta_r
-				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
-			} else {
-				private$cached_values$beta_hat_T   = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
+			fit_and_pool_kk_ivwc_halves(private, KKstats,
+				private$clogit_for_matched_pairs(KKstats, X_covars),
+				private$logistic_for_reservoir(KKstats, X_covars),
+				cache_se = TRUE)
 			private$cached_values$df = Inf
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate. It used to fall through to
 		# the KK compound's generic fallback, a weighted risk difference (0.30 for a
 		# log-odds-ratio estimate of 2.66). Now it is the same estimator as shared():
 		# the discordant-pair conditional logistic fit (weighted by pair) and the

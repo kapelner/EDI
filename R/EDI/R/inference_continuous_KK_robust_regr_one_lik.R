@@ -75,8 +75,7 @@ ContinKKRobustRegrOneLikSource = list(
 		#'   retaining the \code{method} argument passed at construction time.
 		#' @return Numeric scalar treatment-effect estimate on the outcome's natural scale.
 		compute_estimate = function(estimate_only = FALSE){
-			private$fit_combined(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			kk_stacked_linear_estimate(private, estimate_only)
 		},
 		#' @description Recomputes the combined robust-regression treatment estimate under
 		#'   nonparametric/Bayesian-bootstrap subject-or-block weights. Weights are expanded to
@@ -93,23 +92,8 @@ ContinKKRobustRegrOneLikSource = list(
 		#' @return Numeric scalar treatment-effect estimate under the given weights, or
 		#'   \code{NA_real_} if the weighted fit is not estimable.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
-				self$compute_estimate(estimate_only = estimate_only)
-				beta_hat_T = as.numeric(private$cached_values$beta_hat_T)[1L]
-				if (is.finite(beta_hat_T)) {
-					return(private$cached_values$beta_hat_T)
-				}
-			}
-			result = private$fit_weighted_combined(row_weights, estimate_only = estimate_only)
-			if (is.list(result)) {
-				private$cached_values$beta_hat_T = result$beta
-				private$cached_values$s_beta_hat_T = result$se
-			} else {
-				private$cached_values$beta_hat_T = result
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
-			private$cached_values$beta_hat_T
+			kk_stacked_weighted_estimate(self, private, subject_or_block_weights, estimate_only,
+				private$fit_weighted_combined)
 		},
 		#' @description Wald confidence interval for the treatment coefficient:
 		#'   \eqn{\hat\beta_T \pm t_{1-\alpha/2,\,df}\cdot \hat{se}(\hat\beta_T)} from the combined
@@ -209,7 +193,7 @@ ContinKKRobustRegrOneLikSource = list(
 			# (start_with_ols) were below rlm's own default of 20, and M-estimation
 			# with the MAD scale re-estimated every iteration needed up to 26
 			# iterations on a 20-subject reservoir with outliers, so rlm stopped
-			# unconverged and the fit came back NA (v1.0.6-TODO-50).
+			# unconverged and the fit came back NA (v1.0.6-TODO-15).
 			maxit = private$rlm_maxit
 			if (is.null(maxit)) maxit = 100L
 			acc = private$rlm_acc
@@ -266,7 +250,7 @@ ContinKKRobustRegrOneLikSource = list(
 				)
 				if (is.null(fit)) return(NULL)
 				# Same rule as the MASS::rlm path below: a fit that has not converged
-				# within maxit is nonestimable (v1.0.6-TODO-50).
+				# within maxit is nonestimable (v1.0.6-TODO-15).
 				if (!isTRUE(fit$converged)) return(NULL)
 				coef_vec = as.numeric(fit$coefficients)
 				if (length(coef_vec) < j_treat || !is.finite(coef_vec[j_treat])) return(NULL)
@@ -374,51 +358,9 @@ ContinKKRobustRegrOneLikSource = list(
 		fit_combined = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			KKstats = private$cached_values$KKstats
-			if (is.null(KKstats)){
-				private$compute_basic_match_data()
-				KKstats = private$cached_values$KKstats
-			}
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			nR  = nRT + nRC
-			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$get_X())) > 0){
-					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
-					p = ncol(Xd_full)
-				} else {
-					Xd_full = matrix(nrow = m, ncol = 0L)
-					p = 0L
-				}
-				X_comb = rbind(
-					if (p > 0L) cbind(0, 1, Xd_full) else cbind(numeric(m), rep(1.0, m)),
-					if (p > 0L) cbind(rep(1, nR), KKstats$w_reservoir, as.matrix(KKstats$X_reservoir)) else cbind(rep(1, nR), KKstats$w_reservoir)
-				)
-				y_comb = c(KKstats$y_matched_diffs, KKstats$y_reservoir)
-				j_treat = 2L
-			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
-				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
-				y_comb = KKstats$y_matched_diffs
-				j_treat = 1L
-			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
-				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
-				y_comb = KKstats$y_reservoir
-				j_treat = 2L
-			} else {
-				private$cache_nonestimable_estimate("no_usable_matched_or_reservoir_data")
-				return(invisible(NULL))
-			}
-			reduced = private$reduce_design_matrix_once(
-				X_comb,
-				j_treat,
-				cache_key = "kk_robust_combined_reduced_design"
-			)
-			X_comb = reduced$X
-			j_treat = reduced$j_treat
-			fit = private$fit_rlm(X_comb, y_comb, j_treat, estimate_only = estimate_only)
+			data = kk_stacked_linear_model_data(private, "kk_robust_combined_reduced_design")
+			if (is.null(data)) return(invisible(NULL))
+			fit = private$fit_rlm(data$X, data$y, data$j_treat, estimate_only = estimate_only)
 			if (is.null(fit)){
 				private$cache_nonestimable_estimate("rlm_fit_unavailable")
 				return(invisible(NULL))

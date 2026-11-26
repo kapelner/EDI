@@ -97,7 +97,7 @@ count_focused_quasi_tier_classes = c(
 # Every full-tier class's generic `compute_asymp_*()` entry points dispatch on
 # the configured testing type. Poisson/NegBin always did; the zero-augmented
 # Poisson family, the zero-inflated NB and the hurdle NB used to return the
-# Wald result whatever the type and follow it since v1.0.6-TODO-413 (commit
+# Wald result whatever the type and follow it since v1.0.6-TODO-230 (commit
 # f27d8c00, `za_count_asymp_by_testing_type()`).
 
 count_focused_registry_classes = function(tier) {
@@ -282,7 +282,7 @@ for (class_name in count_focused_full_tier_classes) {
 				p_asymp = inf$compute_asymp_two_sided_pval(delta = 0)
 				ci_asymp = as.numeric(inf$compute_asymp_confidence_interval(alpha = 0.05))
 				# Generic asymptotic entry points dispatch on the configured
-				# testing type (v1.0.6-TODO-413 for the zero-augmented classes).
+				# testing type (v1.0.6-TODO-230 for the zero-augmented classes).
 				expect_equal(p_asymp, p_family, tolerance = 1e-8, info = paste(class_name, nm, "asymp p dispatch"))
 				expect_equal(ci_asymp, ci_family, tolerance = 1e-8, info = paste(class_name, nm, "asymp CI dispatch"))
 			}

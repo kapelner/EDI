@@ -94,3 +94,26 @@ exact_test_private = list(
 
 # Explicit production component source.
 ExactTestSource = list(public = exact_test_public, private = exact_test_private)
+
+edi_exact_incidence_args = function(type, args_for_type, allowed_type) {
+	if (should_run_asserts()) {
+		assertChoice(type, allowed_type)
+		assertList(args_for_type, null.ok = TRUE)
+	}
+	utils::modifyList(setNames(list(list()), type), if (is.null(args_for_type)) list() else args_for_type)
+}
+
+edi_validate_exact_incidence_args = function(private, type, args_for_type, allowed_type) {
+	if (should_run_asserts()) {
+		assertChoice(type, allowed_type)
+		assertList(args_for_type)
+		if (!(type %in% names(args_for_type))) stop("args_for_type must contain a list for ", type)
+	}
+	args = args_for_type[[type]]
+	if (should_run_asserts()) {
+		assertList(args)
+		assertResponseType(private$des_obj$get_response_type(), "incidence")
+		assertNoCensoring(private$any_censoring)
+	}
+	args
+}

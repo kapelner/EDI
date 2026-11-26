@@ -167,7 +167,7 @@ test_that("evaluate_m_out_of_n_bootstrap_size returns the centered CI / p-value 
 			finite_fraction = 0, n_finite = 0L))
 })
 
-# v1.0.6-TODO-299 (docs-scenarios clusters-blocking F2): the non-parametric bootstrap cache was keyed
+# v1.0.6-TODO-186 (docs-scenarios clusters-blocking F2): the non-parametric bootstrap cache was keyed
 # by B only, so a "resample_blocks" call after a "within_blocks" call returned the within-blocks
 # draws, and a diagnostic call changed a later compute_bootstrap_confidence_interval().
 test_that("bootstrap distribution cache is keyed by bootstrap_type", {

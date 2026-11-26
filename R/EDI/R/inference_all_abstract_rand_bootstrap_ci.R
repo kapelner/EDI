@@ -96,11 +96,28 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		#'   than one derived from or validated against those sources, and measured performance (this
 		#'   CI, unlike a standalone smoothed p-value, is accelerated by the noise-aware fast kernels:
 		#'   about 50x on \code{n = 30}, \code{B = 99}).
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the draws.
+		#'   \code{FALSE} (default): every draw analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each draw's resampled rows are imputed again
+		#'   (\code{missingness_method}) once, when the draws are made, and that imputation is
+		#'   reused at every \code{delta} the inversion evaluates (the fresh assignment is also
+		#'   drawn on those rows), so the cost is one imputation per draw, not per draw and
+		#'   \code{delta}. The closed-form inversion for affine statistics and class-specific
+		#'   batch kernels are bypassed when it is \code{TRUE}. Without missing covariates the
+		#'   two are identical. Not available when the inference's covariate matrix differs from
+		#'   the design's (a \code{model_formula}, or covariates dropped as perfect predictors).
+		#'   See \code{compute_bootstrap_confidence_interval()}.
 		#' @return A bootstrap randomization confidence interval. The interval lives on the
 		#'   response-transformation scale used by the test (identity for continuous, logit for
 		#'   proportion, log for count and survival). Bounds may be conservative (wider than
 		#'   necessary) when the p-value inversion cannot be completed within the search radius.
-		compute_rand_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, pval_epsilon = 0.005, show_progress = TRUE, max_expansions = 7L, bootstrap_type = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile"){
+		compute_rand_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, pval_epsilon = 0.005, show_progress = TRUE, max_expansions = 7L, bootstrap_type = NULL, zero_one_logit_clamp = .Machine$double.eps, type = "percentile", reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: the p-values and distributions evaluated below inherit the setting;
+			# the draws generated below carry their once-per-draw imputation.
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			reimpute = edi_bootstrap_reimputes(private)
+			if (reimpute) edi_assert_bootstrap_reimpute_supported(private)
 			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
 				stop(
 					"Randomization-bootstrap confidence intervals are not implemented for ordinal model-coefficient estimands.",
@@ -111,7 +128,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			if (any(class(self) %in% EDI_RAND_BOOTSTRAP_CI_SCALE_MISMATCH_CLASSES)) {
 				inference_stop_rand_bootstrap_ci_scale_mismatch(class(self)[1L])
 			}
-			# v1.0.6-TODO-184: a marginal estimand is not on the shift scale either.
+			# v1.0.6-TODO-130: a marginal estimand is not on the shift scale either.
 			inference_stop_rand_ci_non_conditional_estimand(self, "Randomization-bootstrap confidence intervals")
 			if (identical(tolower(type), "smoothed")) assert_rand_bootstrap_smoothing_supported(self, private$des_obj_priv_int$response_type)
 			if (should_run_asserts()) {
@@ -145,7 +162,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			)
 			missing_ci = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
-				# v1.0.6-TODO-165: warn once instead of a silent NA (silent inside resampling).
+				# v1.0.6-TODO-113: warn once instead of a silent NA (silent inside resampling).
 				edi_warn_procedure_na(self, private, procedure = "randomization-bootstrap confidence interval",
 					reason = reason, detail = rand_bootstrap_ci_na_detail(reason))
 				ci = c(NA_real_, NA_real_)
@@ -185,7 +202,8 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 			# t0_b(delta) = A_b + delta * c_b, so the p-value is a step function of delta whose
 			# breakpoints are (t - A_b) / c_b and the CI is read off exactly — no bisection.
 			# Only valid for the raw (percentile) test — skipped for all other types.
-			if (identical(tolower(type), "percentile") && identical(transform_arg, "none") &&
+			# The affine coefficients come from the original imputed covariates, so not when re-imputing.
+			if (!reimpute && identical(tolower(type), "percentile") && identical(transform_arg, "none") &&
 				is.null(private$custom_randomization_statistic_function) &&
 				is.null(private[["compiled_cpp_stat_fn"]]) &&
 				private$has_private_method("compute_rand_bootstrap_ci_affine_coefs")) {
@@ -411,7 +429,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 		compute_rand_bootstrap_ci_pval_cached = function(delta, B, transform_arg, draws, resolution, ci_pval_cache, zero_one_logit_clamp = .Machine$double.eps){
 			cache_key = private$normalize_delta_for_cache(delta, resolution)
 			if (!is.null(ci_pval_cache[[cache_key]])) return(ci_pval_cache[[cache_key]])
-			# v1.0.6-TODO-136: one p-value per delta, so its NA warning is muffled here.
+			# v1.0.6-TODO-90: one p-value per delta, so its NA warning is muffled here.
 			pval = tryCatch(
 				edi_muffle_rand_pval_na_warnings(as.numeric(self$compute_rand_bootstrap_two_sided_pval(
 					B = B,
@@ -421,7 +439,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 					show_progress = FALSE,
 					rand_bootstrap_draws = draws,
 					zero_one_logit_clamp = zero_one_logit_clamp,
-					# v1.0.6-TODO-12: the valid-fraction minimum is for reported p-values; the CI
+					# v1.0.6-TODO-2: the valid-fraction minimum is for reported p-values; the CI
 					# search keeps its own failure handling, so its intervals are unchanged.
 					min_fraction_usable_samples = 0
 				))),
@@ -508,7 +526,7 @@ InferenceRandBootstrapCI = R6::R6Class("InferenceRandBootstrapCI",
 	)
 )
 
-# Detail for a randomization-bootstrap CI that is NA (v1.0.6-TODO-165). The per-delta p-value
+# Detail for a randomization-bootstrap CI that is NA (v1.0.6-TODO-113). The per-delta p-value
 # warnings are muffled during the search, so the CI warns once itself, like the plain rand CI.
 rand_bootstrap_ci_na_detail = function(reason) {
 	switch(as.character(reason)[1L],

@@ -1,7 +1,7 @@
-# v1.0.6-TODO-108: on a DesignFixedBlocking whose design_formula names the strata column,
+# v1.0.6-TODO-62: on a DesignFixedBlocking whose design_formula names the strata column,
 # the BCa bootstrap CI and the jackknife-Wald CI were NA with no warning. Leave-one-block-out
 # leaves the strata column constant; the design dropped it before applying the formula, so
-# model.matrix() failed in every jackknife replicate (same cause as v1.0.6-TODO-107, fixed in
+# model.matrix() failed in every jackknife replicate (same cause as v1.0.6-TODO-61, fixed in
 # Design's covariate_impute_if_necessary_and_then_create_model_matrix()). InferenceContinLin
 # also read private$X directly, which a reusable worker sets to NULL on a rank-deficient draw.
 
@@ -32,21 +32,21 @@ for (cls in names(blocking_strata_formula_specs)) local({
 		des = fx_blocking_strata_formula(spec[[1L]], spec[[2L]])
 		inf = get(cls)$new(des, verbose = FALSE)
 		inf$num_cores = 1L
-		# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject
+		# v1.0.6-TODO-1 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject
 		# within its stratum, so ask for leave-one-block-out explicitly; deleting a whole block
-		# is what leaves the strata column constant (the v1.0.6-TODO-108 case).
+		# is what leaves the strata column constant (the v1.0.6-TODO-62 case).
 		jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = "block")
 		expect_length(jack, 2L)
 		expect_true(all(is.finite(jack)))
-		# v1.0.6-TODO-135: 2 blocks are too few deletion units for a jackknife variance, so the
-		# jackknife-Wald CI is NA with a warning; the replicates above (the v1.0.6-TODO-108 fix)
+		# v1.0.6-TODO-89: 2 blocks are too few deletion units for a jackknife variance, so the
+		# jackknife-Wald CI is NA with a warning; the replicates above (the v1.0.6-TODO-62 fix)
 		# stay finite.
 		expect_warning(jci <- inf$compute_jackknife_wald_confidence_interval(unit = "block"),
 			"jackknife_too_few_deletion_units", class = "edi_procedure_na_warning")
 		expect_true(all(is.na(jci)))
 		# BCa takes its acceleration from the automatic unit: n = 40 within-stratum deletions
-		# (v1.0.6-TODO-4), well above the minimum, so the interval is finite with no failure.
-		# B = 501 (v1.0.6-TODO-231): at B = 201 the 2.5% BCa tail is ~5 order statistics, and the
+		# (v1.0.6-TODO-1), well above the minimum, so the interval is finite with no failure.
+		# B = 501 (v1.0.6-TODO-165): at B = 201 the 2.5% BCa tail is ~5 order statistics, and the
 		# stratified acceleration (-0.0185 vs -0.0168 unstratified on the Cox fixture) moved the
 		# adjusted lower level from 0.0100 to 0.0098, just inside the 2/(B + 1) boundary margin.
 		bci = inf$compute_bootstrap_confidence_interval(B = 501, type = "bca", show_progress = FALSE)
@@ -93,7 +93,7 @@ test_that("a jackknife deletion unit the blocking design does not support warns 
 		"unit = \"block\"", class = "edi_procedure_na_warning"
 	)
 	expect_true(all(is.na(ci)))
-	# With unit = "block" the unit is supported, but 2 blocks are too few (v1.0.6-TODO-135).
+	# With unit = "block" the unit is supported, but 2 blocks are too few (v1.0.6-TODO-89).
 	expect_warning(ci_block <- inf$compute_jackknife_wald_confidence_interval(unit = "block"),
 		"jackknife_too_few_deletion_units", class = "edi_procedure_na_warning")
 	expect_true(all(is.na(ci_block)))

@@ -298,7 +298,7 @@ build_public_argument_fixture = function(spec) {
 build_public_argument_fixtures = function(tier = "smoke", fixture_ids = NULL) {
 	specs = public_argument_fixture_specs()
 	if (!is.null(fixture_ids) && any(is_data_shape_fixture_id(fixture_ids))) {
-		# Data-shape fixtures (v1.0.6-TODO-97) are built from their ids, never by tier.
+		# Data-shape fixtures (v1.0.7-TODO-41) are built from their ids, never by tier.
 		shape_ids = fixture_ids[is_data_shape_fixture_id(fixture_ids)]
 		rest = setdiff(fixture_ids, shape_ids)
 		out = build_data_shape_fixtures(shape_ids)
@@ -369,16 +369,16 @@ fixture_inventory = function(fixtures) {
 }
 
 # ---------------------------------------------------------------------------------------------
-# Data-shape axes (v1.0.6-TODO-97).
+# Data-shape axes (v1.0.7-TODO-41).
 #
 # The registry-driven cases above vary argument values; their axes come from checkmate contracts,
 # which only see argument types. The canonical fixtures are all n = 8, fixed n, equal blocks and
 # clusters, complete covariates, right censoring at most and no real treatment effect, so a bug that
-# needs one of those settings (v1.0.6-TODO-73, -74, -76..78, -90, -91) never runs. These axes vary the
+# needs one of those settings (v1.0.6-TODO-36 / v1.0.7-TODO-37 / v1.0.6-TODO-38 / v1.0.6-TODO-39 / v1.0.6-TODO-40 / v1.0.6-TODO-49 / v1.0.6-TODO-50) never runs. These axes vary the
 # data instead. Cells are drawn pairwise (generate_public_argument_data_shape_cases() in
 # generate_public_argument_combinations.R), not full factorial, and each cell's fixture is built on
 # demand from its id, so a fixture that cannot even be built (e.g. KK21 with n = NULL,
-# v1.0.6-TODO-76) is recorded as that cell's error instead of aborting the run.
+# v1.0.6-TODO-38) is recorded as that cell's error instead of aborting the run.
 # ---------------------------------------------------------------------------------------------
 
 data_shape_fixture_prefix = "data_shape__"
@@ -431,7 +431,7 @@ parse_data_shape_fixture_id = function(fixture_id) {
 
 # Subject layout for one cell. Equal: two strata of 20 and ten clusters of 4. Unequal: strata of 17
 # and 23, clusters of 2 to 6 subjects, each cluster inside one stratum (so blocked-cluster designs see
-# blocks with different subject counts, v1.0.6-TODO-73).
+# blocks with different subject counts, v1.0.6-TODO-36).
 make_data_shape_covariates = function(cell, n = data_shape_fixture_n) {
 	cluster_sizes = if (identical(cell$group_sizes, "unequal")) c(2L, 3L, 4L, 5L, 3L, 3L, 4L, 5L, 6L, 5L) else rep(4L, 10L)
 	stopifnot(sum(cluster_sizes) == n)
@@ -479,7 +479,7 @@ data_shape_response_one = function(cell, i, w_i, x1_i, noise) {
 				t_cens = 5 + 40 * noise$u_cens[i]
 				if (t_event <= t_cens) exact(t_event) else list(y = NA_real_, y_L = t_cens, y_R = Inf)
 			} else if (identical(cell$censoring, "interval")) {
-				# Visit-schedule data as in the v1.0.6-TODO-90 repro: the event is known only to lie
+				# Visit-schedule data as in the v1.0.6-TODO-49 repro: the event is known only to lie
 				# between two visits three time units apart.
 				left = floor(t_event / 3) * 3
 				list(y = NA_real_, y_L = left, y_R = left + 3)
@@ -532,7 +532,7 @@ build_data_shape_fixture = function(fixture_id) {
 		}
 		w = as.numeric(design$get_w())
 		# With n = NULL the responses arrive in reverse enrollment order, which exercises
-		# out-of-order responses (v1.0.6-TODO-78); the stored data are the same either way.
+		# out-of-order responses (v1.0.6-TODO-40); the stored data are the same either way.
 		for (i in if (n_null) rev(seq_len(n_responded)) else seq_len(n_responded)) {
 			r = data_shape_response_one(cell, i, w[i], covariates$x1[i], noise)
 			responses[[i]] = r

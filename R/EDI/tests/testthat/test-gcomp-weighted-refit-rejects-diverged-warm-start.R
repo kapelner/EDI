@@ -1,11 +1,11 @@
-# v1.0.6-TODO-192: the g-computation weighted refit (Bayesian bootstrap and other weighted
+# v1.0.6-TODO-138: the g-computation weighted refit (Bayesian bootstrap and other weighted
 # resampling) chains each replicate's coefficients into the next replicate's warm start. The KK
 # class cached every fit, converged or not: one diverged IRLS fit (|b| ~ 1e9 after 100 iterations)
 # then made every later replicate of the chain garbage (RR exactly 1, NA SE). The non-KK class
 # kept usable but non-converged fits and dropped covariates on a fit a cold start would have
 # converged. Now a fit is accepted only if it converged and its coefficients are usable;
 # otherwise it is retried from the full-data warm start and then cold, and a failed fit is never
-# cached. Data: rep 102 of the v1.0.6-TODO-168 coverage study, whose replicate chain diverged
+# cached. Data: rep 102 of the v1.0.6-TODO-116 coverage study, whose replicate chain diverged
 # from the warm start (-0.70, 2.24, 3.18, -1.38).
 
 make_gcomp_rep102_design = function(){
@@ -31,7 +31,7 @@ test_that("KK g-computation weighted refit does not keep a diverged warm-start f
 		expect_true(is.finite(est), info = cls)
 		X_fit = as.matrix(priv$build_design_matrix())
 		# The chained start really diverges at unit weights on a kernel without IRLS step halving.
-		# A kernel with it (v1.0.6-TODO-192 C++ follow-up; its result carries
+		# A kernel with it (v1.0.6-TODO-138 C++ follow-up; its result carries
 		# `num_step_halvings`) converges from this start instead; the retry logic below must work
 		# either way.
 		bad = fast_logistic_regression_weighted_cpp(X = X_fit, y = as.numeric(priv$y), weights = rep(1, n),

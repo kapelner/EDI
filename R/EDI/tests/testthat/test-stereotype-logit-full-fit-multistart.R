@@ -24,7 +24,7 @@ test_that("stereotype full-data multistart escapes a reproducible inferior optim
 	# The primary fit is pinned in the inferior basin: loading gamma (parameter
 	# 5 = n_alpha 2 + p 2 + 1) held at -9, i.e. phi_2 -> 0, neg-loglik ~51.09 vs
 	# the MLE 49.86. The cold-start kernel used to stop there on its own (gamma
-	# -8.77), but since the v1.0.6-TODO-169 Newton-decrement L-BFGS finish it
+	# -8.77), but since the v1.0.6-TODO-117 Newton-decrement L-BFGS finish it
 	# reaches the MLE from the cold start (CI run 44749244495, every leg), so a
 	# free primary no longer gives the selector anything to escape from.
 	gamma_idx = 5L

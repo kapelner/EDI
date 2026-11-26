@@ -17,7 +17,7 @@
 #' all return \code{NA}, with the reason recorded and an
 #' \code{edi_wald_unavailable_warning}; no bootstrap interval or p-value is
 #' substituted (they fell back to the bootstrap before EDI 1.0.6,
-#' v1.0.6-TODO-380). Call \code{$compute_bootstrap_confidence_interval()} for a
+#' v1.0.6-TODO-225). Call \code{$compute_bootstrap_confidence_interval()} for a
 #' bootstrap interval.
 #'
 #' \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
@@ -115,7 +115,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			md_w = private$weighted_gcomp_md_from_row_weights(row_weights, with_se = !isTRUE(estimate_only))
 			se_w = suppressWarnings(as.numeric(attr(md_w, "se", exact = TRUE) %||% NA_real_)[1L])
 			md_w = as.numeric(md_w)[1L]
-			# v1.0.6-TODO-149: the Bayesian-bootstrap studentized path reads this draw's SE
+			# v1.0.6-TODO-100: the Bayesian-bootstrap studentized path reads this draw's SE
 			# from last_weighted_refit$s_beta_hat_T, which the isolation wrapper
 			# (run_isolated_weighted_refit) snapshots from cached_values after this call
 			# returns. The restore above would hand it the unweighted cache, so while that
@@ -133,7 +133,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   G-Comp mean difference using the delta-method standard error (see
 		#'   class documentation); \code{NA} with an
 		#'   \code{edi_wald_unavailable_warning} if that standard error is
-		#'   unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_confidence_interval()}.
+		#'   unavailable (v1.0.6-TODO-225). Identical to \code{$compute_wald_confidence_interval()}.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
 			edi_warn_cluster_independence_once(self, private, "wald")
@@ -142,7 +142,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			z_val = stats::qnorm(1 - alpha / 2)
@@ -154,7 +154,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 		#'   \mathrm{md} = \code{delta}} using the delta-method standard error (see
 		#'   class documentation); \code{NA} with an
 		#'   \code{edi_wald_unavailable_warning} if that standard error is
-		#'   unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_two_sided_pval()}.
+		#'   unavailable (v1.0.6-TODO-225). Identical to \code{$compute_wald_two_sided_pval()}.
 		#' @param delta The null treatment effect (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
 			edi_warn_cluster_independence_once(self, private, "wald")
@@ -163,7 +163,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private))
 			}
 			z_val = (private$cached_values$md - delta) / private$cached_values$se_md
@@ -182,7 +182,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			z_val = stats::qnorm(1 - alpha / 2)
@@ -203,7 +203,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			}
 			private$shared()
 			if (!private$has_finite_md_se()){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private))
 			}
 			z_val = (private$cached_values$md - delta) / private$cached_values$se_md
@@ -227,7 +227,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 				cbind(treatment = private$w, X_cov)
 			}
 			n_params = (length(sort(unique(private$y))) - 1L) + ncol(X_fit)
-			# v1.0.6-TODO-172: every proportional-odds fit goes through the shared
+			# v1.0.6-TODO-119: every proportional-odds fit goes through the shared
 			# column-scaling wrapper (as InferenceOrdinalPropOddsRegr does), so the
 			# estimate does not depend on covariate location/scale; warm starts
 			# stay in the original parameterization.
@@ -277,7 +277,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			X_full = private$build_design_matrix()
 			X_fit = X_full[, -1, drop = FALSE]
 			j_treat = 1
-			# v1.0.6-TODO-172: shared column-scaling wrapper (see
+			# v1.0.6-TODO-119: shared column-scaling wrapper (see
 			# ordinal_fit_scaled()); the fit, vcov and Fisher information come back
 			# in the original parameterization.
 			fit = tryCatch(
@@ -432,7 +432,7 @@ InferenceOrdinalGCompMeanDiff = define_inference_class(
 			if (is.null(res)) return(NA_real_)
 			md = as.numeric(res$md)
 			if (isTRUE(with_se)) {
-				# v1.0.6-TODO-149: delta-method SE of the weighted mean difference, the
+				# v1.0.6-TODO-100: delta-method SE of the weighted mean difference, the
 				# weighted analogue of shared()'s model-based SE. The weighted fit's vcov
 				# is the inverse weighted observed information; weights are treated as
 				# frequency weights rescaled to mean one over all rows (as

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-234 (owner decision 2026-11-19): DesignFixedRerandomization's prop_acceptable path
+# v1.0.6-TODO-168 (owner decision 2026-11-19): DesignFixedRerandomization's prop_acceptable path
 # at prob_T = 0.5 drew every candidate from complete_randomization_forced_balanced_cpp(), which
 # treats floor(n / 2). For n = 3 mod 4 that is one fewer than round(n * prob_T), the count every
 # other path (and the documentation) uses. The forced-balanced kernel is now used only for even n.

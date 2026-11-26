@@ -194,7 +194,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			private$cached_values$full_coefficients = effects$full_coefficients
 			private$cached_values$full_vcov = NULL
 			private$cached_values$beta_hat_T = effects$md
-			# v1.0.6-TODO-134: the Bayesian-bootstrap studentized path reads this
+			# v1.0.6-TODO-88: the Bayesian-bootstrap studentized path reads this
 			# draw's SE (via last_weighted_refit$s_beta_hat_T); it was never set,
 			# so every studentized Bayesian replicate was NA.
 			private$cached_values$s_beta_hat_T = if (isTRUE(estimate_only)) NA_real_ else
@@ -268,9 +268,16 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param min_fraction_usable_samples Minimum fraction of the \code{B} replicates that must be
 		#'   finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. See
 		#'   \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples. Only
+		#'   \code{FALSE} (default, the design's original imputation in every resample) is available:
+		#'   this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+		#'   are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
 		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = "symmetric", na.rm = FALSE,
 			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L,
-			show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
+			show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95,
+			reimpute_missing_vals_each_resample = FALSE){
+			edi_assert_bootstrap_reimpute_not_requested(private, reimpute_missing_vals_each_resample,
+				missing(reimpute_missing_vals_each_resample), "InferencePropGCompMeanDiff")
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
@@ -282,7 +289,8 @@ InferencePropGCompMeanDiff = define_inference_class(
 				min_group_n = as.integer(min_group_n)
 			)
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
-			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples)
+			self$compute_bootstrap_two_sided_pval_generic(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples,
+				reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample)))
 		},
 		#' @description Generic (non-screening-modified) bootstrap two-sided
 		#'   p-value, aliased directly from `InferenceNonParamBootstrap` so
@@ -301,9 +309,15 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param sep_tol Separation tolerance used to reject nearly perfectly separated resamples.
 		#' @param min_group_n Minimum number of observations required in each treatment arm.
 		#' @param min_number_usable_samples Minimum number of finite bootstrap samples required.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples. Only
+		#'   \code{FALSE} (default, the design's original imputation in every resample) is available:
+		#'   this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+		#'   are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
 		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL,
 			na.rm = TRUE, show_progress = TRUE, boundary_tol = 0.02, max_boundary_mass = 0.95,
-			sep_tol = 0.02, min_group_n = 5L, min_number_usable_samples = 5L){
+			sep_tol = 0.02, min_group_n = 5L, min_number_usable_samples = 5L, reimpute_missing_vals_each_resample = FALSE){
+			edi_assert_bootstrap_reimpute_not_requested(private, reimpute_missing_vals_each_resample,
+				missing(reimpute_missing_vals_each_resample), "InferencePropGCompMeanDiff")
 			old_bootstrap_screening = private$bootstrap_screening_control
 			private$bootstrap_screening_control = list(
 				boundary_tol = boundary_tol,
@@ -314,7 +328,8 @@ InferencePropGCompMeanDiff = define_inference_class(
 			on.exit({private$bootstrap_screening_control = old_bootstrap_screening}, add = TRUE)
 			self$compute_bootstrap_confidence_interval_generic(
 				alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress,
-				min_number_usable_samples = min_number_usable_samples
+				min_number_usable_samples = min_number_usable_samples,
+				reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample))
 			)
 		},
 		#' @description Generic (non-screening-modified) bootstrap confidence
@@ -332,11 +347,18 @@ InferencePropGCompMeanDiff = define_inference_class(
 		#' @param min_group_n Minimum number of observations required in each treatment arm.
 		#' @param debug If TRUE, return per-replicate diagnostics (values, errors,
 		#'   warnings) instead of just the bootstrap values.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples. Only
+		#'   \code{FALSE} (default, the design's original imputation in every resample) is available:
+		#'   this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+		#'   are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.
 		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, max_resample_attempts = NULL,
-			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L, debug = FALSE){
+			boundary_tol = 0.02, max_boundary_mass = 0.95, sep_tol = 0.02, min_group_n = 5L, debug = FALSE,
+			reimpute_missing_vals_each_resample = FALSE){
 			if (should_run_asserts()) {
 				assertCount(B, positive = TRUE)
 			}
+			edi_assert_bootstrap_reimpute_not_requested(private, reimpute_missing_vals_each_resample,
+				missing(reimpute_missing_vals_each_resample), "InferencePropGCompMeanDiff")
 			if (is.null(max_resample_attempts)) max_resample_attempts = private$max_resample_attempts
 			if (should_run_asserts()) {
 				assertCount(max_resample_attempts, positive = TRUE)
@@ -371,7 +393,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 				)
 				set.seed(private$seed)
 			}
-			# v1.0.6-TODO-22: every replicate's random numbers are fixed here,
+			# v1.0.6-TODO-4: every replicate's random numbers are fixed here,
 			# serially, before any work is split across workers, so replicate b
 			# sees the same resamples at any core count and chunking. Its first
 			# resample is drawn up front (as the base class does for all of
@@ -494,7 +516,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			# Blocked/matched draws (jackknife leave-one-block-out, KK/blocking
 			# bootstraps) arrive as list(i_b = row indices, m_vec_b = multiplicities);
 			# as.integer() on that list is NA, so every such replicate was NA
-			# (v1.0.6-TODO-127). Unwrap the row indices the way the design-backed
+			# (v1.0.6-TODO-81). Unwrap the row indices the way the design-backed
 			# loader above does.
 			indices = if (is.list(indices)) as.integer(indices$i_b) else as.integer(indices)
 			w_b = worker_state$worker_priv$w
@@ -525,7 +547,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 		# sharp-null responses after the row snapshot was taken. Reading the
 		# snapshot fit the observed treatment column and observed y, so every
 		# BRT "null" draw was an ordinary bootstrap replicate centered at the
-		# estimate (p ~ 0.9 at z ~ 4; v1.0.6-TODO-150). On the plain bootstrap
+		# estimate (p ~ 0.9 at z ~ 4; v1.0.6-TODO-101). On the plain bootstrap
 		# path the current (w, y) equal the snapshot, so results are unchanged.
 		compute_bootstrap_worker_estimate = function(worker_state){
 			X_full_b = worker_state$runtime$current_X_full
@@ -725,30 +747,10 @@ InferencePropGCompMeanDiff = define_inference_class(
 				)
 			},
 		stabilize_covariance_matrix = function(vcov_mat, ridge_factor = 1e-8){
-			if (is.null(vcov_mat) || !is.matrix(vcov_mat) || any(!is.finite(vcov_mat))) return(NULL)
-			vcov_sym = (vcov_mat + t(vcov_mat)) / 2
-			eig = tryCatch(eigen(vcov_sym, symmetric = TRUE), error = function(e) NULL)
-			if (is.null(eig) || any(!is.finite(eig$values))) return(NULL)
-			scale = max(1, max(abs(eig$values), na.rm = TRUE))
-			floor_val = ridge_factor * scale
-			vals = pmax(eig$values, floor_val)
-			vcov_psd = eig$vectors %*% diag(vals, nrow = length(vals)) %*% t(eig$vectors)
-			vcov_psd = (vcov_psd + t(vcov_psd)) / 2
-			dimnames(vcov_psd) = dimnames(vcov_mat)
-			vcov_psd
+			gcomp_regularize_symmetric_matrix(vcov_mat, ridge_factor, inverse = FALSE)
 		},
 		invert_information_matrix = function(info_mat, ridge_factor = 1e-8){
-			if (is.null(info_mat) || !is.matrix(info_mat) || any(!is.finite(info_mat))) return(NULL)
-			info_sym = (info_mat + t(info_mat)) / 2
-			eig = tryCatch(eigen(info_sym, symmetric = TRUE), error = function(e) NULL)
-			if (is.null(eig) || any(!is.finite(eig$values))) return(NULL)
-			scale = max(1, max(abs(eig$values), na.rm = TRUE))
-			floor_val = ridge_factor * scale
-			vals = pmax(eig$values, floor_val)
-			inv_info = eig$vectors %*% diag(1 / vals, nrow = length(vals)) %*% t(eig$vectors)
-			inv_info = (inv_info + t(inv_info)) / 2
-			dimnames(inv_info) = dimnames(info_mat)
-			inv_info
+			gcomp_regularize_symmetric_matrix(info_mat, ridge_factor, inverse = TRUE)
 		},
 			model_based_covariance_matrix = function(X_fit, coef_hat, clip_lower = 1e-6, clip_upper = 1 - 1e-6){
 				eta = as.numeric(X_fit %*% coef_hat)
@@ -983,7 +985,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			# sandwich of the working model through the same standardization
 			# gradient as the unweighted fit. Only the cascade's robust-sandwich
 			# entries apply (the model-based ones are unweighted), so at unit
-			# weights this equals the unweighted se_md (v1.0.6-TODO-134).
+			# weights this equals the unweighted se_md (v1.0.6-TODO-88).
 			weighted_gcomp_se_md = function(fit, row_weights){
 				if (is.null(fit)) return(NA_real_)
 				vcov_w = gcomp_weighted_logistic_sandwich_vcov(fit$X, private$y, fit$coefficients, row_weights)
@@ -1099,7 +1101,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 				private$set_failed_fit_cache()
 				return(invisible(NULL))
 			}
-			# v1.0.6-TODO-138: the treatment-only fallback drops every covariate; say so
+			# v1.0.6-TODO-92: the treatment-only fallback drops every covariate; say so
 			# (drops inside the hardened QR fit warn from fit_with_hardened_qr_column_dropping()).
 			if (treatment_only_fallback) edi_warn_covariate_dropped_once(self, private, setdiff(colnames(X_full), colnames(fit$X)), "treatment_only_fallback")
 			private$cached_values$summary_table = effects$summary_table
@@ -1109,7 +1111,7 @@ InferencePropGCompMeanDiff = define_inference_class(
 			private$cached_values$mean0 = effects$mean0
 			private$cached_values$md = effects$md
 			private$cached_values$se_md = effects$se_md
-			# v1.0.6-TODO-134: the generic studentized bootstrap (replicate SEs and
+			# v1.0.6-TODO-88: the generic studentized bootstrap (replicate SEs and
 			# the original SE) reads s_beta_hat_T; mirror se_md into it as
 			# InferenceOrdinalGCompMeanDiff does. Full fits only: an estimate-only
 			# fit has no SE. beta_hat_T too: the studentized rand-bootstrap's reused
@@ -1138,3 +1140,18 @@ InferencePropGCompMeanDiff = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+gcomp_regularize_symmetric_matrix = function(mat, ridge_factor, inverse) {
+	if (is.null(mat) || !is.matrix(mat) || any(!is.finite(mat))) return(NULL)
+	sym = (mat + t(mat)) / 2
+	eig = tryCatch(eigen(sym, symmetric = TRUE), error = function(e) NULL)
+	if (is.null(eig) || any(!is.finite(eig$values))) return(NULL)
+	scale = max(1, max(abs(eig$values), na.rm = TRUE))
+	floor_val = ridge_factor * scale
+	vals = pmax(eig$values, floor_val)
+	if (inverse) vals = 1 / vals
+	out = eig$vectors %*% diag(vals, nrow = length(vals)) %*% t(eig$vectors)
+	out = (out + t(out)) / 2
+	dimnames(out) = dimnames(mat)
+	out
+}

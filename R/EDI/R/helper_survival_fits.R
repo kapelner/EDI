@@ -595,7 +595,7 @@
 		at_risk = y_o >= event_times[k]
 		R_k = sum(risk_o[at_risk])
 		d_k = sum(dead_o[y_o == event_times[k]])
-		# v1.0.6-TODO-51: no absolute floor on R_k. The rescaled sum is exact
+		# v1.0.6-TODO-16: no absolute floor on R_k. The rescaled sum is exact
 		# whenever it is a normal double, so use it directly (byte-identical to
 		# the old path whenever the old 1e-10 floor did not bind). Only when it
 		# underflows (late risk set far below the global maximum linear

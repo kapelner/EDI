@@ -1,4 +1,4 @@
-# v1.0.6-TODO-169 / v1.0.6-TODO-170: on the colon design with a large-scale or
+# v1.0.6-TODO-117 / v1.0.6-TODO-118: on the colon design with a large-scale or
 # offset covariate (age x 1000, age + 1e5) the L-BFGS wrapper declared
 # convergence at LBFGSpp's early relative-decrease stop (NegBin treatment 0,
 # probit -0.149) and IRLS / Newton reported a correct fit as not converged
@@ -7,7 +7,7 @@
 # finishes L-BFGS with damped Newton steps and accepts IRLS / Newton fits at the
 # optimum. Estimates must match the R reference fitters on every variant.
 # The beta regression and ZINB blocks at the end cover two more L-BFGS kernels
-# the same v1.0.6-TODO-169 / v1.0.6-TODO-170 rule fixed.
+# the same v1.0.6-TODO-117 / v1.0.6-TODO-118 rule fixed.
 
 colon_scaling_design = function(variant, drop_nodes = FALSE) {
 	d = subset(survival::colon, etype == 2 & rx %in% c("Obs", "Lev+5FU"))
@@ -94,7 +94,7 @@ test_that("ZINB L-BFGS reaches the pscl::zeroinfl estimate on raw colon covariat
 	# Before the shared rule: treatment -0.21890 vs pscl -0.21258 (gap 6.3e-3); under it -0.21106 (gap
 	# 1.5e-3). The absolute tolerance 3e-3 sits between the two. The fit is still not at the MLE: its
 	# negative log-likelihood is 1252.196 vs 1250.054 for pscl and for this kernel on scale()d X.
-	# The large-scale zero-inflation covariate case (age x 1000 / + 1e5 in Xzi) is still wrong: v1.0.6-TODO-322.
+	# The large-scale zero-inflation covariate case (age x 1000 / + 1e5 in Xzi) is still wrong: v1.0.7-TODO-125.
 	z = colon_scaling_design("raw", drop_nodes = TRUE)
 	X = z$X
 	Xzi = X[, 1:3]

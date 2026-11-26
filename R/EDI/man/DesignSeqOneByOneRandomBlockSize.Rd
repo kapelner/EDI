@@ -53,11 +53,11 @@ the t distribution with \eqn{\sum_h (n_h - 1)} degrees of freedom, \eqn{n_h} the
 of blocks in stratum \eqn{h}. Before EDI 1.0.6 a replicate deleted a
 whole stratum (2-4 replicates on typical data, so the jackknife was \code{NA}), and a
 design object saved before 1.0.6, which has no block record, still does
-(v1.0.6-TODO-231).
+(v1.0.6-TODO-165).
 When any stratum holds fewer than 10 permuted-block units, the automatic unit is one subject
 within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
 jackknife with subjects as units): with few blocks in a stratum the permuted-block
-jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
+jackknife-Wald test was too liberal (v1.0.7-TODO-122). An explicit
 \code{unit = "permuted_block"} still deletes permuted blocks.
 }
 \examples{

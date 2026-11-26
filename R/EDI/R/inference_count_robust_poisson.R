@@ -172,7 +172,7 @@ InferenceCountRobustPoisson = define_inference_class(
 		}
 	),
 	private = list(
-		# v1.0.6-TODO-345: never warm-start from a separated fit (see
+		# v1.0.6-TODO-216: never warm-start from a separated fit (see
 		# edi_poisson_warm_start_on_boundary()).
 		warm_start_on_separation_boundary = function(start) edi_poisson_warm_start_on_boundary(start),
 		best_X_colnames = NULL,
@@ -243,7 +243,7 @@ InferenceCountRobustPoisson = define_inference_class(
 				return(list(b = rep(NA_real_, ncol(X)), ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat))
 			}
 			coef_hat = as.numeric(mod$b)
-			# v1.0.6-TODO-396: an unconverged IRLS fit (e.g. stuck at the zero start for
+			# v1.0.6-TODO-201: an unconverged IRLS fit (e.g. stuck at the zero start for
 			# large counts) is not an estimate; do not evaluate the sandwich there.
 			if (length(coef_hat) != ncol(X_fit) || any(!is.finite(coef_hat)) || isFALSE(mod$converged)){
 				return(list(b = rep(NA_real_, ncol(X)), ssq_b_2 = NA_real_, X_fit = X_fit, j_treat = j_treat))

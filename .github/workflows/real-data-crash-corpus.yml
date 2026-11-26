@@ -1,0 +1,170 @@
+name: real-data-crash-corpus
+
+# Real-data crash corpus (v1.0.7-TODO-102): every applicable inference class on every
+# redistributable CRAN trial of the experimental catalog, with the trial's real assignment and
+# real outcomes. Five calls per (trial, outcome, class) case: estimate, Wald p-value and CI, a
+# seeded randomization p-value (r = 49) and a percentile bootstrap CI (B = 49), each case in a
+# forked child with a 60 s limit. The runner is R/package_tests/real_data_crash_corpus.R (its
+# header has the statuses and the gate); the loader is R/package_tests/real_data_catalog.R.
+#
+# Gate: R/package_tests/ci/real_data_crash_corpus_baseline.csv. A shard fails on a call that is
+# error or timeout now but was not in the baseline, a call that is a silent NA now where the
+# baseline had a value, or a baseline error / NA / timeout row without an open release TODO.
+# Improvements are listed in the summary; refresh the baseline as R/package_tests/ci/README.md
+# says. Not a required check.
+#
+# Data: the trials at the catalog's pinned CRAN releases, read from the source tarballs (no
+# install), cached in an Actions cache keyed by the catalog; never committed or uploaded (the
+# artifacts hold only the per-call results).
+#
+# Runtime (first full run, 2026-11-26, local, 3 cores): 254 (trial, outcome) units, 2,371 cases,
+# 11,809 calls, ~166 CPU-min (continuous 82, incidence 48, survival 18, ordinal 11, count 6,
+# proportion < 1). Seven shards of 2 cores each: continuous in 3, incidence in 2, survival,
+# and ordinal + count + proportion. With the build job that is 8 of the 20 concurrent jobs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'R/EDI/R/**'
+      - 'R/EDI/src/**'
+      - 'R/package_metadata/experimental_datasets.csv'
+      - 'R/package_metadata/download_experimental_datasets.R'
+      - 'R/package_tests/real_data_crash_corpus.R'
+      - 'R/package_tests/real_data_catalog.R'
+      - 'R/package_tests/ci/real_data_crash_corpus_baseline.csv'
+      - '.github/workflows/real-data-crash-corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push cancels the older run (as rpy-parity-push.yml); dispatch runs get their own group.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+env:
+  EDI_PORTABLE: 1
+
+jobs:
+  build:
+    name: build EDI and fetch the trials
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Comment- and whitespace-only edits to the watched files do not count (fails open).
+      - id: gate
+        uses: ./.github/actions/code-change-gate
+        with:
+          paths: |
+            :(glob)R/EDI/R/**
+            :(glob)R/EDI/src/**
+            R/package_metadata/experimental_datasets.csv
+            R/package_metadata/download_experimental_datasets.R
+            R/package_tests/real_data_crash_corpus.R
+            R/package_tests/real_data_catalog.R
+            R/package_tests/ci/real_data_crash_corpus_baseline.csv
+            .github/workflows/real-data-crash-corpus.yml
+      - uses: r-lib/actions/setup-r@v2
+        if: steps.gate.outputs.run == 'true'
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: steps.gate.outputs.run == 'true'
+        with:
+          working-directory: R/EDI
+          extra-packages: any::httr2, any::data.table
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=real-data-edi-${ImageOS:-unknown}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - id: edic
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v6
+        with:
+          path: .edi-lib
+          key: ${{ steps.edikey.outputs.key }}
+      - name: Install EDI into an isolated library
+        if: steps.gate.outputs.run == 'true' && steps.edic.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .edi-lib
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-lib" R/EDI
+      - id: datac
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/cache@v6
+        with:
+          path: .real-data-cache
+          key: real-data-${{ hashFiles('R/package_metadata/experimental_datasets.csv', 'R/package_metadata/download_experimental_datasets.R') }}
+      - name: Fetch the trials
+        if: steps.gate.outputs.run == 'true' && steps.datac.outputs.cache-hit != 'true'
+        env:
+          EDI_REAL_DATA_CACHE: ${{ github.workspace }}/.real-data-cache
+        run: |
+          Rscript -e 'source("R/package_tests/real_data_catalog.R"); c <- rdc_catalog();
+            for (i in seq_len(nrow(c))) tryCatch(rdc_fetch(c[i, ]), error = function(e) message("fetch failed: ", c$dataset[i], ": ", conditionMessage(e)))'
+          rm -rf .real-data-cache/work
+
+  shard:
+    needs: build
+    if: needs.build.outputs.run == 'true'
+    name: crash corpus ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: continuous-1, types: continuous, shard: 1/3 }
+          - { name: continuous-2, types: continuous, shard: 2/3 }
+          - { name: continuous-3, types: continuous, shard: 3/3 }
+          - { name: incidence-1, types: incidence, shard: 1/2 }
+          - { name: incidence-2, types: incidence, shard: 2/2 }
+          - { name: survival, types: survival, shard: 1/1 }
+          - { name: ordinal-count-proportion, types: 'ordinal,count,proportion', shard: 1/1 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::httr2, any::data.table
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=real-data-edi-${ImageOS:-unknown}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      # No restore-keys: an EDI built from another commit must never stand in for this one.
+      - uses: actions/cache/restore@v6
+        with:
+          path: .edi-lib
+          key: ${{ steps.edikey.outputs.key }}
+      - uses: actions/cache/restore@v6
+        with:
+          path: .real-data-cache
+          key: real-data-${{ hashFiles('R/package_metadata/experimental_datasets.csv', 'R/package_metadata/download_experimental_datasets.R') }}
+      - name: Use the pre-built EDI (compile it if this runner OS has no cached build)
+        run: |
+          if [ ! -d .edi-lib/EDI ]; then
+            echo "::warning::no cached EDI build for ${ImageOS:-this OS}; compiling it here."
+            mkdir -p .edi-lib; MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-lib" R/EDI
+          fi
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-lib${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      - name: Run the cases and compare with the baseline
+        env:
+          EDI_REAL_DATA_CACHE: ${{ github.workspace }}/.real-data-cache
+        run: |
+          Rscript R/package_tests/real_data_crash_corpus.R --response-types '${{ matrix.types }}' --shard '${{ matrix.shard }}' \
+            --cores 2 --out "results-${{ matrix.name }}.csv" \
+            --compare R/package_tests/ci/real_data_crash_corpus_baseline.csv
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: crash-corpus-${{ matrix.name }}
+          path: results-${{ matrix.name }}*.csv
+          retention-days: 14
+          if-no-files-found: ignore

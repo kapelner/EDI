@@ -165,7 +165,7 @@ if(NOT EXISTS ${EDI_LBFGSPP_SHIM_DIR}/optimization)
 endif()
 
 # Portable by default, mirroring R/EDI/configure's EDI_PORTABLE=1 default
-# (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). The old default (OFF,
+# (ds-python-kernels-44358267779-f1, v1.0.6-TODO-205). The old default (OFF,
 # i.e. -march=native) made every plain `pip wheel ./python`, `pip install .`
 # and sdist install target the build host's CPU. The docs-scenarios audit
 # built its wheel that way on one GitHub runner (AVX-512) and imported it on

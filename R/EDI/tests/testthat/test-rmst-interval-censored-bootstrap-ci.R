@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-91 (and the NA asymptotic CI of v1.0.6-TODO-115): on left-/interval-censored
+# v1.0.6-TODO-50 (and the NA asymptotic CI of v1.0.6-TODO-69): on left-/interval-censored
 # data private$y is NA for every censored row, so the bootstrap outcome scale fell back to 1,
 # the CI width cap became 5 time units, and ordinary RMST percentile intervals (width ~6)
 # were discarded as "extreme" -> silent NA. The scale now uses the interval midpoints.

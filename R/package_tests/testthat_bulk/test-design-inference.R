@@ -167,7 +167,7 @@ test_that("CMH inference requires equal block sizes", {
 
 	expect_error(
 		InferenceIncidCMH$new(des, verbose = FALSE),
-		"requires equal block sizes"  # message reworded in v1.0.6-TODO-73
+		"requires equal block sizes"  # message reworded in v1.0.6-TODO-36
 	)
 })
 

@@ -41,7 +41,7 @@ using namespace Rcpp;
 namespace {
 
 // The Gauss-Hermite rule and the soft log_sigma barrier are the shared
-// glmm:: versions from _glmm_engine.h (v1.0.6-TODO-193).
+// glmm:: versions from _glmm_engine.h (v1.0.7-TODO-54).
 using GHRuleP = glmm::GHRule;
 
 inline double log_sum_exp_p(const Eigen::VectorXd& x) {
@@ -417,20 +417,9 @@ edi::ResultMap fast_poisson_glmm_internal(
 			}
 		}
 
-		LikelihoodFitResult best_fit;
-		bool have_finite_fit = false;
-		for (const auto& start_candidate : starts) {
-			LikelihoodFitResult fit = optimize_fixed_likelihood(
-				obj, start_candidate, fixed_spec, maxit, eps_g,
-				optimization_alg, "lbfgs", 0, info_start_ptr);
-			if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
-			if (!have_finite_fit || fit.value < best_fit.value) {
-				best_fit = fit;
-				have_finite_fit = true;
-			}
-		}
-		if (!have_finite_fit)
-			throw std::runtime_error("Poisson GLMM produced no finite multistart fit");
+		LikelihoodFitResult best_fit = glmm::best_multistart_fit(
+		    obj, starts, fixed_spec, maxit, eps_g, optimization_alg, info_start_ptr,
+		    "Poisson GLMM produced no finite multistart fit");
 		par = best_fit.params;
 		neg_ll = best_fit.value;
 		converged = std::isfinite(neg_ll) && best_fit.converged;

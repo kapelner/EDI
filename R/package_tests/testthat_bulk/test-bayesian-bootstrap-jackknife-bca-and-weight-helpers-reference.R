@@ -102,7 +102,7 @@ ref_bca_pval <- function(boot, est, delta, jack) {
 	z0 <- qnorm(min(1 - .Machine$double.eps, max(.Machine$double.eps, mean(boot < est))))
 	jb <- mean(jack)
 	a <- sum((jb - jack)^3) / (6 * sum((jb - jack)^2)^1.5)
-	# v1.0.6-TODO-75: a delta outside the bootstrap support (or past the acceleration's
+	# v1.0.6-TODO-37: a delta outside the bootstrap support (or past the acceleration's
 	# pole) is excluded by every BCa interval, so the p-value is the 2/B floor, not NA.
 	F_delta <- mean(boot < delta) + 0.5 * mean(boot == delta)
 	if (F_delta <= 0 || F_delta >= 1) return(2 / length(boot))
@@ -127,7 +127,7 @@ test_that("ci_bayesian_bca and pval_bayesian_bca match textbook BCa references",
 	expect_true(ci[1] < ci[2])
 
 	# A null value far outside the bootstrap distribution gets the 2/B floor
-	# (v1.0.6-TODO-75; it used to be NA).
+	# (v1.0.6-TODO-37; it used to be NA).
 	expect_equal(ref_bca_pval(boot, est, 0.5, jack), 2 / length(boot))
 	for (delta in c(est, 0.5, 1.5, quantile(boot, 0.1))) {
 		expect_equal(f$priv$pval_bayesian_bca(boot, est, delta), ref_bca_pval(boot, est, delta, jack),

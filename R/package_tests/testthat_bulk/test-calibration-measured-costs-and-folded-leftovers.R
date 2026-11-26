@@ -166,7 +166,7 @@ test_that("a unit that lost a shard still runs alone: it is neither a host nor a
 	w = amend_e_plan(cp)
 	cell = w[w$design == bern & w$n == 50L & w$response_type == "continuous", ]
 	lin = cell[grepl("InferenceContinLin", cell$only, fixed = TRUE), ]
-	# Alone, and (v1.0.6-TODO-409) in shards of at most half the dead shard's 100 replicates.
+	# Alone, and (v1.0.6-TODO-227) in shards of at most half the dead shard's 100 replicates.
 	expect_true(all(lin$only == "InferenceContinLin"))
 	expect_equal(sort(lin$reps), c("1:50", "51:100"))
 	ols = cell[grepl("InferenceContinOLS", cell$only, fixed = TRUE), ]

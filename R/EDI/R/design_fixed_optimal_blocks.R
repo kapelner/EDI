@@ -314,7 +314,7 @@ DesignFixedOptimalBlocks = define_design_class(
 				keep = keep & names(cols) != private$cluster_col
 			}
 			is_varying = vapply(cols, function(col) length(unique(col)) > 1L, logical(1L))
-			# v1.0.6-TODO-107: keep formula-named constant columns as placeholders, as
+			# v1.0.6-TODO-61: keep formula-named constant columns as placeholders, as
 			# covariate_impute_if_necessary_and_then_create_model_matrix() does.
 			const_formula_cols = constant_formula_named_columns(private$design_formula, cols, keep & !is_varying)
 			keep = keep & is_varying

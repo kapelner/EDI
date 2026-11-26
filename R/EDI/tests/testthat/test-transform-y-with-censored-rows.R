@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-106: transform_y() ran assert_y() (any.missing = FALSE) over the
+# v1.0.6-TODO-60: transform_y() ran assert_y() (any.missing = FALSE) over the
 # whole transformed vector, but y_original is NA for every censored survival row
 # (entered through y_L/y_R), so transform_y() errored ("Contains missing
 # values") on any survival design with a censored subject. It now checks only

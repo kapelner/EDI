@@ -86,7 +86,7 @@ test_that("end to end, the public Wald p-value and CI are the glm Wald result wi
 })
 
 test_that("Bartlett likelihood-ratio entry points are model-only; the design-conservative type combines them", {
-	# v1.0.6-TODO-380 (owner, 2026-11-21): lik_ratio_bartlett_approx (and the best-available pair)
+	# v1.0.6-TODO-225 (owner, 2026-11-21): lik_ratio_bartlett_approx (and the best-available pair)
 	# used to return the design-conservative combination; that is now the separate testing type
 	# "lik_ratio_bartlett_approx_design_conservative".
 	f <- fx()

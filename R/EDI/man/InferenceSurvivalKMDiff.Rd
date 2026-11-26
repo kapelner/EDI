@@ -18,16 +18,16 @@ d + \sqrt{(u_T - \hat m_T)^2 + (\hat m_C - l_C)^2}\right].}
 The two arms are independent by design. When either arm's median is not
 reached (its Kaplan-Meier curve never falls to 0.5) the estimate itself is
 \code{NA}, and so is every result on the object (asymptotic, bootstrap,
-jackknife and randomization); one warning of class
+jackknife and randomization); a warning of class
 \code{edi_km_median_not_reached_warning} names the arm(s) and their lowest
-survival and suggests \code{InferenceSurvivalRestrictedMeanDiff} (silent
-inside resampling, where a draw that loses its median just counts as
-unusable). When both medians are reached but a Brookmeyer-Crowley bound is
+survival and suggests \code{InferenceSurvivalRestrictedMeanDiff}. It is
+raised once by every call that returns that \code{NA} (silent inside
+resampling, where a draw that loses its median just counts as unusable). When both medians are reached but a Brookmeyer-Crowley bound is
 non-finite, the Wald-style confidence interval and p-value methods
 (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
 return \code{NA}, with the reason recorded and an
-\code{edi_wald_unavailable_warning}; before EDI 1.0.6 they fell back to a
-nonparametric bootstrap (v1.0.6-TODO-380). The
+\code{edi_wald_unavailable_warning} on each call; before EDI 1.0.6 they fell back to a
+nonparametric bootstrap (v1.0.6-TODO-225). The
 jackknife-Wald methods are unreliable for a median and are often \code{NA},
 with an \code{edi_km_jackknife_na_warning} giving the reason; prefer the
 bootstrap. A convenience method,
@@ -159,6 +159,7 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-InferenceSurvivalKMDiff-compute_rand_two_sided_pval}{\code{InferenceSurvivalKMDiff$compute_rand_two_sided_pval()}}
     \item \href{#method-InferenceSurvivalKMDiff-initialize}{\code{InferenceSurvivalKMDiff$new()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate}{\code{InferenceSurvivalKMDiff$compute_estimate()}}
     \item \href{#method-InferenceSurvivalKMDiff-compute_estimate_with_bootstrap_weights}{\code{InferenceSurvivalKMDiff$compute_estimate_with_bootstrap_weights()}}
@@ -201,13 +202,54 @@ Kaplan, E. L., and Meier, P. (1958). "Nonparametric Estimation
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceSurvivalKMDiff-compute_rand_two_sided_pval"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-compute_rand_two_sided_pval}{}}}
+\subsection{\code{InferenceSurvivalKMDiff$compute_rand_two_sided_pval()}}{
+  Uses the shared randomization two-sided p-value contract; see
+  \code{\link[EDI:InferenceRand]{InferenceRand}}.
+  When a median is not reached the p-value is \code{NA} with an
+  \code{edi_km_median_not_reached_warning} on every call (v1.0.7-TODO-182).
+  Every argument is passed to, and documented in,
+  \code{\link[EDI:InferenceRand]{InferenceRand}}\code{$compute_rand_two_sided_pval()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceSurvivalKMDiff$compute_rand_two_sided_pval(
+  r = 501,
+  delta = 0,
+  transform_responses = "none",
+  na.rm = TRUE,
+  show_progress = TRUE,
+  permutations = NULL,
+  zero_one_logit_clamp = .Machine$double.eps,
+  alternative = "two.sided"
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{r}}{Number of randomization draws.}
+      \item{\code{delta}}{Null shift of the treatment effect (on the log scale for survival).}
+      \item{\code{transform_responses}}{Response transform; see \code{InferenceRand}.}
+      \item{\code{na.rm}}{Whether to drop non-finite reference statistics.}
+      \item{\code{show_progress}}{Show progress.}
+      \item{\code{permutations}}{Pre-computed assignment draws, or \code{NULL} to draw them from the design;
+see \code{InferenceRand}.}
+      \item{\code{zero_one_logit_clamp}}{Clamp used by the \code{"logit"} transform; see \code{InferenceRand}.}
+      \item{\code{alternative}}{\code{"two.sided"} (default), \code{"greater"} or \code{"less"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The randomization p-value, or \code{NA} (with the warning above) when the
+  median is not reached.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-InferenceSurvivalKMDiff-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-InferenceSurvivalKMDiff-initialize}{}}}
 \subsection{\code{InferenceSurvivalKMDiff$new()}}{
-  Uses the shared randomization two-sided p-value contract; see
-  \code{\link[EDI:InferenceRand]{InferenceRand}}.
-
-
   Initialize Kaplan-Meier median-difference survival inference
   and prepare treatment-group survival curves used by
   \code{\link[EDI:InferenceSurvivalKMDiff]{InferenceSurvivalKMDiff}}.
@@ -318,7 +360,7 @@ weighted-median draws by default and requires at least
 result is \code{NA_real_} with nonestimability reason
 \code{"bayesian_bootstrap_too_few_finite_estimates"}. It also requires
 at least \code{min_fraction_usable_samples} (default 95\%) of the \code{B}
-draws to be finite (v1.0.6-TODO-12); below that the result is \code{NA_real_}
+draws to be finite (v1.0.6-TODO-2); below that the result is \code{NA_real_}
 with reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}. Set
 \code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
   \subsection{Usage}{
@@ -381,7 +423,7 @@ fall to 0.5) the estimate is \code{NA} and so is this interval, with an
 \code{edi_km_median_not_reached_warning} (see the class description). When
 both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, the
 interval is \code{NA} too, with an \code{edi_wald_unavailable_warning} (no
-bootstrap is substituted, v1.0.6-TODO-380). On left- or interval-censored
+bootstrap is substituted, v1.0.6-TODO-225). On left- or interval-censored
 data, which have no analytic standard error, this is the nonparametric
 bootstrap interval (see the class description).
   \subsection{Usage}{
@@ -416,7 +458,7 @@ at either bound); at other levels the two are close but not exact inverses,
 because each arm's interval changes shape with its level. \code{NA} (with an
 \code{edi_km_median_not_reached_warning}) when a median is not reached, and
 \code{NA} with an \code{edi_wald_unavailable_warning} under the same
-conditions as the confidence interval (v1.0.6-TODO-380); the bootstrap p-value
+conditions as the confidence interval (v1.0.6-TODO-225); the bootstrap p-value
 on left- or interval-censored data.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

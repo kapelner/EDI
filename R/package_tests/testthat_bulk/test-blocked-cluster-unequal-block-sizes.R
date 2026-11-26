@@ -1,4 +1,4 @@
-# v1.0.6-TODO-73: DesignFixedBlockedCluster rejected blocks with different numbers of
+# v1.0.6-TODO-36: DesignFixedBlockedCluster rejected blocks with different numbers of
 # subjects and told the user to set equal_block_sizes = FALSE, an argument it does not
 # take. Its randomization unit is the cluster, so unequal strata are allowed; the shared
 # unequal-blocks error now names only arguments the class's constructor has.
@@ -81,7 +81,7 @@ test_that("the unequal-blocks error does not suggest arguments a class lacks", {
 	expect_false(grepl("B_target", err, fixed = TRUE))
 })
 
-# v1.0.6-TODO-73 (remaining part, docs-scenarios factorial F6): with B_target given and categorical
+# v1.0.6-TODO-36 (remaining part, docs-scenarios factorial F6): with B_target given and categorical
 # strata of unequal size, the error said "strata_cols was named without B_target" and advised passing
 # B_target, which cannot equalise categories.
 test_that("the unequal-block error advice matches whether B_target was given and whether the strata are categorical", {

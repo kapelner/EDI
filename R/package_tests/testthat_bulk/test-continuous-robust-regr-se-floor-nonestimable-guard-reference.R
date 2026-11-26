@@ -17,7 +17,7 @@ robust_fixture <- function(seed = 1L, n = 40L, noise_sd = 0) {
 	des$add_all_subjects_to_experiment(X)
 	des$assign_w_to_all_subjects()
 	w <- des$get_w()
-	# Noise-free y depends on treatment only: with 0.5 * x1 in it the v1.0.6-TODO-158 perfect-predictor
+	# Noise-free y depends on treatment only: with 0.5 * x1 in it the v1.0.6-TODO-108 perfect-predictor
 	# guard drops x1, the fit is no longer exact and the SE floor is never reached.
 	y <- 3 + 2 * w + (if (noise_sd > 0) 0.5 * X$x1 + rnorm(n, sd = noise_sd) else 0)
 	des$add_all_subject_responses(y)
@@ -28,7 +28,7 @@ test_that("a noise-free (exact linear) response collapses the SE below the floor
 	des <- robust_fixture()
 	for (use_rcpp in c(TRUE, FALSE)) {
 		# MASS::rlm's default MM fails on an exact fit and EDI then returns a silent NA
-		# (v1.0.6-TODO-268), so the rlm backend uses method = "M" here.
+		# (v1.0.7-TODO-121), so the rlm backend uses method = "M" here.
 		inf <- InferenceContinRobustRegr$new(des, use_rcpp = use_rcpp, method = if (use_rcpp) "MM" else "M", verbose = FALSE)
 		est <- inf$compute_estimate()
 		expect_equal(est, 2, tolerance = 1e-6, info = paste("use_rcpp =", use_rcpp))  # the point estimate is still reported

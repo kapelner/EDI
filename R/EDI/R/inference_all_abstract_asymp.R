@@ -165,7 +165,7 @@ InferenceAsymp = R6::R6Class("InferenceAsymp",
 		load_bootstrap_sample_into_worker = function(worker_state, indices){
 			private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 		},
-		# v1.0.6-TODO-230: a ratio estimand's degenerate subsampling / m-out-of-n draw is NaN
+		# v1.0.6-TODO-164: a ratio estimand's degenerate subsampling / m-out-of-n draw is NaN
 		# (unusable); a no-op for every other class and operation.
 		compute_bootstrap_worker_estimate = function(worker_state){
 			edi_mark_degenerate_resampling_worker_draw(self, private,

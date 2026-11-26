@@ -49,7 +49,7 @@ test_that("ordinal GLMM multistart escapes the near-zero variance start", {
 
 	expect_true(fit_near_zero$converged)
 	expect_lte(fit_near_zero$gradient_norm, 1e-5)
-	# Since the v1.0.6-TODO-169 Newton-decrement finish in the shared L-BFGS
+	# Since the v1.0.6-TODO-117 Newton-decrement finish in the shared L-BFGS
 	# wrapper, L-BFGS itself leaves the score under the kernel's 1e-5 threshold
 	# here (9.6e-6), so the kernel's own damped-Newton polish is skipped (CI run
 	# 44749244495: attempted = FALSE on every leg). Whichever path finishes the

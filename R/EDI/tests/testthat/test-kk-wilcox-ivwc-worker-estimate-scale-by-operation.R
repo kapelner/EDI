@@ -1,4 +1,4 @@
-# v1.0.6-TODO-217 (3): InferenceAllKKWilcoxIVWC's reusable-worker hook returns the
+# v1.0.6-TODO-158 (3): InferenceAllKKWilcoxIVWC's reusable-worker hook returns the
 # standardized W statistic, the scale of its randomization tests (2026-10-12 fix). On a
 # sequential KK design only the randomization operations reach that hook, but on a
 # non-sequential matched design (DesignFixedBinaryMatch) the m-out-of-n bootstrap,

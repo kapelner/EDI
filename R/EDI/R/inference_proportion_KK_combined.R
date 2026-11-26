@@ -73,36 +73,9 @@ InferencePropKKGEE = define_inference_class(
 			private$init_kk_gee_shared(des_obj, use_rcpp = use_rcpp, model_formula = model_formula)
 		}
 	),
-	private = list(
-		gee_response_type = function() "proportion",
-		gee_family        = function() stats::binomial(link = "logit"),
-		shared_gee_dispatch = function(estimate_only = FALSE) private$shared_gee_default(estimate_only)
-	),
+	private = kk_binomial_gee_private("proportion"),
 	metadata = list(likelihood_tier = "quasi"),
-	overrides = list(
-		public = c(
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_rand_two_sided_pval"
-		),
-		private = c(
-			"shared",
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"jackknife_full_fit_is_separated",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"compute_treatment_estimate_during_randomization_inference",
-			"compute_wald_confidence_interval_impl",
-			"compute_wald_two_sided_pval_impl",
-			"get_complexity_tier"
-		)
-	)
+	overrides = kk_binomial_gee_overrides
 )
 #' KK GLMM Inference for Proportion Responses
 #'

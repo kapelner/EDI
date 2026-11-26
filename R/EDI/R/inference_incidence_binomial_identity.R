@@ -46,7 +46,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 				required_cols = 2L,
 				fit_fun = function(X_fit, keep){
 					j_treat = match(2L, keep)
-					# v1.0.6-TODO-205: refit cold when the warm-started fit stalls.
+					# v1.0.6-TODO-146: refit cold when the warm-started fit stalls.
 					res = private$fit_identity_binomial_warm_then_cold(function(warm){
 						fast_identity_binomial_regression_weighted_cpp(
 							X = X_fit,
@@ -146,7 +146,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 			}
 			TRUE
 		},
-		# v1.0.6-TODO-205: the randomization statistic is the cached point estimate,
+		# v1.0.6-TODO-146: the randomization statistic is the cached point estimate,
 		# the same quantity the reusable worker computes per draw
 		# (compute_bootstrap_worker_estimate -> compute_estimate). This used to refit
 		# on every call with no convergence check, from the warm start the previous
@@ -158,14 +158,14 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			self$compute_estimate(estimate_only = estimate_only)
 		},
-		# v1.0.6-TODO-205: fit_call(TRUE) fits from the stored warm start, fit_call(FALSE)
+		# v1.0.6-TODO-146: fit_call(TRUE) fits from the stored warm start, fit_call(FALSE)
 		# from a cold start. The warm start (beta and Fisher information) comes from a
 		# fit on other data: on a randomization or bootstrap draw the treatment column or
 		# rows differ, so the warm Fisher information is the wrong curvature for the
 		# first Newton step. The constrained line search then rejects every step and
 		# the kernel returns the start unchanged with converged = FALSE (about 30% of
 		# draws on a 20-subject Bernoulli design). Refit cold when that happens.
-		# v1.0.6-TODO-209: the kernel now restarts cold itself in that case (same
+		# v1.0.6-TODO-150: the kernel now restarts cold itself in that case (same
 		# result as this retry, needs the owner's build); the retry stays for warm
 		# fits that fail later, e.g. at the iteration cap.
 		fit_identity_binomial_warm_then_cold = function(fit_call){
@@ -321,7 +321,7 @@ IncidenceBinomialIdentityLikelihoodSource = list(
 					j_treat = which(keep == 2L)
 					warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X_fit))
 					warm_fisher = private$get_fit_warm_start_fisher(ncol(X_fit))
-					# v1.0.6-TODO-205: refit cold when the warm-started fit stalls (see
+					# v1.0.6-TODO-146: refit cold when the warm-started fit stalls (see
 					# fit_identity_binomial_warm_then_cold), and keep `converged` on the
 					# estimate-only fit so fit_ok rejects a stalled one: dropping it let
 					# a draw's unmoved warm start (the observed estimate) through.
@@ -559,31 +559,8 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		#'   cache only the point estimate; used by randomization and
 		#'   bootstrap resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			if (identical(self$get_estimand(), "marginal_mean_diff")) {
-				return(private$compute_marginal_estimand_estimate("marginal_mean_diff", estimate_only = estimate_only))
-			}
-			# 2026-08-24 (marginal_estimand_report.md TODO-9): re-derive the
-			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
-			# private$cached_mod every call -- same fix TODO-4/5 needed for the
-			# same reason.
-			mod = private$cached_mod
-			if (!is.null(mod)) {
-				j_treat = mod$j_treat %||% 2L
-				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[j_treat])[1L]
-				if (!estimate_only) {
-					ssq = mod$ssq_b_j
-					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					private$cached_values$df = mod$df %||% Inf
-					if (is.finite(ssq) && ssq > 0) {
-						private$cached_values$s_beta_hat_T = sqrt(ssq)
-						private$clear_nonestimable_state()
-					} else {
-						private$cache_nonestimable_se("model_standard_error_unavailable")
-					}
-				}
-			}
-			private$cached_values$beta_hat_T
+			compute_cached_mean_difference_estimate(self, private, estimate_only,
+				function(mod) mod$j_treat %||% 2L, function(mod) mod$ssq_b_j)
 		},
 		#' @description Wald confidence interval, dispatched by
 		#'   \code{testing_type} for the conditional estimand; under a
@@ -595,21 +572,8 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		#' @param alpha Two-sided miscoverage rate; the returned interval
 		#'   targets \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			self$compute_estimate(estimate_only = FALSE)
-			if (private$testing_type == "wald") {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-				}
-			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			compute_mean_difference_estimand_ci(self, private, alpha,
+				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha))
 		},
 		#' @description Wald two-sided p-value, dispatched by
 		#'   \code{testing_type} exactly as
@@ -619,21 +583,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		#'   (both scales coincide for this family — see the class-level
 		#'   \code{@details}).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			self$compute_estimate(estimate_only = FALSE)
-			if (private$testing_type == "wald") {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-				}
-			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			compute_mean_difference_estimand_pval(self, private, delta)
 		}
 	),
 	private = list(
@@ -649,7 +599,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		# Standard error of beta_hat_T under the current estimand. Calls
 		# self$compute_estimate() first so the estimand-aware cache is always
 		# current regardless of call order.
-		# v1.0.6-TODO-220 (2): this is the same SE as the Wald CI / p-value of
+		# v1.0.6-TODO-161 (2): this is the same SE as the Wald CI / p-value of
 		# compute_asymp_*() (one source of truth): the conditional SE is the
 		# inverse expected information X'WX of the IRLS fit (glm()'s convention,
 		# owner decision 2026-11-19), not the observed information of the
@@ -662,8 +612,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		# self$compute_estimate() first so the estimand-aware cache is always
 		# current regardless of call order.
 		get_degrees_of_freedom = function(){
-			self$compute_estimate(estimate_only = FALSE)
-			private$cached_values$df %||% Inf
+			edi_estimand_degrees_of_freedom(self, private)
 		},
 		# Model-implied mean E[Y | w, x] = X %*% beta (identity link).
 		identity_binomial_mean_from_coefs = function(beta, X){
@@ -676,10 +625,7 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		# is algebraically exact and equal to beta[2] for every subject, not
 		# just on average -- see the class-level @details.
 		identity_binomial_marginal_functional = function(beta, X){
-			X1 = X; X1[, 2L] = 1
-			X0 = X; X0[, 2L] = 0
-			mean(private$identity_binomial_mean_from_coefs(beta, X1)) -
-				mean(private$identity_binomial_mean_from_coefs(beta, X0))
+			edi_estimand_mean_difference(beta, X, private$identity_binomial_mean_from_coefs)
 		},
 		# Full-fit marginal path for compute_estimate(): reuses the single
 		# cached ML fit (private$cached_mod, populated by private$shared() via
@@ -688,32 +634,8 @@ InferenceIncidBinomialIdentityRiskDiff = define_inference_class(
 		# now retains. Degrees of freedom: Inf, same convention as every other
 		# delta-method/sandwich Wald path in this package.
 		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
-			mod = private$cached_mod
-			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
-				private$cache_nonestimable_estimate("identity_binomial_marginal_fit_unavailable")
-				return(NA_real_)
-			}
-			functional = function(theta) private$identity_binomial_marginal_functional(theta, mod$X)
-			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
-			if (!is.finite(point)) {
-				private$cache_nonestimable_estimate("identity_binomial_marginal_point_unavailable")
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = point
-			if (estimate_only) return(point)
-			if (is.null(mod$vcov)) {
-				private$cache_nonestimable_se("identity_binomial_marginal_vcov_unavailable")
-				return(point)
-			}
-			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
-			private$cached_values$df = Inf
-			if (is.finite(dm$se) && dm$se >= 0) {
-				private$cached_values$s_beta_hat_T = dm$se
-				private$clear_nonestimable_state()
-			} else {
-				private$cache_nonestimable_se("identity_binomial_marginal_se_unavailable")
-			}
-			point
+			cache_delta_method_marginal_estimate(private, private$cached_mod,
+				private$identity_binomial_marginal_functional, estimate_only, reason_prefix = "identity_binomial")
 		}
 	)
 )

@@ -7,10 +7,10 @@
 # Where: R/EDI/R/inference_proportion_beta.R:709 (kind: na_where_defined).
 # On commit 0231668c948b this test failed with: Expected `pt_big` to equal `pt_unit`. Differences:
 # 1/1 mismatches [1] 0.139 - 0.132 == 0.00688
-# Tracked as v1.0.6-TODO-385; remove the skip() when it is fixed.
+# Tracked as v1.0.7-TODO-87; remove the skip() when it is fixed.
 
 test_that("beta regression marginal_mean_diff SE is invariant to rescaling a covariate", {
-	skip("v1.0.6-TODO-385: the marginal SE is NA because generate_mod() tests the raw rcond(fi) < sqrt(eps)")
+	skip("v1.0.7-TODO-87: the marginal SE is NA because generate_mod() tests the raw rcond(fi) < sqrt(eps)")
 		set.seed(11)
 		n = 60L
 		x1 = rnorm(n)

@@ -106,7 +106,7 @@ test_that("public bootstrap screening arguments reach the screen and are restore
 	ci <- suppressWarnings(inf$compute_bootstrap_confidence_interval(B = 19, min_group_n = n, show_progress = FALSE))
 	pval <- suppressWarnings(inf$compute_bootstrap_two_sided_pval(B = 19, min_group_n = n, show_progress = FALSE))
 	expect_identical(priv$bootstrap_screening_control, old_control)
-	skip("v1.0.6-TODO-266: the public CI/p-value screening args are overwritten by approximate_bootstrap_distribution_beta_hat_T()'s own defaults, so min_group_n = n still gives a finite CI and p-value")
+	skip("v1.0.7-TODO-120: the public CI/p-value screening args are overwritten by approximate_bootstrap_distribution_beta_hat_T()'s own defaults, so min_group_n = n still gives a finite CI and p-value")
 	expect_true(all(is.na(ci)))
 	expect_true(is.na(pval))
 })

@@ -73,7 +73,7 @@ test_that("InferenceSurvivalLogRank matches direct interval::ictest() under inte
 
 	fit_direct = interval::ictest(setup$y_L, setup$y_R, setup$w, scores = "logrank1")
 	# ictest()'s estimate is "arm in row 1 minus the other"; EDI reports
-	# treatment minus control (v1.0.6-TODO-117)
+	# treatment minus control (v1.0.6-TODO-71)
 	expect_equal(est, mean(fit_direct$scores[setup$w == 1]) - mean(fit_direct$scores[setup$w == 0]))
 	expect_equal(pv, as.numeric(fit_direct$p.value))
 	expect_true(all(is.finite(ci)))
@@ -92,7 +92,7 @@ test_that("InferenceSurvivalGehanWilcox matches direct interval::ictest() under 
 
 	fit_direct = interval::ictest(setup$y_L, setup$y_R, setup$w, scores = "wmw")
 	# ictest()'s estimate is "arm in row 1 minus the other"; EDI reports
-	# treatment minus control (v1.0.6-TODO-121)
+	# treatment minus control (v1.0.6-TODO-75)
 	expect_equal(est, mean(fit_direct$scores[setup$w == 1]) - mean(fit_direct$scores[setup$w == 0]))
 	expect_equal(pv, as.numeric(fit_direct$p.value))
 	expect_true(all(is.finite(ci)))

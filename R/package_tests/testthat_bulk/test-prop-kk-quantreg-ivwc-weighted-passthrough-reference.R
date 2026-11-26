@@ -15,10 +15,10 @@ library(EDI)
 # match/reservoir partition and independently recompute the weighted-
 # combination formula from scratch.
 #
-# v1.0.6-TODO-217 (2026-11-19): that fallback was a raw mean difference of the
+# v1.0.6-TODO-158 (2026-11-19): that fallback was a raw mean difference of the
 # responses pooled with the observed w_star, not this class's quantile
 # estimator, and is gone; the class then refused the Bayesian bootstrap.
-# v1.0.6-TODO-235 (2) (2026-11-20): the class now has compute_weighted_estimate_ivwc(),
+# v1.0.6-TODO-169 (2) (2026-11-20): the class now has compute_weighted_estimate_ivwc(),
 # a weighted quantreg::rq() refit of both halves on the logit scale. The test below
 # checks a replicate against an independent weighted-rq reference.
 

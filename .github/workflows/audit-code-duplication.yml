@@ -2,8 +2,8 @@
 # Mechanical (no Claude, about 10 s): jscpd (pinned in the module, run through npx) over R/EDI/R,
 # R/EDI/src, python/src and python/cpp, comments skipped; runs of one file pair merged across short
 # gaps, extended and diffed token by token, and ranked so DIVERGENT near-clones come first: long
-# shared code with a few structural differences, the shape of v1.0.6-TODO-117/-121 (LogRank fixed,
-# Gehan-Wilcoxon not) and v1.0.6-TODO-103 (GEE family parse in R/EDI/src and python/cpp).
+# shared code with a few structural differences, the shape of v1.0.6-TODO-71 / v1.0.6-TODO-75 (LogRank fixed,
+# Gehan-Wilcoxon not) and v1.0.7-TODO-43 (GEE family parse in R/EDI/src and python/cpp).
 # Claude (Sonnet, batches of 8, at most 12 batches): only candidates with no verdict yet and not
 # dismissed, highest score first; the rest wait for the next run. Each gets one verdict:
 # intentional, refactor or divergence_bug (with file:line evidence). Skipped when no R/C++/Python

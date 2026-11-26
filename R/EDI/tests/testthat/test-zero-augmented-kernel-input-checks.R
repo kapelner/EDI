@@ -1,4 +1,4 @@
-# v1.0.6-TODO-195 (4): the zero-augmented / hurdle count kernels did not check
+# v1.0.6-TODO-140 (4): the zero-augmented / hurdle count kernels did not check
 # their inputs. fast_zero_augmented_poisson_cpp(X, numeric(0), ...) aborted R with
 # a segfault, and a short y, an Xzi / X_hurdle / group_id with fewer rows than X,
 # a params vector of the wrong length or an out-of-range j_T read past the end of
@@ -37,7 +37,7 @@ test_that("the guarded zero-augmented fit errors in R instead of reaching the ke
 
 test_that("fast_zero_augmented_poisson_cpp and its derivatives stop on bad inputs", {
 	skip_if_not(zak_kernel_has_checks(fast_zero_augmented_poisson_cpp(zak_X, NULL, zak_X, TRUE)),
-		"needs the owner build with the v1.0.6-TODO-195 (4) kernel checks")
+		"needs the owner build with the v1.0.6-TODO-140 (4) kernel checks")
 	for (hurdle in c(TRUE, FALSE)) {
 		expect_error(fast_zero_augmented_poisson_cpp(zak_X, NULL, zak_X, hurdle), "got NULL")
 		expect_error(fast_zero_augmented_poisson_cpp(zak_X, numeric(0), zak_X, hurdle), "at least one row")
@@ -57,7 +57,7 @@ test_that("fast_zero_augmented_poisson_cpp and its derivatives stop on bad input
 
 test_that("the hurdle negative-binomial kernels stop on bad inputs", {
 	skip_if_not(zak_kernel_has_checks(fast_hurdle_negbin_cpp(zak_X, NULL, zak_X)),
-		"needs the owner build with the v1.0.6-TODO-195 (4) kernel checks")
+		"needs the owner build with the v1.0.6-TODO-140 (4) kernel checks")
 	expect_error(fast_hurdle_negbin_cpp(zak_X, numeric(0), zak_X), "at least one row")
 	expect_error(fast_hurdle_negbin_cpp(zak_X, zak_y, zak_X[1:4, ]), "X_hurdle has 4 rows")
 	expect_error(fast_hurdle_negbin_with_var_cpp(zak_X, numeric(0), zak_X), "at least one row")
@@ -69,7 +69,7 @@ test_that("the hurdle negative-binomial kernels stop on bad inputs", {
 
 test_that("fast_hurdle_poisson_glmm_cpp stops on bad inputs", {
 	skip_if_not(zak_kernel_has_checks(fast_hurdle_poisson_glmm_cpp(zak_X, NULL, zak_gid, 1L)),
-		"needs the owner build with the v1.0.6-TODO-195 (4) kernel checks")
+		"needs the owner build with the v1.0.6-TODO-140 (4) kernel checks")
 	expect_error(fast_hurdle_poisson_glmm_cpp(zak_X, numeric(0), zak_gid, 1L), "at least one row")
 	expect_error(fast_hurdle_poisson_glmm_cpp(zak_X, zak_y, zak_gid[1:3], 1L), "group_id has 3 entries")
 	expect_error(fast_hurdle_poisson_glmm_cpp(zak_X, zak_y, zak_gid, 7L), "j_T")

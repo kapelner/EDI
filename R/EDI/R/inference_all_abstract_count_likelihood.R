@@ -223,7 +223,7 @@ CountLikelihoodPlumbingSource = list(
 			}
 			private$cache_procedure_failure("count_likelihood_asymp", "count_likelihood_asymp_block_size_gt_one_not_supported")
 			# A documented design gate, not a data failure: say so instead of a
-			# silent NA (v1.0.6-TODO-113).
+			# silent NA (v1.0.6-TODO-67).
 			edi_warn_procedure_na(self, private,
 				procedure = "asymptotic / likelihood-based inference",
 				reason = "count_likelihood_asymp_block_size_gt_one_not_supported",
@@ -241,7 +241,7 @@ CountLikelihoodPlumbingSource = list(
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				ci
 			},
-		# v1.0.6-TODO-380: count_bootstrap_fallback_ci()/_pval(), the bootstrap
+		# v1.0.6-TODO-225: count_bootstrap_fallback_ci()/_pval(), the bootstrap
 		# interval/p-value the zero-augmented classes' Wald path returned when the
 		# asymptotic SE was unavailable, were removed: that path now returns NA via
 		# edi_wald_unavailable_na() (helper_robust_sandwich.R).

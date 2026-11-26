@@ -362,7 +362,6 @@ edi::ResultMap fast_ordinal_glmm_internal(
 	}
 
 	LikelihoodFitResult best_fit;
-	bool have_finite_fit = false;
 	bool multistart_used_lbfgs = false;
 	bool newton_polish_attempted = false;
 	bool newton_polish_accepted = false;
@@ -370,17 +369,9 @@ edi::ResultMap fast_ordinal_glmm_internal(
 	try {
 		multistart_used_lbfgs = normalize_optimizer_algorithm(
 			optimization_alg, "lbfgs", false) == "lbfgs";
-		for (const auto& start_candidate : starts) {
-			LikelihoodFitResult fit = optimize_fixed_likelihood(
-				obj, start_candidate, fixed_spec, maxit, eps_g,
-				optimization_alg, "lbfgs", 0, info_start_ptr);
-			if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
-			if (!have_finite_fit || fit.value < best_fit.value) {
-				best_fit = fit;
-				have_finite_fit = true;
-			}
-		}
-		if (!have_finite_fit) throw std::runtime_error("ordinal GLMM produced no finite multistart fit");
+		best_fit = glmm::best_multistart_fit(
+		    obj, starts, fixed_spec, maxit, eps_g, optimization_alg, info_start_ptr,
+		    "ordinal GLMM produced no finite multistart fit");
 
 		// Polish the selected basin with a function-decrease tolerance tight
 		// enough that LBFGSpp cannot call a visibly nonstationary fit converged.

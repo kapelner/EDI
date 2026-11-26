@@ -852,6 +852,7 @@ numbers retain their pre-split meaning; the migration table and each entry's pro
   For count, `response_type = "count"` with Poisson responses: a treated y = 5 becomes 3 (round(5/e) + 1) and a
   control 6 becomes 7. Fix: apply the shift on one scale consistently (the template's), or refuse nonzero `delta`
   for these types in `InferenceRandCustom`; add a test that the imputed null responses are on one scale.
+  Re-check the count and proportion CI refusal and its message after this change (see TODO-72).
 
 <a id="todo-39"></a>
 <!-- pre-split-id: 1.0.6/88; 2026-11-25 -->
@@ -1106,7 +1107,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
 <a id="todo-54"></a>
 <!-- pre-split-id: 1.0.6/193; 2026-11-25 -->
 
-- [ ] TODO-54 (added 2026-11-19, owner request): **Merge the code-duplication audit's "refactor" clones into shared
+- [x] TODO-54 (added 2026-11-19, owner request): **Merge the code-duplication audit's "refactor" clones into shared
   helpers.** The weekly code-duplication audit (`.github/workflows/audit-code-duplication.yml`; verdicts in
   `code-duplication/verdicts.json` on the `audit-notes` branch) judges near-clones as `intentional`, `refactor` or
   `divergence_bug`. Merge each `refactor` clone set into one shared helper. Rule: results must stay bit-identical,
@@ -1117,6 +1118,9 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   item. Items marked [C++] need a C++ change: agents write the patch and verify it with targeted compiles only where
   per-file objects exist (never a full build); otherwise the owner builds. First CI run 2026-11-18 (run 44358232233,
   `4ce2b712`): 32 judged (20 refactor, 3 divergence_bug, 9 intentional), 365 not yet judged.
+  The rebuilt R library matched the pre-install binary exactly across 340 seeded calls, including matching failure
+  results. A fresh source audit on 2026-11-26 found none of the 138 tracked families under their original IDs.
+  All four Python GEE tests passed against the rebuilt extension, including the negative cluster label regression (dc61886c3).
   - `code-duplication-da35f9c8f` (`dup-1adb37d8ab20`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:534-614` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:622-701` (coordinate with v1.0.6-TODO-138, same function) -- DONE (agent, uncommitted; bit-identical): `fit_logistic_with_sandwich()` in both classes is now a thin wrapper over `gcomp_fit_logistic_with_sandwich()` (`helper_gcomp.R`); each class passes its clamp and post-fit (HC0 vs KK cluster) as arguments
   - `code-duplication-d6b10061f` (`dup-440466dd6dc0`): `R/EDI/R/design_abstract.R:405-498` vs `R/EDI/R/design_fixed_abstract.R:89-187` -- DONE (2026-11-25): fixed designs now inherit the shared `add_all_subject_responses()` body; the fixed-sample assertion still runs at the same point. Before/after `identical()` on 120 cases across four fixed/sequential designs and six response types, including ordinal levels, censoring, and errors.
   - `code-duplication-d4e38d855` (`dup-47b3c5848e6a`): `R/EDI/R/inference_survival_gehan_wilcox.R:220-329` vs `R/EDI/R/inference_survival_log_rank.R:199-317` -- DONE (agent, uncommitted)
@@ -1132,7 +1136,7 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - `code-duplication-dc93f6357` (`dup-fb4cd2ec3279`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:183-232` vs `R/EDI/R/inference_incidence_risk_diff.R:217-273` -- DONE (agent, uncommitted)
   - `code-duplication-dc1588975` (`dup-01e154dfbad0`) [C++]: `R/EDI/src/gcomp_speedups.cpp:175-276` vs `R/EDI/src/gcomp_speedups.cpp:384-490` -- DONE (agent, uncommitted; verified by kernel swap): `compute_gcomp_logistic_post_fit()` is now a template taking the meat as a functor; HC0 and cluster exports both call it
   - `code-duplication-d1a5a5abe` (`dup-5997356561a2`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:100-387` vs `R/EDI/src/fast_ordinal_cloglog_regression.cpp:108-386` -- DONE (agent, uncommitted; verified by kernel swap): one template `edi_ordinal::fixed_link_ordinal_internal<Model>()` (+ shared score/Hessian templates) in new header `R/EDI/src/ordinal_fixed_link_internal.h`, shared with probit; the cloglog validation-order drift is kept as an explicit policy flag (bit-identical), not fixed
-  - `code-duplication-da540c45e` (`dup-7640a4a65caa`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82` -- PATCHED, needs owner build: soft_barrier trio moved into `_glmm_engine.h` (namespace glmm), both files use `glmm::gauss_hermite_rule`; hurdle half verified by kernel swap, `fast_poisson_glmm.cpp` cannot be sourceCpp'd standalone (needs `fast_poisson_regression_internal` from another TU)
+  - `code-duplication-da540c45e` (`dup-7640a4a65caa`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:32-72` vs `R/EDI/src/fast_poisson_glmm.cpp:36-82` -- DONE: shared the quadrature and soft-barrier helpers. Rebuilt R kernel results match exactly.
   - `code-duplication-d4d992420` (`dup-b4945bb7ace9`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:636-663` vs `R/EDI/src/fast_gaussian_lmm.cpp:683-710` -- DONE (agent, uncommitted; verified by kernel swap): static `build_lmm_data()` in the same file
   - `code-duplication-dd690bfdc` (`dup-b82ef667e0cb`) [C++]: `R/EDI/src/kk_compound_distr_parallel.cpp:25-112` vs `R/EDI/src/kk_compound_distr_parallel.cpp:126-211` -- DONE (agent, uncommitted; verified by kernel swap): static inline `compound_beta_hat()` in the same file
   - `code-duplication-d730a0bdd` (`dup-b84f50f38a71`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:177-387` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:179-381` -- DONE (agent, uncommitted; verified by kernel swap): same shared template as the cauchit/cloglog item; probit's NaN guard on ssq_b_j and its missing K<2 early return are kept as explicit policy flags (bit-identical), not unified
@@ -1141,28 +1145,28 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   (issue #61). Eight are flagged as possible divergence bugs and should be checked before merging.
   - `code-duplication-d0008dd06` (`dup-cf2587a46833`): `R/EDI/R/inference_count_hurdle.R:80-236` vs `R/EDI/R/inference_count_zero_inflated.R:97-268` -- DONE (2026-11-25): share the estimand-aware estimate, CI and p-value bodies for hurdle Poisson and ZIP, retaining both public APIs. Before/after `identical()` on 48 seeded cases covering estimates, every supported test type, marginal-to-conditional switching and warnings.
   - `code-duplication-d045a2ebb` (`dup-4b61e21df5c8`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:44-64` vs `R/EDI/R/inference_ordinal_ordered_probit.R:251-271` -- DONE (2026-11-25): adjacent-category logit now uses the existing weighted ordinal surrogate helper with its own retained-column cache field. Before/after `identical()` on 54 cases across adjacent-category logit, ordered probit and cauchit, including weighted-fit cache fields and warnings.
-  - `code-duplication-d0bee2d47` (`dup-40a8fc9297a9`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:1-110` vs `R/EDI/src/fast_logrank.cpp:1-98` -- PATCHED (2026-11-25), verification pending: extracted a shared rank kernel in `survival_rank_test.h` with compile-time Peto–Prentice weighting. The installed-binary baseline is reproducible with `/tmp/edi-t54-survival-rank.R baseline`. Needs explicit permission for targeted log-rank and Gehan–Wilcoxon compilation and bit-identical checks.
+  - `code-duplication-d0bee2d47` (`dup-40a8fc9297a9`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:1-110` vs `R/EDI/src/fast_logrank.cpp:1-98` -- DONE: shared survival rank kernel with compile-time Peto–Prentice weighting. Before/after Gehan–Wilcoxon and log-rank kernel results are identical on tied survival data.
   - `code-duplication-d0bf7a47c` (`dup-73dca8787a4c`): `R/EDI/R/inference_incidence_binomial_identity.R:628-668` vs `R/EDI/R/inference_proportion_beta.R:368-407` -- DONE: shared the degrees-of-freedom and marginal mean contrast code. Kept the distinct SE rules already required by v1.0.6-TODO-161. Verified with the joint 108-case matrix/estimand comparison.
   - `code-duplication-d0f32f7c4` (`dup-ae89fd0f2d50`): `R/EDI/R/inference_count_hurdle.R:581-605` vs `R/EDI/R/inference_proportion_zero_one_inflated_beta.R:470-494` -- DONE: one component matrix builder preserves formula handling and retained-column order. Joint 108-case before/after comparison with d0bf7a47c was identical.
-  - `code-duplication-d114b8d9b` (`dup-89aa9d2539e0`) [C++]: `R/EDI/src/sample_mode.cpp:40-93` vs `R/EDI/src/sample_mode.cpp:94-143` -- PATCHED: integer and logical mode use one typed helper. Factor attributes, NA sentinels and the first-occurrence tie break are preserved in source. Native verification pending.
+  - `code-duplication-d114b8d9b` (`dup-89aa9d2539e0`) [C++]: `R/EDI/src/sample_mode.cpp:40-93` vs `R/EDI/src/sample_mode.cpp:94-143` -- DONE: integer and logical mode use one typed helper. Factor attributes, NA sentinels and the first-occurrence tie break are preserved in source. Rebuilt R kernel results match exactly.
   - `code-duplication-d1564c4c6` (`dup-abd094cd763e`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:5-66` vs `R/EDI/R/inference_ordinal_cloglog.R:52-109` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cloglog `initialize` has no `harden` argument; adjacent-category logit has one -- DONE for the weighted-fit clone: shared the surrogate helper and kept each constructor’s documented hardening interface. Before/after identical on 36 weighted-fit cases.
   - `code-duplication-d1d0200db` (`dup-7df0544df4d2`): `R/EDI/R/inference_all_abstract_rand_ci.R:559-594` vs `R/EDI/R/inference_incidence_exact_zhang.R:73-106` -- DONE: shared the Zhang dispatch after the entry points’ distinct validations. 20 seeded before/after cases identical, including nonzero-delta refusals.
-  - `code-duplication-d1f2bef91` (`dup-b02d9fd25b94`) [C++]: `R/EDI/src/fast_wilcox_hl.cpp:340-356` vs `R/EDI/src/fast_wilcox_hl.cpp:381-397` -- PATCHED: R Wilcoxon HL estimate delegates to the existing portable grouping and estimate implementation. Native verification pending.
+  - `code-duplication-d1f2bef91` (`dup-b02d9fd25b94`) [C++]: `R/EDI/src/fast_wilcox_hl.cpp:340-356` vs `R/EDI/src/fast_wilcox_hl.cpp:381-397` -- DONE: R Wilcoxon HL estimate delegates to the existing portable grouping and estimate implementation. Rebuilt R kernel results match exactly.
   - `code-duplication-d2067ea8e` (`dup-4387d08426f4`): `R/EDI/R/inference_count_KK_cond_poisson.R:831-877` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1795-1841` -- DONE: one cache-preserving conservative p-value helper. The supported OneLik entry points were identical on 18 seeded cases including cache fields. The IVWC bodies use the same helper but those tests are not exposed by its contract.
   - `code-duplication-d22d0b43d` (`dup-bf70b2e02e63`): `R/EDI/R/inference_all_abstract_rand_bootstrap.R:1024-1072` vs `R/EDI/R/inference_all_abstract_rand_bootstrap.R:1159-1212` -- DONE: shared fresh-subset bootstrap preparation and kept scalar and studentized statistics separate. 12 before/after draws identical in both modes, including survival, smoothing and malformed draws.
   - `code-duplication-d27b99ba5` (`dup-9319feaf81b4`): `R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R:163-172` vs `R/EDI/R/inference_all_KK_quantile_regr_ivwc_abstract.R:175-184` -- DONE: shared the result handling after the two QR paths. Both focused matrix-helper test files passed with existing native kernels.
   - `code-duplication-d2c14e342` (`dup-117b65d30af8`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:1024-1064` vs `R/EDI/R/inference_incidence_KK_marginal_abstract.R:66-110` -- DONE: share covariate naming and design-versus-inference cluster cache logic. Both focused cache and covariate-name test files passed.
   - `code-duplication-d2c94a819` (`dup-018bf5078750`): `R/EDI/R/inference_ext_likelihood_test_memoization.R:192-206` vs `R/EDI/R/inference_ext_likelihood_test_memoization.R:207-221` -- DONE: shared exact and approximate Bartlett adjustment around their selected factor. Memoization regression file passed against the installed kernels.
-  - `code-duplication-d2cb1831f` (`dup-32b5d56ba802`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-405` vs `R/EDI/src/fast_logistic_glmm.cpp:439-461` -- PATCHED: three logistic GLMM testing entry points use one checked data builder. Native verification pending.
-  - `code-duplication-d32feefe2` (`dup-ee0fda8e5b7b`) [C++]: `R/EDI/src/kk21_weights.cpp:493-599` vs `R/EDI/src/kk21_weights.cpp:972-1076` -- do with v1.0.7-TODO-66, which must edit both Newton loops anyway -- PATCHED: shared the existing theta update. The sign correction stays in v1.0.7-TODO-66 and now has one update site. Native verification pending.
+  - `code-duplication-d2cb1831f` (`dup-32b5d56ba802`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-405` vs `R/EDI/src/fast_logistic_glmm.cpp:439-461` -- DONE: three logistic GLMM testing entry points use one checked data builder. Rebuilt R kernel results match exactly.
+  - `code-duplication-d32feefe2` (`dup-ee0fda8e5b7b`) [C++]: `R/EDI/src/kk21_weights.cpp:493-599` vs `R/EDI/src/kk21_weights.cpp:972-1076` -- do with v1.0.7-TODO-66, which must edit both Newton loops anyway -- DONE: shared the existing theta update. The sign correction stays in v1.0.7-TODO-66 and now has one update site. Rebuilt R kernel results match exactly.
   - `code-duplication-d37d994cc` (`dup-0cae3844f40b`): `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:64-114` vs `R/EDI/R/inference_ext_prw_subsampling.R:59-109` -- v1.0.6-TODO-139 merged only the p-value and CI setups -- DONE: common draw/refit/debug path, preserving replacement, RNG restoration and deadlines. Eight seeded before/after comparisons per method identical. Timeout contract tests passed.
   - `code-duplication-d3f8794a9` (`dup-e19765984523`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:654-701` vs `R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R:99-142` -- DONE: one CI and p-value dispatch, preserving each model’s Wald fit. Shared dispatch comparisons and the KK LWA Cox migration golden passed.
   - `code-duplication-d4062d188` (`dup-82f8a493e070`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:112-168` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:654-696` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): OLS one-lik `compute_asymp_confidence_interval` `testing_type` switch has no default, returns NULL -- DONE for the common p-value dispatch. The old missing CI default is already fixed by v1.0.6-TODO-208. OLS uses its own CI inversion routines, which remain separate.
-  - `code-duplication-d41dc9935` (`dup-a34c2117a793`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:1-47` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:1-47` -- PATCHED: shared the unweighted fixed-link adapter for ordinal cauchit and probit. Native verification pending.
+  - `code-duplication-d41dc9935` (`dup-a34c2117a793`) [C++]: `R/EDI/src/fast_ordinal_cauchit_regression.cpp:1-47` vs `R/EDI/src/fast_ordinal_probit_regression.cpp:1-47` -- DONE: shared the unweighted fixed-link adapter for ordinal cauchit and probit. Rebuilt R kernel results match exactly.
   - `code-duplication-d48f0b621` (`dup-5b31a3214560`): `R/EDI/R/inference_all_abstract_rand.R:770-785` vs `R/EDI/R/inference_all_abstract_rand.R:790-805` -- DONE in 6166f9b5: the duplicate branches already call the central shift path. No additional source edit.
-  - `code-duplication-d4c0c7f7a` (`dup-c48486186648`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:565-583` vs `R/EDI/src/fast_gaussian_lmm.cpp:636-652` -- PATCHED: Gaussian LMM GLS, score and Fisher share checked input, group remapping and optional weights. Native verification pending.
+  - `code-duplication-d4c0c7f7a` (`dup-c48486186648`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:565-583` vs `R/EDI/src/fast_gaussian_lmm.cpp:636-652` -- DONE: Gaussian LMM GLS, score and Fisher share checked input, group remapping and optional weights. Rebuilt R kernel results match exactly.
   - `code-duplication-d4ceca027` (`dup-d1a3e796a967`): `R/EDI/R/inference_incidence_exact_binomial.R:30-93` vs `R/EDI/R/inference_indicidence_exact_fisher.R:21-77` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): exact-binomial design check runs always, exact-Fisher only under `should_run_asserts()` -- DONE for argument validation: shared argument normalization, response and censoring checks. The Fisher constructor already rejects unsupported designs unconditionally, so the differing internal gate does not expose a public bypass. Four exact-binomial/Fisher guard test files passed.
-  - `code-duplication-d54d5e887` (`dup-c59fc462a58f`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:85-168` vs `R/EDI/src/fast_logrank.cpp:76-156` -- PATCHED: same shared survival rank kernel as d0bee2d47. Native verification pending.
+  - `code-duplication-d54d5e887` (`dup-c59fc462a58f`) [C++]: `R/EDI/src/fast_gehan_wilcox.cpp:85-168` vs `R/EDI/src/fast_logrank.cpp:76-156` -- DONE: same shared survival rank kernel as d0bee2d47. Rebuilt R kernel results match exactly.
   - `code-duplication-d56b63aab` (`dup-d3f4295c00b8`): `R/EDI/R/inference_incidence_log_binomial.R:262-291` vs `R/EDI/R/inference_incidence_modified_poisson.R:188-199` -- DONE: shared the coefficient/convergence screening, preserving the model-specific probability and predictor checks. Modified Poisson predicate test passed.
   - `code-duplication-d5e5b1877` (`dup-5e66d7d6a084`): `R/EDI/R/inference_continuous_quantile_regr.R:230-352` vs `R/EDI/R/inference_proportion_quantile_regr.R:54-172` -- partly done: `code-duplication-d1b25b18a` merged the privates; the public skeleton is still copied -- DONE: shared the point-estimate and Wald method bodies after the previously merged private fits. Both quantile refit reference files passed.
   - `code-duplication-d63139ea4` (`dup-ccaf9d863fdd`): `R/EDI/R/design_fixed_greedy.R:159-178` vs `R/EDI/R/design_fixed_greedy_d_optimal.R:296-313` -- DONE: shared the treated-count validation and covariate-free draws. 24 seeded before/after draw matrices were identical across both designs and allocation settings.
@@ -1171,95 +1175,95 @@ predictor" means zero residual variance (to a relative tolerance) in the fit of 
   - `code-duplication-d6e5fae59` (`dup-1d2fe9089c45`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:23-69` vs `R/EDI/R/inference_survival_strat_cox.R:239-271` -- DONE: reused the common likelihood switches, preserving the early Wald path, per-class input checks and original fallbacks. Dispatch/Bartlett routing reference passed.
   - `code-duplication-d708f1f8e` (`dup-b60c9f7798cf`): `R/EDI/R/inference_ordinal_ordered_probit.R:176-225` vs `R/EDI/R/inference_ordinal_stereotype_logit.R:1337-1386` -- DONE: share the ordinal leaf override declaration and preserve each class’s specific methods. Both generators loaded under the original registry contracts.
   - `code-duplication-d79480795` (`dup-bd767b3b1e90`): `R/EDI/R/inference_count_KK_cond_poisson.R:1007-1031` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1070-1093` -- DONE: share the weighted/unweighted matched contribution across likelihood, score and Hessian, keeping each reservoir formula and result type. Focused derivative reference passed.
-  - `code-duplication-d7bfd0139` (`dup-8500784fdfc4`) [C++]: `R/EDI/src/fast_adjacent_category_logit.cpp:393-415` vs `R/EDI/src/fast_adjacent_category_logit.cpp:479-508` -- PATCHED: adjacent-category estimate and variance wrappers share outcome mapping and fitting. Native verification pending.
-  - `code-duplication-d7d618301` (`dup-e8c35417c731`) [C++]: `R/EDI/src/fast_gee.cpp:307-351` vs `R/EDI/src/fast_gee.cpp:354-392` -- family parse overlaps v1.0.7-TODO-43; the group sort is not covered there -- PATCHED: R GEE wrappers share group sorting, grouped fit and output conversion. The existing family parsing behavior is unchanged pending v1.0.7-TODO-43. Native verification pending.
-  - `code-duplication-d8450dc93` (`dup-38ee54497f68`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:386-512` vs `R/EDI/src/fast_probit_regression.cpp:438-612`
+  - `code-duplication-d7bfd0139` (`dup-8500784fdfc4`) [C++]: `R/EDI/src/fast_adjacent_category_logit.cpp:393-415` vs `R/EDI/src/fast_adjacent_category_logit.cpp:479-508` -- DONE: adjacent-category estimate and variance wrappers share outcome mapping and fitting. Rebuilt R kernel results match exactly.
+  - `code-duplication-d7d618301` (`dup-e8c35417c731`) [C++]: `R/EDI/src/fast_gee.cpp:307-351` vs `R/EDI/src/fast_gee.cpp:354-392` -- family parse overlaps v1.0.7-TODO-43; the group sort is not covered there -- DONE: R GEE wrappers share group sorting, grouped fit and output conversion. The existing family parsing behavior is unchanged pending v1.0.7-TODO-43. Rebuilt R kernel results match exactly.
+  - `code-duplication-d8450dc93` (`dup-38ee54497f68`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:386-512` vs `R/EDI/src/fast_probit_regression.cpp:438-612` -- DONE: shared fit argument conversion, estimates, weighted results, and fixed-coefficient variance reporting across the GLM wrappers. Rebuilt R kernel results match exactly.
   - `code-duplication-d872ec3dd` (`dup-03478b9e1cf3`): `R/EDI/R/inference_count_hurdle.R:110-153` vs `R/EDI/R/inference_count_zero_inflated.R:358-393` -- DONE for the common count estimate: ZINB shares the conditional cache update with Hurdle/ZIP. Its conditional-only estimand contract stays in place. ZINB fit and reason reference passed.
-  - `code-duplication-d89e34e9e` (`dup-348cb26a7183`) [C++]: `R/EDI/src/fast_continuation_ratio_regression.cpp:330-364` vs `R/EDI/src/fast_continuation_ratio_regression.cpp:391-433` -- PATCHED: continuation-ratio weighted and unweighted wrappers share result assembly while preserving the weighted-only field and field order. Native verification pending.
+  - `code-duplication-d89e34e9e` (`dup-348cb26a7183`) [C++]: `R/EDI/src/fast_continuation_ratio_regression.cpp:330-364` vs `R/EDI/src/fast_continuation_ratio_regression.cpp:391-433` -- DONE: continuation-ratio weighted and unweighted wrappers share result assembly while preserving the weighted-only field and field order. Rebuilt R kernel results match exactly.
   - `code-duplication-d8aa199fe` (`dup-37d956f7bdfa`): `R/EDI/R/inference_count_KK_cond_poisson.R:760-812` vs `R/EDI/R/inference_count_KK_cond_poisson.R:1750-1799` -- DONE: shared interval assembly and cache restoration. Six seeded before/after OneLik comparisons were identical.
-  - `code-duplication-d8f5eab74` (`dup-b026b3ce7998`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-663` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:664-730` -- PATCHED: weighted and unweighted hurdle GLMM likelihood/score/Hessian wrappers share checked positive-count data construction. Native verification pending.
-  - `code-duplication-d912e6d2b` (`dup-6eab11b3bbec`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:562-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:804-868` -- PATCHED: weighted and unweighted constrained-binomial fits share result finalization and retain their separate working and effective weights. Native verification pending.
+  - `code-duplication-d8f5eab74` (`dup-b026b3ce7998`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-663` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:664-730` -- DONE: weighted and unweighted hurdle GLMM likelihood/score/Hessian wrappers share checked positive-count data construction. Rebuilt R kernel results match exactly.
+  - `code-duplication-d912e6d2b` (`dup-6eab11b3bbec`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:562-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:804-868` -- DONE: weighted and unweighted constrained-binomial fits share result finalization and retain their separate working and effective weights. Rebuilt R kernel results match exactly.
   - `code-duplication-d913fbe2c` (`dup-405743f65354`): `R/EDI/R/inference_ordinal_cauchit.R:137-206` vs `R/EDI/R/inference_ordinal_cloglog.R:287-358` -- DONE: shared full-fit orchestration, design matrix, and cache handling while preserving cloglog’s multistart and treatment sign. 54 seeded before/after comparisons across the cumulative-link classes passed.
-  - `code-duplication-d9607a7c1` (`dup-9e2c0a9f8178`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-272` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-301` -- partly done: the RR methods are merged; the RD bootstrap, Bayesian-bootstrap and jackknife wrappers and `compute_treatment_estimate_during_randomization_inference` are still copied
-  - `code-duplication-daf376ace` (`dup-1f433f508026`): `R/EDI/R/inference_incidence_modified_poisson.R:441-486` vs `R/EDI/R/inference_incidence_probit.R:376-421`
-  - `code-duplication-db5595975` (`dup-3fa266e6a729`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:376-441` vs `R/EDI/src/fast_log_binomial_regression.cpp:618-689` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): unweighted log-binomial IRLS takes `warm_start_weights` but never reads it
-  - `code-duplication-db621c738` (`dup-a61a70528060`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:460-581` vs `R/EDI/src/fast_log_binomial_regression.cpp:709-819`
-  - `code-duplication-db68b8e31` (`dup-eb77e907ec3a`): `R/EDI/R/inference_count_zero_inflated.R:120-174` vs `R/EDI/R/inference_count_zero_inflated.R:341-387`
-  - `code-duplication-dba30f68d` (`dup-21b487f963fb`): `R/EDI/R/inference_all_KK_quantile_regr_one_lik_abstract.R:85-134` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:62-137`
-  - `code-duplication-dbc57fae3` (`dup-0bea0bb60720`): `R/EDI/R/contracts_mixins.R:3318-3364` vs `R/EDI/R/design_component_registry.R:183-224`
-  - `code-duplication-dbec652e7` (`dup-395b2ca21302`): `R/EDI/R/contracts_mixins.R:3206-3245` vs `R/EDI/R/design_component_registry.R:241-279`
-  - `code-duplication-dc61886c3` (`dup-7bf412e7eaca`) [C++]: `R/EDI/src/fast_gee.cpp:322-336` vs `python/cpp/bindings_incidence.cpp:63-87` -- overlaps v1.0.7-TODO-43 (one shared GEE family parse)
+  - `code-duplication-d9607a7c1` (`dup-9e2c0a9f8178`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-272` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-301` -- DONE: shared six public RD wrappers and the randomization estimate; RR, cluster-cache, and marginal randomization reference tests passed.
+  - `code-duplication-daf376ace` (`dup-1f433f508026`): `R/EDI/R/inference_incidence_modified_poisson.R:441-486` vs `R/EDI/R/inference_incidence_probit.R:376-421` -- DONE: shared class composition. The generator declarations, public and private method definitions, and both fit reference files match.
+  - `code-duplication-db5595975` (`dup-3fa266e6a729`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:376-441` vs `R/EDI/src/fast_log_binomial_regression.cpp:618-689` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): unweighted log-binomial IRLS takes `warm_start_weights` but never reads it -- DONE: shared constrained-binomial IRLS retains the current unweighted behavior. The warm-weight divergence is tracked in v1.0.7-TODO-127. Rebuilt R kernel results match exactly.
+  - `code-duplication-db621c738` (`dup-a61a70528060`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:460-581` vs `R/EDI/src/fast_log_binomial_regression.cpp:709-819` -- DONE: shared the weighted and unweighted constrained-binomial IRLS loop, retaining their own likelihood arithmetic and warm-start behavior. Rebuilt R kernel results match exactly.
+  - `code-duplication-db68b8e31` (`dup-eb77e907ec3a`): `R/EDI/R/inference_count_zero_inflated.R:120-174` vs `R/EDI/R/inference_count_zero_inflated.R:341-387` -- DONE: both estimates use za_cached_conditional_estimate(); their initializers forward to the same base constructor. Count-family reference tests passed.
+  - `code-duplication-dba30f68d` (`dup-21b487f963fb`): `R/EDI/R/inference_all_KK_quantile_regr_one_lik_abstract.R:85-134` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:62-137` -- DONE: OLS and quantile OneLik share weighted estimation and cache handling with robust OneLik. All 72 seeded outputs and cache snapshots match.
+  - `code-duplication-dbc57fae3` (`dup-0bea0bb60720`): `R/EDI/R/contracts_mixins.R:3318-3364` vs `R/EDI/R/design_component_registry.R:183-224` -- DONE: one dependency resolver preserves design and inference diagnostics. Registry snapshots and focused dependency tests passed.
+  - `code-duplication-dbec652e7` (`dup-395b2ca21302`): `R/EDI/R/contracts_mixins.R:3206-3245` vs `R/EDI/R/design_component_registry.R:241-279` -- DONE: shared body-reference traversal and declaration validation, retaining inference super and forbidden references. All 83 component snapshots match.
+  - `code-duplication-dc61886c3` (`dup-7bf412e7eaca`) [C++]: `R/EDI/src/fast_gee.cpp:322-336` vs `python/cpp/bindings_incidence.cpp:63-87` -- overlaps v1.0.7-TODO-43 (one shared GEE family parse) -- DONE: one core fit entry point sorts rows, groups labels, and parses the family for both bindings. Unknown-family rejection remains under TODO-43. R results match exactly on the rebuilt library, and all four rebuilt Python binding tests passed.
   - `code-duplication-dc78d3281` (`dup-c8291bff0887`): `R/EDI/R/design_abstract.R:410-493` vs `R/EDI/R/design_fixed_abstract.R:89-174` -- DONE: same family and verification as `code-duplication-d6b10061f` above
-  - `code-duplication-dc91e2221` (`dup-27fab88a45dc`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:12-69` vs `R/EDI/R/inference_incidence_log_binomial.R:101-157`
+  - `code-duplication-dc91e2221` (`dup-27fab88a45dc`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:12-69` vs `R/EDI/R/inference_incidence_log_binomial.R:101-157` -- DONE: same shared likelihood p-value dispatch as the other standard-model branch. The focused dispatch comparisons passed.
   - `code-duplication-dd45c2fa8` (`dup-11b5cd15f2d7`): `R/EDI/R/inference_ordinal_cauchit.R:134-206` vs `R/EDI/R/inference_ordinal_ordered_probit.R:57-129` -- DONE: same shared cumulative-link full-fit helpers and 54-case verification as d913fbe2c.
-  - `code-duplication-dd9c46373` (`dup-18a4061ca2d7`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:434-511` vs `R/EDI/src/fast_poisson_regression.cpp:465-540` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): logistic `*_with_var_cpp` hard-codes maxit/tol and omits `mu`; the Poisson one exposes them
-  - `code-duplication-ddad98657` (`dup-bf285fb350be`): `R/EDI/R/inference_all_abstract_rand.R:447-475` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:173-200` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): GEE mixin rand p-value tail takes no `alternative` and skips the cached shift path
-  - `code-duplication-dde2683cb` (`dup-d14222627cd9`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:145-183` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:355-375` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): OLS one-lik likelihood-test p-value copy lacks the base guard and the TODO-116 failure recording
-  - `code-duplication-ddf23fa3c` (`dup-1ba380677ef3`) [C++]: `R/EDI/src/fast_hurdle_negbin.cpp:125-138` vs `R/EDI/src/fast_hurdle_negbin.cpp:146-163`
-  - `code-duplication-de22418b2` (`dup-a7f3006dc4c4`): `R/EDI/R/inference_incidence_binomial_identity.R:649-698` vs `R/EDI/R/inference_proportion_beta.R:391-438`
-  - `code-duplication-de5860b48` (`dup-fd52b678b440`): `R/EDI/R/inference_incidence_binomial_identity.R:530-611` vs `R/EDI/R/inference_proportion_beta.R:153-237`
-  - `code-duplication-de67677f3` (`dup-0803feaefbb3`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:392-466` vs `R/EDI/src/fast_poisson_regression.cpp:425-497`
-  - `code-duplication-de783d17e` (`dup-1ece871a8c89`): `R/EDI/R/helper_matching.R:90-133` vs `R/EDI/R/helper_matching.R:146-169`
-  - `code-duplication-de7e2b41e` (`dup-8f3ba82e1352`) [C++]: `R/EDI/src/robust_post_fit_speedups.cpp:296-339` vs `R/EDI/src/robust_post_fit_speedups.cpp:343-385`
+  - `code-duplication-dd9c46373` (`dup-18a4061ca2d7`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:434-511` vs `R/EDI/src/fast_poisson_regression.cpp:465-540` -- DONE: shared variance calculation and reporting; documented inputs and fitted-mean fields remain model-specific. Rebuilt R kernel results match exactly.
+  - `code-duplication-ddad98657` (`dup-bf285fb350be`): `R/EDI/R/inference_all_abstract_rand.R:447-475` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:173-200` -- DONE: shared observed-statistic, sequential Monte Carlo, and randomization p-value calculation. GEE already accepts alternatives and does not participate in the affine-cache optimization. All 12 seeded p-values match.
+  - `code-duplication-dde2683cb` (`dup-d14222627cd9`): `R/EDI/R/inference_all_abstract_asymp_lik_std_mod_cache.R:145-183` vs `R/EDI/R/inference_continuous_KK_ols_one_lik.R:355-375` -- DONE: shared memoized likelihood p-values and failure recording while preserving the base-only support guard. OLS golden and independent likelihood-test references passed.
+  - `code-duplication-ddf23fa3c` (`dup-1ba380677ef3`) [C++]: `R/EDI/src/fast_hurdle_negbin.cpp:125-138` vs `R/EDI/src/fast_hurdle_negbin.cpp:146-163` -- DONE: common negative-binomial truncated moment and intercept starts. Rebuilt R kernel results match exactly.
+  - `code-duplication-de22418b2` (`dup-a7f3006dc4c4`): `R/EDI/R/inference_incidence_binomial_identity.R:649-698` vs `R/EDI/R/inference_proportion_beta.R:391-438` -- DONE: one delta-method cache helper with model-specific marginal functionals and failure codes. The seeded comparisons and marginal failure branch tests passed.
+  - `code-duplication-de5860b48` (`dup-fd52b678b440`): `R/EDI/R/inference_incidence_binomial_identity.R:530-611` vs `R/EDI/R/inference_proportion_beta.R:153-237` -- DONE: shared estimand-aware cache and inference dispatch. All 50 seeded conditional/marginal outputs match and dispatch references passed.
+  - `code-duplication-de67677f3` (`dup-0803feaefbb3`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:392-466` vs `R/EDI/src/fast_poisson_regression.cpp:425-497` -- DONE: shared GLM fit input and result helpers. Same patch as d8450dc93. Rebuilt R kernel results match exactly.
+  - `code-duplication-de783d17e` (`dup-1ece871a8c89`): `R/EDI/R/helper_matching.R:90-133` vs `R/EDI/R/helper_matching.R:146-169` -- DONE: matching and Lin matching use one structural-cache implementation with their own fields and kernels. All 120 cache and output snapshots match.
+  - `code-duplication-de7e2b41e` (`dup-8f3ba82e1352`) [C++]: `R/EDI/src/robust_post_fit_speedups.cpp:296-339` vs `R/EDI/src/robust_post_fit_speedups.cpp:343-385` -- DONE: one sandwich post-fit implementation with separate cluster and row-wise meat callbacks. Rebuilt R kernel results match exactly.
   - `code-duplication-de9e00e72` (`dup-f24385724a76`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:271-472` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:300-517` -- re-detection of `code-duplication-db001874c` (DONE); should drop off the next scan
-  - `code-duplication-ded18c68a` (`dup-6ca3192b49a2`) [C++]: `R/EDI/src/kk21_weights.cpp:1136-1181` vs `R/EDI/src/kk21_weights.cpp:1241-1287` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): KK21 stepwise: ordinal skips a throwing candidate, negbin sets its stat to 0
-  - `code-duplication-df3056dcc` (`dup-3e3efd5c256a`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:415-485` vs `R/EDI/src/fast_log_binomial_regression.cpp:659-734`
-  - `code-duplication-df815ccee` (`dup-953983a5b28c`): `R/EDI/R/inference_proportion_gcomp.R:724-732` vs `R/EDI/R/inference_proportion_gcomp.R:737-745`
-  - `code-duplication-df90f4d8c` (`dup-281eb5818608`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-651` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:731-783`
+  - `code-duplication-ded18c68a` (`dup-6ca3192b49a2`) [C++]: `R/EDI/src/kk21_weights.cpp:1136-1181` vs `R/EDI/src/kk21_weights.cpp:1241-1287` -- DONE: shared stepwise selection for beta, negative-binomial and ordinal fits. Retained their failure handling, with the negative-binomial difference tracked in v1.0.7-TODO-186. Rebuilt R kernel results match exactly.
+  - `code-duplication-df3056dcc` (`dup-3e3efd5c256a`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:415-485` vs `R/EDI/src/fast_log_binomial_regression.cpp:659-734` -- DONE: same shared weighted/unweighted constrained-binomial IRLS loop as db621c738. Rebuilt R kernel results match exactly.
+  - `code-duplication-df815ccee` (`dup-953983a5b28c`): `R/EDI/R/inference_proportion_gcomp.R:724-732` vs `R/EDI/R/inference_proportion_gcomp.R:737-745` -- DONE: one symmetric eigenvalue-flooring helper with explicit inversion. All 32 matrix outputs match.
+  - `code-duplication-df90f4d8c` (`dup-281eb5818608`) [C++]: `R/EDI/src/fast_hurdle_poisson_glmm.cpp:595-651` vs `R/EDI/src/fast_hurdle_poisson_glmm.cpp:731-783` -- DONE: the model and likelihood/score/Hessian wrappers use one portable positive-row filter and subset builder. The fit keeps its early insufficient-data return. Rebuilt R kernel results match exactly.
   Added 2026-11-23 from run 45037204796 (`9186e6a5`, 2026-11-22): the run's 51 refactor verdicts (issue #61); its two
   divergence_bug verdicts are v1.0.7-TODO-170 and v1.0.7-TODO-171. Fourteen of the 51 are flagged as possible divergence
   bugs and should be checked before merging.
-  - `code-duplication-d03e1cc0f` (`dup-62427e559c21`): `R/EDI/R/inference_continuous_lin.R:442-491` vs `R/EDI/R/inference_continuous_ols.R:476-522`
-  - `code-duplication-d07d94f12` (`dup-781c3eba4ee9`): `R/EDI/R/inference_mixin_kk_passthrough.R:118-142` vs `R/EDI/R/inference_mixin_kk_passthrough.R:164-182` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): only the debug copy of the KK bootstrap replicate calls `compute_reservoir_and_match_statistics()`; the parallel and serial copies do not
-  - `code-duplication-d1421e1c6` (`dup-ad22cc9e05e1`) [C++]: `R/EDI/src/rerandomization_helpers.cpp:57-69` vs `R/EDI/src/rerandomization_helpers.cpp:71-82`
-  - `code-duplication-d14868fe3` (`dup-7dda27e13bf2`): `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:242-256` vs `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:272-286` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the ZAP CI wrappers do not expose `min_fraction_usable_samples`, the p-value wrappers do
-  - `code-duplication-d15664876` (`dup-9428ea78e32b`): `R/EDI/R/inference_ordinal_cauchit.R:93-137` vs `R/EDI/R/inference_ordinal_ordered_probit.R:471-514` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cauchit keeps its own `get_likelihood_test_spec`, using `get_fit_warm_start_for_length`/`_fisher` instead of `get_backend_warm_start_args`
-  - `code-duplication-d20db4083` (`dup-ee84d31f8808`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:518-582` vs `R/EDI/src/fast_log_binomial_regression.cpp:801-872`
-  - `code-duplication-d2164341b` (`dup-7ba91e25902b`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:604-812` vs `R/EDI/src/fast_log_binomial_regression.cpp:894-1082`
-  - `code-duplication-d286f6d5e` (`dup-74fed185bef1`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:403-420` vs `R/EDI/src/fast_gaussian_lmm.cpp:572-590`
-  - `code-duplication-d2c92521f` (`dup-753e9d723d07`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:634-712` vs `R/EDI/src/fast_poisson_regression.cpp:496-571` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the logistic `with_var` wrapper hard-codes maxit/tol and omits `mu`; the Poisson one exposes them
-  - `code-duplication-d2e855eb9` (`dup-cca84c6e9584`): `R/EDI/R/inference_count_KK_combined.R:310-339` vs `R/EDI/R/inference_ordinal_KK_combined.R:562-588` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the count KK combined class inflates the SE with `.inflate_kk_onelik_standard_error_with_jackknife()`, the ordinal one does not (owner to confirm)
-  - `code-duplication-d33781699` (`dup-fd8056940861`): `R/EDI/R/inference_ordinal_cloglog.R:67-107` vs `R/EDI/R/inference_ordinal_ordered_probit.R:268-301`
-  - `code-duplication-d3a37242b` (`dup-1bc99d4593d2`) [C++]: `R/EDI/src/kk21_weights.cpp:678-727` vs `R/EDI/src/kk21_weights.cpp:826-879`
-  - `code-duplication-d3c08cd80` (`dup-16edf232d0b4`): `R/EDI/R/inference_continuous_lin.R:141-202` vs `R/EDI/R/inference_continuous_ols.R:154-216`
-  - `code-duplication-d517ba962` (`dup-be0576598be3`): `R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:210-247` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:324-374` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the live loggamma copy keeps a redundant early return after v1.0.6-TODO-86 (harmless today)
-  - `code-duplication-d5284f092` (`dup-30a5f25e14cd`): `R/EDI/R/inference_survival_strat_cox.R:676-689` vs `R/EDI/R/inference_survival_strat_cox.R:690-702`
-  - `code-duplication-d5867314f` (`dup-78103d4c1c9b`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:360-541` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:411-598`
-  - `code-duplication-d586bfb11` (`dup-21f4a388433b`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:112-147` vs `R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R:99-121`
-  - `code-duplication-d58a41a25` (`dup-c894cf6d2f0f`): `R/EDI/R/inference_all_average_diff.R:258-289` vs `R/EDI/R/inference_all_simple_wilcox.R:428-459`
-  - `code-duplication-d590bf12e` (`dup-1bde054f4a23`): `R/EDI/R/inference_incidence_KK_cond_logit.R:867-899` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:344-373`
-  - `code-duplication-d5df38ede` (`dup-23b0189638cd`): `R/EDI/R/inference_ordinal_cauchit.R:278-344` vs `R/EDI/R/inference_ordinal_proportional_odds.R:250-317` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): PropOdds overrides `get_complexity_tier` to "heavy"; Cauchit (and Cloglog) get the "light" default, so warm starts are beta-only
-  - `code-duplication-d5e145b6f` (`dup-74e315bcd22f`) [C++]: `R/EDI/src/fast_coxph_regression.cpp:1174-1244` vs `R/EDI/src/fast_weibull_regression.cpp:835-915`
-  - `code-duplication-d61b1e65d` (`dup-7a3c5e76926c`) [C++]: `R/EDI/src/fast_zero_augmented_poisson.cpp:156-168` vs `R/EDI/src/fast_zero_augmented_poisson.cpp:173-188`
-  - `code-duplication-d6bd896f0` (`dup-5be91e2d8c8c`): `R/EDI/R/inference_ordinal_cauchit.R:139-208` vs `R/EDI/R/inference_ordinal_cloglog.R:290-361`
-  - `code-duplication-d6dd4bb22` (`dup-4a855c5b3ea6`) [C++]: `R/EDI/src/fast_ordinal_clmm.cpp:120-153` vs `R/EDI/src/fast_poisson_glmm.cpp:415-444`
-  - `code-duplication-d7d373540` (`dup-8cf00df7147b`): `R/EDI/R/inference_ordinal_cauchit.R:136-208` vs `R/EDI/R/inference_ordinal_ordered_probit.R:57-129` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): cauchit `generate_mod` uses a different warm-start accessor than probit (see d15664876)
-  - `code-duplication-d7f65f74b` (`dup-34bf68e1fb0d`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-280` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-309`
-  - `code-duplication-d84d305f3` (`dup-0ce60a39bcff`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:47-137` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:48-130`
-  - `code-duplication-d853f318a` (`dup-2b57c27e00a4`): `R/EDI/R/inference_survival_strat_cox.R:649-691` vs `R/EDI/R/inference_survival_strat_cox.R:749-790` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the second prebuilt block labels the fit `stratified = FALSE, strata = NULL` while `strat_cox_data_cache` is still the stratified cache
-  - `code-duplication-d9383b909` (`dup-2d175b52b684`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:336-374` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:359-395` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the normal Weibull-frailty class guards `is.null(KKstats)`, the loggamma class does not
-  - `code-duplication-d971fa2d0` (`dup-d8550248d5a0`) [C++]: `R/EDI/src/fast_survival_models_optim.cpp:650-659` vs `R/EDI/src/fast_survival_models_optim.cpp:661-670`
-  - `code-duplication-d97d93309` (`dup-738f7c904be2`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-406` vs `R/EDI/src/fast_logistic_glmm.cpp:410-435`
-  - `code-duplication-d9966a006` (`dup-faf67873824e`) [C++]: `R/EDI/src/_helper_functions_core.h:1859-1890` vs `R/EDI/src/_helper_functions_core.h:1891-1921`
-  - `code-duplication-da55699c9` (`dup-a8d3d55a6f41`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:345-367` vs `R/EDI/R/inference_survival_KK_strat_cox.R:267-289` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the Weibull-frailty normal `shared()` keeps the early return on a cached `beta_hat_T` (L349) that v1.0.6-TODO-86 meant to remove
-  - `code-duplication-dab3ec8ba` (`dup-568f77559618`): `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:62-112` vs `R/EDI/R/inference_ext_prw_subsampling.R:57-107`
-  - `code-duplication-dac68e91d` (`dup-e4bb88b1e488`): `R/EDI/R/inference_class_registry.R:3149-3163` vs `R/EDI/R/inference_class_registry.R:3169-3186`
-  - `code-duplication-db1a1593e` (`dup-4be9360a3eb0`): `R/EDI/R/inference_all_abstract_non_param_boot.R:2440-2456` vs `R/EDI/R/inference_all_abstract_non_param_boot.R:2567-2582`
-  - `code-duplication-dc2e938b7` (`dup-c430dcafd64e`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:8-72` vs `R/EDI/R/inference_ordinal_stereotype_logit.R:334-394` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the stereotype copy has the `stereotype_treatment_estimate_is_usable` guard and nonestimable-state handling, adjacent-category does not
-  - `code-duplication-dc38e164b` (`dup-46f330704001`): `R/EDI/R/inference_ordinal_ordered_probit.R:30-84` vs `R/EDI/R/inference_ordinal_proportional_odds.R:80-139` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): PropOdds `generate_mod` catches errors but its `estimate_only` branch has no `is.null(res)` guard; probit has the guard but no `tryCatch`
-  - `code-duplication-dc67f77bd` (`dup-795fe533cf12`): `R/EDI/R/inference_all_abstract_rand.R:482-516` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:176-207` -- POSSIBLE DIVERGENCE BUG, check before merging (own TODO if confirmed): the GEE mixin copy of the rand p-value tail omits the additive-delta-shift cache and affine-reuse branch (not reachable today)
-  - `code-duplication-dc6d70509` (`dup-b5ece4323f44`): `R/EDI/R/design_abstract.R:417-518` vs `R/EDI/R/design_fixed_abstract.R:90-191`
-  - `code-duplication-dd01a78e4` (`dup-1afcc07d3228`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:647-713` vs `R/EDI/src/fast_probit_regression.cpp:605-670`
-  - `code-duplication-ddc856d68` (`dup-a646215cf3fb`) [C++]: `R/EDI/src/_helper_functions_core.h:283-317` vs `R/EDI/src/_helper_functions_core.h:334-360`
-  - `code-duplication-ddddf4f3d` (`dup-d9617a3cac16`) [C++]: `R/EDI/src/fast_poisson_regression.cpp:459-528` vs `R/EDI/src/fast_probit_regression.cpp:514-623`
-  - `code-duplication-de147f919` (`dup-02d020585d2c`): `R/EDI/R/inference_survival_coxph.R:358-378` vs `R/EDI/R/inference_survival_coxph.R:388-408`
-  - `code-duplication-deb78240f` (`dup-5241962b7a38`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:397-479` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:366-429`
-  - `code-duplication-deea3181d` (`dup-26172419b01d`): `R/EDI/R/inference_count_poisson.R:950-962` vs `R/EDI/R/inference_incidence_risk_diff.R:321-332`
-  - `code-duplication-df6297951` (`dup-b204ea6df4fc`): `R/EDI/R/inference_incidence_KK_combined.R:82-117` vs `R/EDI/R/inference_proportion_KK_combined.R:66-106`
-  - `code-duplication-df6be3096` (`dup-15964dd92780`): `R/EDI/R/inference_count_KK_cond_poisson.R:846-882` vs `R/EDI/R/inference_count_KK_cond_poisson.R:927-956`
-  - `code-duplication-dfa2f5560` (`dup-6e848545caae`): `R/EDI/R/inference_count_poisson.R:309-344` vs `R/EDI/R/inference_count_poisson.R:436-470`
-  - `code-duplication-dfe3bfba7` (`dup-f1e6c6e01c40`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:558-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:843-919`
-  - `code-duplication-dfee4a016` (`dup-4f9b19023d97`) [C++]: `R/EDI/src/fast_weibull_regression.cpp:447-535` vs `R/EDI/src/fast_weibull_regression.cpp:640-736`
+  - `code-duplication-d03e1cc0f` (`dup-62427e559c21`): `R/EDI/R/inference_continuous_lin.R:442-491` vs `R/EDI/R/inference_continuous_ols.R:476-522` -- DONE: shared Gaussian likelihood/spec construction and fixed-coefficient refits. Eight seeded workflows match.
+  - `code-duplication-d07d94f12` (`dup-781c3eba4ee9`): `R/EDI/R/inference_mixin_kk_passthrough.R:118-142` vs `R/EDI/R/inference_mixin_kk_passthrough.R:164-182` -- DONE: serial, parallel, and debug refits share sample setup and estimation. The debug-only refresh is preserved and produced the same estimates on the fixtures. All 144 before/after draw results match.
+  - `code-duplication-d1421e1c6` (`dup-ad22cc9e05e1`) [C++]: `R/EDI/src/rerandomization_helpers.cpp:57-69` vs `R/EDI/src/rerandomization_helpers.cpp:71-82` -- DONE: forced-balance and fixed-count randomization use one shuffle loop and preserve the RNG sequence. Rebuilt R kernel results match exactly.
+  - `code-duplication-d14868fe3` (`dup-7dda27e13bf2`): `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:242-256` vs `R/EDI/R/inference_count_zero_augmented_poisson_abstract.R:272-286` -- DONE: common BCa rejection and named-NA interval handling. The CI signatures match the base CI APIs, while p-values continue forwarding their fraction argument. Both focused bootstrap files passed.
+  - `code-duplication-d15664876` (`dup-9428ea78e32b`): `R/EDI/R/inference_ordinal_cauchit.R:93-137` vs `R/EDI/R/inference_ordinal_ordered_probit.R:471-514` -- DONE: one likelihood specification with the original warm-start policy per link. All 18 seeded null-fit comparisons match. Cauchit policy differences tracked in v1.0.7-TODO-191.
+  - `code-duplication-d20db4083` (`dup-ee84d31f8808`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:518-582` vs `R/EDI/src/fast_log_binomial_regression.cpp:801-872` -- DONE: the preparation block is shared in the constrained-binomial IRLS kernel, as in db621c738. Rebuilt R kernel results match exactly.
+  - `code-duplication-d2164341b` (`dup-7ba91e25902b`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:604-812` vs `R/EDI/src/fast_log_binomial_regression.cpp:894-1082` -- DONE: the IRLS body and fit finalization are shared as in db621c738. Rebuilt R kernel results match exactly.
+  - `code-duplication-d286f6d5e` (`dup-74fed185bef1`) [C++]: `R/EDI/src/fast_gaussian_lmm.cpp:403-420` vs `R/EDI/src/fast_gaussian_lmm.cpp:572-590` -- DONE: Gaussian LMM model fitting and derivative wrappers share contiguous group remapping. Their input coercion and weights remain at the boundary. Rebuilt R kernel results match exactly.
+  - `code-duplication-d2c92521f` (`dup-753e9d723d07`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:634-712` vs `R/EDI/src/fast_poisson_regression.cpp:496-571` -- DONE: same shared variance calculation and reporting as dd9c46373. Rebuilt R kernel results match exactly.
+  - `code-duplication-d2e855eb9` (`dup-cca84c6e9584`): `R/EDI/R/inference_count_KK_combined.R:310-339` vs `R/EDI/R/inference_ordinal_KK_combined.R:562-588` -- DONE: shared backend dispatch and native fit initialization. Preserved count-specific jackknife SE inflation. Six seeded workflows match. The behavior difference is tracked in v1.0.7-TODO-192.
+  - `code-duplication-d33781699` (`dup-fd8056940861`): `R/EDI/R/inference_ordinal_cloglog.R:67-107` vs `R/EDI/R/inference_ordinal_ordered_probit.R:268-301` -- DONE: same shared ordinal weighted fit and seeded tests as the preceding weighted-surrogate family.
+  - `code-duplication-d3a37242b` (`dup-1bc99d4593d2`) [C++]: `R/EDI/src/kk21_weights.cpp:678-727` vs `R/EDI/src/kk21_weights.cpp:826-879` -- DONE: shared univariate covariate scoring loop and OLS fallback; each model keeps its own response transform and score. Rebuilt R kernel results match exactly.
+  - `code-duplication-d3c08cd80` (`dup-16edf232d0b4`): `R/EDI/R/inference_continuous_lin.R:141-202` vs `R/EDI/R/inference_continuous_ols.R:154-216` -- DONE: Lin and OLS share the weighted fit, existing native/QR fallback, and cache update. All 64 weighted refits match.
+  - `code-duplication-d517ba962` (`dup-be0576598be3`): `R/EDI/R/inference_continuous_KK_robust_regr_ivwc.R:210-247` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:324-374` -- DONE: common IVWC cache checks and pooling with the original model-specific SE behavior. All 30 seeded workflows match.
+  - `code-duplication-d5284f092` (`dup-30a5f25e14cd`): `R/EDI/R/inference_survival_strat_cox.R:676-689` vs `R/EDI/R/inference_survival_strat_cox.R:690-702` -- DONE: one native fit/context cache updater. All 12 seeded stratified Cox workflows match.
+  - `code-duplication-d5867314f` (`dup-78103d4c1c9b`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:360-541` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:411-598` -- DONE: common coefficient check, standardization, effect inference, and cache fill. All 24 seeded snapshots match.
+  - `code-duplication-d586bfb11` (`dup-21f4a388433b`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:112-147` vs `R/EDI/R/inference_survival_KK_lwa_cox_one_lik_abstract.R:99-121` -- DONE: shared alpha validation and Wald CI setup, with overloads preserving each likelihood inversion. Both migration golden files passed.
+  - `code-duplication-d58a41a25` (`dup-c894cf6d2f0f`): `R/EDI/R/inference_all_average_diff.R:258-289` vs `R/EDI/R/inference_all_simple_wilcox.R:428-459` -- DONE: shared Gaussian null simulation and retained model-specific fitting. Twelve simulations and their final RNG states match exactly.
+  - `code-duplication-d590bf12e` (`dup-1bde054f4a23`): `R/EDI/R/inference_incidence_KK_cond_logit.R:867-899` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:344-373` -- DONE: same common IVWC fit and pool helper as d517ba962. The conditional-logit path retains its own match refresh and residual degrees of freedom.
+  - `code-duplication-d5df38ede` (`dup-23b0189638cd`): `R/EDI/R/inference_ordinal_cauchit.R:278-344` vs `R/EDI/R/inference_ordinal_proportional_odds.R:250-317` -- DONE: one cumulative-link class declaration. The proportional-odds override and cauchit default complexity are retained; see TODO-191 for the cauchit warm-start policy.
+  - `code-duplication-d5e145b6f` (`dup-74e315bcd22f`) [C++]: `R/EDI/src/fast_coxph_regression.cpp:1174-1244` vs `R/EDI/src/fast_weibull_regression.cpp:835-915` -- DONE: shared the survival bootstrap draw loop. The Cox and Weibull coefficients, including smoothed replicates, match exactly on the rebuilt package.
+  - `code-duplication-d61b1e65d` (`dup-7a3c5e76926c`) [C++]: `R/EDI/src/fast_zero_augmented_poisson.cpp:156-168` vs `R/EDI/src/fast_zero_augmented_poisson.cpp:173-188` -- DONE: one diagonal-block accumulator for both ZIP Hessian observation branches. Rebuilt R kernel results match exactly.
+  - `code-duplication-d6bd896f0` (`dup-5be91e2d8c8c`): `R/EDI/R/inference_ordinal_cauchit.R:139-208` vs `R/EDI/R/inference_ordinal_cloglog.R:290-361` -- DONE: same cumulative-link full-fit merge and verification as d913fbe2c.
+  - `code-duplication-d6dd4bb22` (`dup-4a855c5b3ea6`) [C++]: `R/EDI/src/fast_ordinal_clmm.cpp:120-153` vs `R/EDI/src/fast_poisson_glmm.cpp:415-444` -- DONE: one multistart fitter for Poisson, logistic, and ordinal mixed models. The CLMM still retains all finite candidates for polishing. Rebuilt R kernel results match exactly.
+  - `code-duplication-d7d373540` (`dup-8cf00df7147b`): `R/EDI/R/inference_ordinal_cauchit.R:136-208` vs `R/EDI/R/inference_ordinal_ordered_probit.R:57-129` -- DONE: one full-fit routine with explicit warm-start accessor per link, as in dd45c2fa8.
+  - `code-duplication-d7f65f74b` (`dup-34bf68e1fb0d`): `R/EDI/R/inference_incidence_KK_gcomp_abstract.R:116-280` vs `R/EDI/R/inference_incidence_gcomp_abstract.R:123-309` -- DONE: same paired GComp public wrappers and randomization merge as d9607a7c1.
+  - `code-duplication-d84d305f3` (`dup-0ce60a39bcff`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:47-137` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:48-130` -- DONE: same point and weighted estimators across the stacked OLS and robust workflows, with 72 seeded comparisons.
+  - `code-duplication-d853f318a` (`dup-2b57c27e00a4`): `R/EDI/R/inference_survival_strat_cox.R:649-691` vs `R/EDI/R/inference_survival_strat_cox.R:749-790` -- DONE: one prebuilt Cox fit helper with the original fallback and cache labels retained. All 12 seeded workflows match. The behavior difference is tracked in v1.0.7-TODO-193.
+  - `code-duplication-d9383b909` (`dup-2d175b52b684`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_loggamma.R:336-374` vs `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:359-395` -- DONE: one IVWC fit and pooling algorithm. The existing normal-frailty NULL match-data guard remains separate. All 30 seeded scenarios match.
+  - `code-duplication-d971fa2d0` (`dup-d8550248d5a0`) [C++]: `R/EDI/src/fast_survival_models_optim.cpp:650-659` vs `R/EDI/src/fast_survival_models_optim.cpp:661-670` -- DONE: one fixed-parameter failure result builder retaining the exception reason and objective re-evaluation. Rebuilt R kernel results match exactly.
+  - `code-duplication-d97d93309` (`dup-738f7c904be2`) [C++]: `R/EDI/src/fast_logistic_glmm.cpp:380-406` vs `R/EDI/src/fast_logistic_glmm.cpp:410-435` -- DONE: same shared logistic GLMM testing data builder as d2cb1831f. Rebuilt R kernel results match exactly.
+  - `code-duplication-d9966a006` (`dup-faf67873824e`) [C++]: `R/EDI/src/_helper_functions_core.h:1859-1890` vs `R/EDI/src/_helper_functions_core.h:1891-1921` -- DONE: one fixed-parameter preparation and result expansion helper for both curvature-based optimizers. Rebuilt R kernel results match exactly.
+  - `code-duplication-da55699c9` (`dup-a8d3d55a6f41`): `R/EDI/R/inference_survival_GLMM_weibull_frailty_normal.R:345-367` vs `R/EDI/R/inference_survival_KK_strat_cox.R:267-289` -- DONE: shared IVWC cache and match-data setup. The normal-frailty cache shortcut is retained because it records SE on every fit. All 30 seeded scenarios match.
+  - `code-duplication-dab3ec8ba` (`dup-568f77559618`): `R/EDI/R/inference_ext_m_out_of_n_bootstrap.R:62-112` vs `R/EDI/R/inference_ext_prw_subsampling.R:57-107` -- DONE: the common subsampling and m-out-of-n draw/refit path and its tests are recorded in the earlier matching family.
+  - `code-duplication-dac68e91d` (`dup-e4bb88b1e488`): `R/EDI/R/inference_class_registry.R:3149-3163` vs `R/EDI/R/inference_class_registry.R:3169-3186` -- DONE: one checked generator lookup for both registry traversals. Whole-registry guard tests passed.
+  - `code-duplication-db1a1593e` (`dup-4be9360a3eb0`): `R/EDI/R/inference_all_abstract_non_param_boot.R:2440-2456` vs `R/EDI/R/inference_all_abstract_non_param_boot.R:2567-2582` -- DONE: shared finite BCa jackknife values, stratum alignment, and gate checks. Seeded BCa regression tests passed.
+  - `code-duplication-dc2e938b7` (`dup-c430dcafd64e`): `R/EDI/R/inference_ordinal_adj_cat_logit.R:8-72` vs `R/EDI/R/inference_ordinal_stereotype_logit.R:334-394` -- DONE: adjacent-category and stereotype use the same weighted surrogate, with stereotype’s existing coefficient guard and diagnostic handling. Focused guard tests passed.
+  - `code-duplication-dc38e164b` (`dup-46f330704001`): `R/EDI/R/inference_ordinal_ordered_probit.R:30-84` vs `R/EDI/R/inference_ordinal_proportional_odds.R:80-139` -- DONE: same cumulative-link fit orchestration, preserving model-specific catch/retry and fit checks. Both likelihood and fit output comparisons passed.
+  - `code-duplication-dc67f77bd` (`dup-795fe533cf12`): `R/EDI/R/inference_all_abstract_rand.R:482-516` vs `R/EDI/R/inference_mixin_kk_gee_shared.R:176-207` -- DONE: same shared randomization p-value workflow and verification as ddad98657.
+  - `code-duplication-dc6d70509` (`dup-b5ece4323f44`): `R/EDI/R/design_abstract.R:417-518` vs `R/EDI/R/design_fixed_abstract.R:90-191` -- DONE: same design response ingestion family and 120 seeded comparisons as d6b10061f.
+  - `code-duplication-dd01a78e4` (`dup-1afcc07d3228`) [C++]: `R/EDI/src/fast_logistic_regression.cpp:647-713` vs `R/EDI/src/fast_probit_regression.cpp:605-670` -- DONE: same shared GLM variance reporter as d8450dc93. Rebuilt R kernel results match exactly.
+  - `code-duplication-ddc856d68` (`dup-a646215cf3fb`) [C++]: `R/EDI/src/_helper_functions_core.h:283-317` vs `R/EDI/src/_helper_functions_core.h:334-360` -- DONE: the row-major Eigen map uses the existing weighted cross-product path. Reference tests and seeded kernel comparisons passed.
+  - `code-duplication-ddddf4f3d` (`dup-d9617a3cac16`) [C++]: `R/EDI/src/fast_poisson_regression.cpp:459-528` vs `R/EDI/src/fast_probit_regression.cpp:514-623` -- DONE: shared fit marshaling and common results in d8450dc93. Rebuilt R kernel results match exactly.
+  - `code-duplication-de147f919` (`dup-02d020585d2c`): `R/EDI/R/inference_survival_coxph.R:358-378` vs `R/EDI/R/inference_survival_coxph.R:388-408` -- DONE: shared Cox general-censoring guard and Wald cache preparation. General-censoring and native-reference tests passed.
+  - `code-duplication-deb78240f` (`dup-5241962b7a38`): `R/EDI/R/inference_continuous_KK_ols_one_lik.R:397-479` vs `R/EDI/R/inference_continuous_KK_robust_regr_one_lik.R:366-429` -- DONE: one stacked design and rank-reduction routine. Fit diagnostics remain model-specific. The 72 seeded snapshots match.
+  - `code-duplication-deea3181d` (`dup-26172419b01d`): `R/EDI/R/inference_count_poisson.R:950-962` vs `R/EDI/R/inference_incidence_risk_diff.R:321-332` -- DONE: shared finite treatment-coefficient check. Kept each model’s convergence and SE policy. The perfect-fit risk-difference regression and Poisson reference tests passed.
+  - `code-duplication-df6297951` (`dup-b204ea6df4fc`): `R/EDI/R/inference_incidence_KK_combined.R:82-117` vs `R/EDI/R/inference_proportion_KK_combined.R:66-106` -- DONE: binomial KK GEE classes share override declarations and backend wiring. The constructor-specific geepack check is preserved. Randomization alternatives and GEE references passed.
+  - `code-duplication-df6be3096` (`dup-15964dd92780`): `R/EDI/R/inference_count_KK_cond_poisson.R:846-882` vs `R/EDI/R/inference_count_KK_cond_poisson.R:927-956` -- DONE: the KK hurdle and conditional Poisson OneLik confidence intervals and p-values share dispatch. The focused migration and conservative-test references passed.
+  - `code-duplication-dfa2f5560` (`dup-6e848545caae`): `R/EDI/R/inference_count_poisson.R:309-344` vs `R/EDI/R/inference_count_poisson.R:436-470` -- DONE: one model-plus-design CI procedure and one p-value procedure shared across the four Poisson likelihood paths. The design-conservative reference suite passed.
+  - `code-duplication-dfe3bfba7` (`dup-f1e6c6e01c40`) [C++]: `R/EDI/src/fast_log_binomial_regression.cpp:558-629` vs `R/EDI/src/fast_log_binomial_regression.cpp:843-919` -- DONE: same shared constrained-binomial IRLS implementation as db621c738. Rebuilt R kernel results match exactly.
+  - `code-duplication-dfee4a016` (`dup-4f9b19023d97`) [C++]: `R/EDI/src/fast_weibull_regression.cpp:447-535` vs `R/EDI/src/fast_weibull_regression.cpp:640-736` -- DONE: shared estimate-only, information, and covariance output for exact/right-censored and general-censoring Weibull fits. Seeded and independent references passed.
 
 <a id="todo-55"></a>
 <!-- pre-split-id: 1.0.6/197; 2026-11-25 -->
@@ -1356,11 +1360,13 @@ itself still needs a look.
 <a id="todo-61"></a>
 <!-- pre-split-id: 1.0.6/225; 2026-11-25 -->
 
-- [ ] TODO-61 (added 2026-11-19, owner; `source-comment-rot-d4adc9b4d`): **`prob_clip_eps` assert accepts 0.5.**
+- [x] TODO-61 (added 2026-11-19, owner; `source-comment-rot-d4adc9b4d`): **`prob_clip_eps` assert accepts 0.5.**
   `R/EDI/R/inference_incidence_gcomp_abstract.R` checks `assertNumber(prob_clip_eps, lower = 0, upper = 0.5)`
   (inclusive), while a separate `stop()` rejects `>= 0.5`. Behavior is correct; tighten the assert (e.g.
   `upper = 0.5 - .Machine$double.eps`) and drop the redundant `stop()`, keeping the error message.
   - Done when: one check, and a test that 0.5 errors.
+  - Consolidated validation into one guard with a strict upper bound. The focused regression rejects 0.5 and accepts
+    the nearest representable value below it for both incidence g-computation constructors.
 
 <a id="todo-62"></a>
 <!-- pre-split-id: 1.0.6/226; 2026-11-25 -->
@@ -1520,13 +1526,15 @@ entry.
 <a id="todo-72"></a>
 <!-- pre-split-id: 1.0.6/279; 2026-11-25 -->
 
-- [ ] TODO-72 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f4): **The RandCustom CI
+- [x] TODO-72 (added 2026-11-20, coordinator, owner request; ds-custom-statistic-44358267779-f4): **The RandCustom CI
   refusal for count and proportion responses names a CI the class does not have.** The message says "the randomization
   p-value and the randomization-bootstrap CI remain available", but `InferenceRandCustom` has no bootstrap CI (its help and
   `capabilities()` list only the randomization test and CI), and it ends with a pointer to an internal TODO that is not
   shipped. Fix: name only what this class can call (the randomization p-value) and point to the built-in classes for the
   response type; drop the internal pointer. Re-check this message after the null-shift scale fix (the separate f1/f5/f6
   entry), which may make the count and proportion randomization CI valid and the refusal unnecessary.
+  - The refusal points to the null p-value and the help for a built-in model for each response type. The focused
+    regression checks both messages.
 
 <a id="todo-73"></a>
 <!-- pre-split-id: 1.0.6/280; 2026-11-25 -->
@@ -1781,10 +1789,12 @@ The numerical-robustness audit (PRs #51, #64, #71) added these tests with `skip(
 <a id="todo-88"></a>
 <!-- pre-split-id: 1.0.6/386; 2026-11-25 -->
 
-- [ ] TODO-88 (added 2026-11-22, coordinator, owner request; numerical-robustness-23a66300445a): **Combined evidence returns NaN, or one p-value labelled as combined, when fewer than two rows have a positive custom weight.**
+- [x] TODO-88 (added 2026-11-22, coordinator, owner request; numerical-robustness-23a66300445a): **Combined evidence returns NaN, or one p-value labelled as combined, when fewer than two rows have a positive custom weight.**
   On HEAD, `res0$pval` is NaN with all-zero weights, and with one positive weight the result is that row's p-value instead of NA. `run_all_inference_combine_pvalues()` (`R/EDI/R/inference_suite.R` ~L4273) counts a row as usable whenever its weight is finite, zero included.
   Fix: require `weights > 0` in `usable`, so the existing `n_used < 2 -> NA` branch fires.
   Test: `R/package_tests/testthat_bulk/test-combined-evidence-zero-custom-weights-not-nan.R` ("combined evidence returns NA, not NaN or a single p-value, when fewer than two rows carry positive weight"), currently skipped; remove the skip when fixed.
+  The regression is enabled and passed for zero, one, and two positively weighted rows. The suite's contributor
+  metadata uses the same positive-weight rule.
 
 <a id="todo-89"></a>
 <!-- pre-split-id: 1.0.6/387; 2026-11-25 -->
@@ -1829,10 +1839,12 @@ The numerical-robustness audit (PRs #51, #64, #71) added these tests with `skip(
 <a id="todo-94"></a>
 <!-- pre-split-id: 1.0.6/397; 2026-11-25 -->
 
-- [ ] TODO-94 (added 2026-11-22, coordinator, owner request; numerical-robustness-f0b0281da215): **The stereotype logit parametric-bootstrap simulator breaks for a binary (K = 2) response.**
+- [x] TODO-94 (added 2026-11-22, coordinator, owner request; numerical-robustness-f0b0281da215): **The stereotype logit parametric-bootstrap simulator breaks for a binary (K = 2) response.**
   On HEAD, `simulate_under_lik_null()` returns NULL and the parametric-bootstrap LR p-value is NA (with a warning). `gammas = params_null[(n_alpha + p + 1L):n_params]` (`R/EDI/R/inference_ordinal_stereotype_logit.R` ~L716) counts downward when there are no loadings, which gives `c(NA, beta)`.
   Fix: `gammas = if (n_gamma > 0L) params_null[n_alpha + p + seq_len(n_gamma)] else numeric(0)`. Check the same idiom at ~L44.
   Test: `R/package_tests/testthat_bulk/test-stereotype-logit-binary-response-param-bootstrap-simulation.R` ("stereotype logit parametric LR bootstrap simulates a binary (K = 2) response"), currently skipped; remove the skip when fixed.
+  Both loading slices now use `seq_len(n_gamma)`. The re-enabled binary regression passed through the public LR
+  bootstrap method, and the ordinal null-refit regressions passed.
 
 <a id="todo-95"></a>
 <!-- pre-split-id: 1.0.6/398; 2026-11-25 -->
@@ -1914,6 +1926,31 @@ Found by the 2026-11-22 sweep of every audit report for items written outside th
   - Placement. A new push-triggered workflow (`real-data-crash-corpus.yml`), like `rpy-parity-push.yml` / `code-duplication-push.yml`: `on: push` to main with a path filter on `R/EDI/R/**`, `R/EDI/src/**`, the catalog CSV and the job's own scripts, plus `workflow_dispatch`. Not a required check. It installs EDI once (cached like the other push workflows) and the catalog's CRAN packages from a cached library (about 124 packages, so the cache matters), then runs the cases sharded by response type in a few jobs, keeping within the 20-concurrent-job budget it shares with push CI and the calibration waves (4 slots kept free).
   - Step 1. Write the case runner as a script usable locally (`Rscript R/package_tests/real_data_crash_corpus.R [--datasets ...] [--classes ...]`), run it once in full, and record here: case count, total and per-response-type wall time, and the error / NA / non-estimable counts by class. If the full run is too slow for every push, report to the owner the options (a smaller per-push subset with the full corpus at release time, or path-filtered shards) before wiring the workflow.
   - Done when: the workflow runs on push and on dispatch, the baseline is committed with every error / NA row citing a TODO, `R/package_tests/ci/README.md` documents the job and how to refresh the baseline, and a deliberately broken class (local check) makes the job fail.
+  - Step 1 done 2026-11-26 (agent), locally against the installed EDI 1.0.5, 3 cores: 161 of the 223 rows resolve (the
+    other 62 are factorials, crossovers, wide or counting-process outcomes, multi-column treatments; each skip reason is
+    in the run's `_skips.csv`), giving 254 (trial, outcome) units, 2,371 cases and 11,809 calls in 72 min wall, ~166
+    CPU-min (continuous 82, incidence 48, survival 18, ordinal 11, count 6, proportion < 1). Statuses: ok 10,269,
+    warning 256, nonestimable 450, silent NA 299, timeout 535 calls (107 cases), error 0. Triaged into v1.0.7-TODO-181
+    (silent NAs on trials of n <= 20), v1.0.7-TODO-182 (`InferenceSurvivalKMDiff` silent NAs), v1.0.7-TODO-183 (other
+    silent NAs) and v1.0.7-TODO-184 (timeouts). Fast enough for every push, so the workflow is wired directly: seven
+    2-core shards by response type.
+  - Built 2026-11-26 (agent, uncommitted): `R/package_tests/real_data_catalog.R` (loader, shared with
+    v1.0.7-TODO-103), `R/package_tests/real_data_crash_corpus.R`, `R/package_tests/ci/real_data_crash_corpus_baseline.csv`,
+    `.github/workflows/real-data-crash-corpus.yml`, `R/package_tests/ci/README.md` section. Checked: a deliberately broken
+    `InferenceSurvivalLogRank$compute_asymp_two_sided_pval` fails `--compare` (exit 1, one regression). Not yet run on
+    GitHub. The baseline comes from EDI 1.0.5, so the first CI run on HEAD may report improvements or regressions that
+    are 1.0.5 -> HEAD changes: review that run and refresh the baseline from its artifacts (`--from-results`).
+  - Decided 2026-11-26 (owner): trials above 5,000 rows subsampled to 2,000; control vs the first other arm; percentile bootstrap; explained NAs count as nonestimable; see [DECISION-v1.0.7-TODO-102](COMPLETED_DECISIONS.md#DECISION-v1.0.7-TODO-102).
+  - Baseline rebased 2026-11-26 on an install of the working tree with the v1.0.7-TODO-181/-182/-183 warning fixes, the
+    2,000-row cap and the runner's impute-once-before-forking fix (not yet the v1.0.7-TODO-190 bootstrap fix): 11,809
+    calls in 48 min on 3 cores (~125 CPU-min), 0 errors, 141 silent NAs (was 299; none from KMDiff now), 77 timed-out
+    cases (was 107), 147 calls improved, no regressions. Every NA / timeout row cites v1.0.7-TODO-181, -183, -184, -187,
+    -188 or -189.
+  - Rebased again 2026-11-26 on an install with the v1.0.7-TODO-190 bootstrap fix: 11,809 calls in 29 min on 3 cores
+    (~66 CPU-min, was ~125), 0 errors, 142 silent NAs, 25 timed-out cases (was 77), 233 calls improved, no
+    regressions. The remaining timeouts are slow fits, not imputation: `InferenceSurvivalDepCensTransformRegr` (6),
+    `InferenceIncidLogBinomial` (3), `InferenceIncidBinomialIdentityRiskDiff` (2) and one or two each of the other
+    incidence classes, mostly on `tanf` and `causalweight::JC` (v1.0.7-TODO-184).
 
 <a id="todo-103"></a>
 <!-- pre-split-id: 1.0.6/432; 2026-11-25 -->
@@ -1926,6 +1963,22 @@ Found by the 2026-11-22 sweep of every audit report for items written outside th
   - Output. A report published like the nightly benchmark (a page under the GitHub Pages site, e.g. `benchmarks/design-balance/`, via the same pkgdown-artifact swap as `bench-pages`) plus the CSV of every (trial, design, draw) result as an artifact; the README's benchmark line links it once it has published.
   - Step 1. Write the runner as a script usable locally (`Rscript R/benchmark/design_balance_real_data.R [--datasets ...] [--designs ...] [--draws N]`), run it on a few trials (`cgd`, `lalonde.exp`, `STAR`, `indo_rct`) and record here the runtime per design and the full corpus estimate, so the workflow's sharding and draw count can be set.
   - Done when: the workflow skips a week with no Design change, runs on one with a change (or on `force`), publishes the report and CSV, and the benchmark section of `CONTRIBUTING.md` documents it.
+  - Step 1 done 2026-11-26 (agent), locally, 2 draws, on `cgd` (n = 128, 10 covariates), `lalonde.exp` (445, 10),
+    `indo_rct` (602, 29) and `STAR` (3,745 after the arm filter, 30 covariates, 28% of covariate values missing; run
+    at n = 50, 200, 1000). Seconds per draw: every fixed design and the simple sequential ones (Bernoulli, iBCRD,
+    Efron, Urn, PocockSimon) under 2 s up to n = 602 and 25-32 s for the fixed matching / optimal / rerandomization
+    designs on STAR at n = 1000. The sequential designs that refit per arrival (Atkinson, KK14, KK21, KK21stepwise,
+    SPBR, RandomBlockSize) take ~0.5 s per draw on `cgd`, ~2 s on `lalonde.exp`, ~50 s on `indo_rct`, 63-77 s on
+    STAR at n = 50 and over 150 s (the limit) at n = 200 and 1000: missing covariates are the cause (v1.0.7-TODO-185).
+    Wall time 96 min for the four trials, ~60 of it in the twelve timed-out (trial, n, design) runs. Full-corpus
+    estimate (161 trials, extrapolated, not measured): ~30 CPU-hours with 3 draws and a 120 s limit per (trial, n,
+    design), so the workflow runs 16 two-core shards. The run also fixed three runner bugs (strata for
+    DesignFixedBlockedCluster must nest the clusters, else the design is skipped; stratified sequential designs take
+    factor strata only; DesignFixedBinaryMatch needs an even n).
+  - Built 2026-11-26 (agent, uncommitted): `R/benchmark/design_balance_real_data.R`,
+    `.github/workflows/design-balance-real-data.yml`, `.github/scripts/check_design_balance_kernels.py` (23 kernels),
+    the `design-balance/` carry-over in `pkgdown.yaml` and `nightly.yml` `bench-pages`, and the `CONTRIBUTING.md`
+    paragraph (section 4, step 4). Not yet run on GitHub; the README link waits for the first published report.
 
 ## Drafted from calibration campaign 2026-11-15-e36c7710 (review)
 
@@ -2033,11 +2086,12 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
 <a id="todo-110"></a>
 <!-- pre-split-id: 1.0.6/256; 2026-11-25 -->
 
-- [ ] TODO-110 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d38c37c85`): **`InferenceOrdinalPartialProportionalOddsRegr` docs misdescribe the last-resort bootstrap surrogate.**
+- [x] TODO-110 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d38c37c85`): **`InferenceOrdinalPartialProportionalOddsRegr` docs misdescribe the last-resort bootstrap surrogate.**
   The roxygen of `compute_estimate_with_bootstrap_weights` (`R/EDI/R/inference_ordinal_partial_proportional_odds.R:97-101`) says that when every weighted backend fails the fallback is "a plain weighted binary-logistic surrogate fit ... that does not model the ordinal structure at all". `weighted_ordinal_bootstrap_surrogate_fit(method = "logistic")` (`R/EDI/R/globals.R:177-251`) actually fits a weighted `MASS::polr` proportional-odds model (`fit_type` "polr_logistic") and falls back to `lm.wfit`. The value returned is right; only the description is wrong.
   - Failing expectation: `expect_false(startsWith(sur$fit_type, "polr"))`, skipped at `R/package_tests/testthat_bulk/test-partial-odds-backend-fallback-reference.R:145`.
   - Candidate fix (doc): say "weighted proportional-odds (polr) surrogate, falling back to weighted least squares", and change the test expectation to match.
   - Done when: fix it and remove the skip().
+  - The help now describes both fallback fits. The re-enabled regression passed against a direct weighted `MASS::polr` fit, and the existing weighted least-squares fallback test passed.
 
 <a id="todo-111"></a>
 <!-- pre-split-id: 1.0.6/257; 2026-11-25 -->
@@ -2080,11 +2134,13 @@ Drafted by `R/package_tests/calibration/triage_calibration_study.R` from the cam
 <a id="todo-115"></a>
 <!-- pre-split-id: 1.0.6/261; 2026-11-25 -->
 
-- [ ] TODO-115 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d3906c9d4`): **`InferenceSuite` fills `ci_method` even when `compute_conf_intervals = FALSE`.**
+- [x] TODO-115 (added 2026-11-19, found by the docs-claims test agent; finding `docs-claims-d3906c9d4`): **`InferenceSuite` fills `ci_method` even when `compute_conf_intervals = FALSE`.**
   The `compute_conf_intervals` param doc (`R/EDI/R/inference_suite.R:4956`) says ci_a, ci_b and ci_method "stay present but always NA in results_table". ci_a and ci_b are NA, but ci_method is "wald" or "rand" on every row. `run_all_inference_one_class()` back-fills it (`R/EDI/R/inference_suite.R:1843`, `if (is.na(row$ci_method)) row$ci_method = method`).
   - Failing expectation: `expect_true(all(is.na(tbl$ci_method)))`, skipped at `R/package_tests/testthat_bulk/test-run-all-inference-build-display-table-sorting-column-selection-and-ci-method-column-dropping-reference.R:89`.
   - Candidate fix: code (skip the back-fill when `compute_conf_intervals = FALSE`), or doc (say ci_method keeps the method label while ci_a and ci_b are NA).
   - Done when: fix it and remove the skip().
+  - The re-enabled regression confirms that all three CI fields are `NA` with intervals disabled, and an enabled
+    Wald run reports its method and finite bounds.
 
 <a id="todo-116"></a>
 <!-- pre-split-id: 1.0.6/262; 2026-11-25 -->
@@ -2608,7 +2664,7 @@ ca01dd4b under v1.0.6-TODO-191; proportion f8, by design).
 <a id="todo-150"></a>
 <!-- pre-split-id: 1.0.6/366; 2026-11-25 -->
 
-- [ ] TODO-150 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
+- [x] TODO-150 (added 2026-11-21, agent, owner request; docs-scenarios run 44883784401):
   **`?InferenceOrdinalJonckheereTerpstraTest` misstates the exact-enumeration cap.**
   Ids: ds-ordinal-44883784401-f12.
   The help (`R/EDI/R/inference_ordinal_jonckheere_terpstra_test.R:15-17,104-107`) says exact enumeration stops at one
@@ -2616,6 +2672,8 @@ ca01dd4b under v1.0.6-TODO-191; proportion f8, by design).
   treated-count tables given the category margins, so 2.5e25 allocations give an exact p with no warning. Fix the
   text, and state the two-sided convention (2 x min one-sided, which differs from coin on ties). Done when: the Rd
   matches the C++ and a test pins the 2 x min convention.
+  Verified that the roxygen and Rd describe the one-million treated-count-vector cap and the two-sided formula.
+  All four tests in `test-jonckheere-exact-enumeration.R` passed against the installed EDI package.
 
 <a id="todo-151"></a>
 <!-- pre-split-id: 1.0.6/367; 2026-11-25 -->
@@ -3069,3 +3127,374 @@ Found by the 2026-11-23 sweep of the audit reports and CI runs since 2026-11-21 
   - Repro: `Rscript R/package_tests/calibration/run_calibration_study.R --response-type continuous --design 'DesignFixediBCRD@prob_T=0.2' --n 200 --effect power20 --only InferenceContinQuantileRegr --reps 1:200 --out-dir "$TMPDIR/cal_repro"`. Campaign summary: https://github.com/kapelner/EDI/blob/calibration-results/campaigns/2026-11-15-e36c7710/README.md.
   - Done when: confirmation clears the four cells (close this TODO), or the cause is found and fixed, or the owner
     accepts the cells with a reason and calibration_study_accepted.csv rows citing this TODO.
+
+### Real-data CI jobs (v1.0.7-TODO-102, v1.0.7-TODO-103), first runs, 2026-11-26
+
+First full run of `R/package_tests/real_data_crash_corpus.R` (v1.0.7-TODO-102), locally against the installed EDI
+1.0.5: 254 (trial, outcome) units from 161 trials, 2,371 cases, 11,809 calls. No call raised an unexpected error. Silent
+NAs (an NA with no warning) and timeouts (a case over 60 s) are below; every baseline row of either kind cites one of
+these TODOs. Repro for any row: `Rscript R/package_tests/real_data_crash_corpus.R --datasets <dataset> --classes <class>`.
+
+<a id="todo-181"></a>
+
+- [ ] TODO-181 (added 2026-11-26, agent; found by v1.0.7-TODO-102's first run): **Silent NA estimates, p-values and CIs
+  on very small real trials (n <= 20).** `InferenceContinLin` returns NA for the estimate, the Wald CI and p-value and
+  the randomization p-value, with no warning, on 11 trials of 4 to 20 subjects (`asbio::potash`, `lmPerm::Hald17.4`,
+  `smbdata::calcium` / `forage` / `heights` / `lupintrial` / `potato` / `tgw` / `voltage`, `SMPracticals::shoe`,
+  `SpATS::wheatdata`); `InferenceContinOLS` returns NA Wald output on 7 of them and `InferenceContinQuantileRegr` on all 11.
+  Most have p close to n after the arm filter, so the fit may be saturated; an NA is then right, but it should say why
+  (a classed warning or a refusal), as other classes do.
+  - Done when: each class either estimates on these data or explains its NA, and the corpus baseline rows move from
+    `na` to `ok` / `nonestimable`.
+  - Done 2026-11-26 (agent, uncommitted), reproduced and verified on HEAD (`load_all(compile = FALSE)`). Cause: the
+    fits are saturated after the arm filter (the covariates are design columns such as `Block` / `Plot`, a 10-level
+    `boy` factor on `SMPracticals::shoe`). Lin's interacted model needs 2 + 2p columns, so its estimate is NA on all
+    11 (reason `linear_model_design_unusable`, already recorded but not shown); OLS keeps the estimate but has no
+    residual degrees of freedom on 7, so its HC2 SE is NA; the quantile fit is skipped when rows <= columns (7) or
+    its sandwich SE fails (the other 4). These NAs are right; they were silent. Now every call that returns one warns:
+    `compute_estimate()` with `edi_estimate_unavailable_warning` (new `edi_estimate_unavailable_na()` in
+    `helper_robust_sandwich.R`), the Wald CI / p-value with `edi_wald_unavailable_warning` carrying the fit's reason
+    (`linear_model_design_unusable`, `no_residual_degrees_of_freedom`, `quantile_design_no_residual_degrees_of_freedom`,
+    `quantile_sandwich_standard_error_unavailable`), on every call like `InferenceSurvivalKMDiff` (v1.0.7-TODO-182)
+    via a new `once = FALSE` argument of `edi_wald_unavailable_na()` (default unchanged). Files:
+    `helper_robust_sandwich.R`, `inference_continuous_lin.R`, `inference_continuous_ols.R`,
+    `inference_continuous_quantile_regr.R` (the shared quantile helpers take an optional `self`; only the continuous
+    class passes it, `InferencePropQuantileRegr` is unchanged); test
+    `test-small-trial-linear-and-quantile-na-explained.R`. Corpus re-run on HEAD for these 11 trials x 3 classes:
+    every estimate and Wald `na` call is now `nonestimable` (Lin 33, OLS 14, QuantileRegr 29); tests: the new file
+    (27 expectations) and the 56 test files that use these classes or the NA warnings (4,613 expectations), 0 failures.
+  - Still silent: the randomization p-value of Lin (11 trials) and QuantileRegr (7), because the shared path
+    (`compute_rand_two_sided_pval` in `inference_all_abstract_rand.R`, the `is_nonestimable("estimate")` and
+    non-finite observed-statistic returns) gives NA without a warning for any class whose estimate is NA. Fix it
+    there once, for every class; it also covers v1.0.7-TODO-183's randomization rows. Left for that change because
+    the file has another session's uncommitted edits. Keep this TODO open until then.
+
+<a id="todo-182"></a>
+
+- [ ] TODO-182 (added 2026-11-26, agent; found by v1.0.7-TODO-102's first run): **`InferenceSurvivalKMDiff` returns
+  silent NAs on 29 real survival outcomes.** The asymptotic CI is NA with no warning on 29 outcomes (e.g. `colon`,
+  `pbc`, `Gbsg_df`, `collett::tamoxifen` x 5, `cvGEE::aids`, `WA::hfaction_cpx12`), the asymptotic and randomization
+  p-values on 10. The class already warns (`edi_km_median_not_reached_warning`) when a median is not reached; these
+  paths return NA without it. Check whether the cause is the same (median not reached in one arm) and route it
+  through the warning, or find the other cause.
+  - Done when: no silent NA from this class in the corpus.
+  - Fixed 2026-11-26 (agent, uncommitted), on HEAD via `pkgload::load_all(compile = FALSE)`. Cause: not a missing
+    warning but warn-once. The class's two NA warnings fired once per object, so every later call returned the cached
+    NA silently, and the corpus calls each method in turn on one object. 17 outcomes: median not reached; the estimate
+    warned, the asymptotic CI and p-value and the randomization p-value after it did not. 12 outcomes: both medians
+    reached but a Brookmeyer-Crowley bound non-finite; the Wald CI warned (`edi_wald_unavailable_warning`), the Wald
+    p-value after it did not (randomization p-values there are finite). Fix in `R/EDI/R/inference_survival_km_diff.R`
+    only: `compute_estimate()`, `compute_asymp_confidence_interval()`, `compute_asymp_two_sided_pval()` and
+    `compute_rand_two_sided_pval()` (now a wrapper with InferenceRand's formals) re-raise the warning when the fit did
+    not just raise it, so each NA-returning call warns exactly once; values unchanged. All 29 outcomes checked: every
+    NA carries a warning, none twice. Tests: new `test-km-diff-every-na-call-explains-itself.R` (51 expectations);
+    the "once per object" assertion in `test-km-diff-na-warns-with-reason.R` now expects the warning; 14 other test
+    files that use the class pass. NEWS entry added; `man/` not regenerated (roxygen text changed).
+  - The corpus baseline rows of this class should move from `na` to `nonestimable` once the corpus runs this code
+    (the next CI run, or a local run against a HEAD install); the baseline was not edited here.
+  - Owner decision pending: [DECISION-v1.0.7-TODO-182](PENDING_DECISIONS.md#DECISION-v1.0.7-TODO-182) (warn on every NA-returning call package-wide, or keep once per fit outside KMDiff?).
+
+<a id="todo-183"></a>
+
+- [ ] TODO-183 (added 2026-11-26, agent; found by v1.0.7-TODO-102's first run): **Silent NAs on real data, other
+  classes.** Calls that returned NA with no warning on trials above n = 20, by class (trials in brackets):
+  `InferenceSurvivalCoxPHRegr` estimate, Wald and randomization (9: `cgd`, `udca` x 4, `supraclavicular` x 2,
+  `BGPhazard::gehan`, `frailtypack::reduce`); `InferenceContinQuantileRegr` (5: `laryngoscope`, `CrossCarry::Water`,
+  `coin::rotarod`, `hamlet::orxwide` x 2); `InferenceIncidLogBinomial` Wald CI (8); `InferenceIncidLogRegr`,
+  `InferenceIncidProbitRegr` and `InferenceIncidModifiedPoisson` randomization p-value (6, 6, 3);
+  `InferenceOrdinalStereotypeLogitRegr` (8); and 1 to 2 trials each for `InferenceContinRobustRegr`,
+  `InferenceCountHurdleNegBin` / `HurdlePoisson` / `RobustPoisson` / `ZeroInflatedPoisson`, `InferencePropBetaRegr` /
+  `QuantileRegr` / `ZeroOneInflatedBetaRegr`, `InferenceOrdinalGCompMeanDiff`, `InferenceAllSimpleAverageDiff`,
+  `InferenceAllSimpleMeanDiffPooledVar`, `InferenceSurvivalRestrictedMeanDiff` / `StratCoxPHRegr` / `WeibullRegr`. The
+  full list is the `na` rows of `R/package_tests/ci/real_data_crash_corpus_baseline.csv` citing this TODO. Split into
+  per-class TODOs as causes are found.
+  - Done when: each silent NA either becomes a value or carries EDI's explanation.
+  - Triage 2026-11-26 (agent), on HEAD via `load_all(compile = FALSE)`, each row rerun with the corpus's call order
+    (estimate, Wald p-value, Wald CI, randomization, bootstrap on one object):
+    - `InferenceSurvivalCoxPHRegr` (9 trials): fixed the silence. The fit set `coxph_extreme_coefficients` and returned
+      NA with no warning; it now warns (`edi_estimate_unavailable_warning`, once per object, naming the diverged
+      columns; `R/EDI/R/inference_survival_coxph.R`, test `test-coxph-diverged-coefficient-warns.R`). On 4 of the
+      5 checked trials the diverged coefficient is a nuisance covariate, not the treatment: v1.0.7-TODO-188. Its
+      later Wald / randomization calls on the same object stay silent (the warn-once pattern, DECISION-v1.0.7-TODO-182).
+    - `InferenceIncidLogBinomial` Wald CI (8): warn-once. The Wald p-value warns (MLE on the boundary) and the CI on the
+      same object returns the cached NA silently; a fresh object warns. Covered by DECISION-v1.0.7-TODO-182.
+    - `InferenceIncidLogRegr` / `ProbitRegr` / `ModifiedPoisson` randomization p-value (6 / 6 / 3): a call-history bug,
+      not an NA estimate: v1.0.7-TODO-187.
+    - `InferenceOrdinalStereotypeLogitRegr` (8): treatment-only fits are non-estimable by ruling but silent:
+      v1.0.7-TODO-189.
+    - Not yet rechecked on HEAD: `InferenceContinQuantileRegr` on n > 20, `InferenceContinRobustRegr`, the count, proportion
+      and other one-or-two-trial rows. They stay here.
+    - Corpus loader issues seen on the way (not EDI bugs): `BGPhazard::gehan`'s `cens` is 1 = event, but the loader
+      reads a column named `cens...` as 1 = censored, so that case is inverted (it shows 12 events of 42; the
+      treatment coefficient runs to 19.6); `strep_tb` keeps `radiologic_6m` (the factor form of the `rad_num` outcome)
+      as a covariate, so it predicts `improved` exactly.
+
+<a id="todo-184"></a>
+
+- [ ] TODO-184 (added 2026-11-26, agent; found by v1.0.7-TODO-102's first run): **107 real-data cases take over 60 s.**
+  With r = B = 49, most are trials of 2,000 to 5,000 subjects: `STAR` (8 outcomes, 7 continuous classes each),
+  `clubSandwich::AchievementAwardsRCT`, `tanf`, `causalweight::JC`, `ResumeNames`. Some are small and worth a look
+  first: `laryngoscope` (n = 99, 2 cases), `mosaicData::HELPrct` (n = 453, 4), `opt` (n = 809, 7), and one case each
+  on `asaur::pharmacoSmoking` (113), `licorice_gargle` (233) and `pbc` (312). Find where the time goes (the
+  randomization or bootstrap loop, or a single fit) for the small ones; for the large ones decide whether the corpus
+  should cap n lower (`--n-max`) or allow a longer per-case limit.
+  - Done when: the small-trial timeouts are explained or fixed, and the corpus's limits are set so that the baseline's
+    remaining timeouts are deliberate.
+  - Where the time goes (2026-11-26, agent; HEAD via `load_all(compile = FALSE)`, single core, per-call timing and
+    Rprof). Two causes, both from missing covariates, explain the small trials that have them (`opt`, `laryngoscope`,
+    `mosaicData::HELPrct`, `pbc`) and the incidence timeouts on `clubSandwich::AchievementAwardsRCT`; the same applies
+    to `STAR` and `tanf` (28% / 13% of covariate values missing):
+    1. The corpus constructs each class in a forked child, but the design's imputed matrix is only built on the first
+       `get_X()`; the parent never builds it, so every class's `$new()` re-runs `missRanger`. On `opt` that is ~125 s
+       per class (139 covariates, 25% missing) before any fit: `InferenceAllSimpleAverageDiff` spends 138 s in `$new()`
+       and under 1 s in its five calls. Fix in the runner: call `des$get_X()` in the parent right after the design is
+       built (checked: the forked `InferenceAllSimpleAverageDiff` case then takes 0.6 s). Left to the runner's owner
+       (the coordinator is editing `real_data_crash_corpus.R`).
+    2. Every rank-deficient bootstrap draw re-imputes too: v1.0.7-TODO-190. On `opt` the OLS percentile bootstrap at
+       B = 5 takes 625 s even after the warm-up.
+    The trials without missing covariates are slow because of their per-fit cost: `asaur::pharmacoSmoking`
+    `InferenceSurvivalDepCensTransformRegr` 0.78 s per fit (B = 49 bootstrap 58 s), `licorice_gargle`
+    `InferenceOrdinalStereotypeLogitRegr` 1.4 s per fit (rand 16 s + boot 28 s, ~45 s in all); at n = 2,000 on
+    `causalweight::JC`, `InferenceIncidLogBinomial` ~52 s (rand 23 s, boot 27 s) and
+    `InferenceIncidBinomialIdentityRiskDiff` ~88 s (each resample ~0.9 s against a 0.35 s base fit). Run alone, the
+    other JC incidence classes take 1-5 s per case (`InferenceIncidLogRegr` 2.5 s, `InferenceIncidRiskDiff` 1.3 s), so
+    their timeouts in a loaded run were contention, not cost.
+  - Owner decision pending: [DECISION-v1.0.7-TODO-184](PENDING_DECISIONS.md#DECISION-v1.0.7-TODO-184) (raise the
+    corpus's per-case limit from 60 s to 120 s once the imputation warm-up is in?).
+
+<a id="todo-185"></a>
+
+- [ ] TODO-185 (added 2026-11-26, agent; found by v1.0.7-TODO-103's Step 1): **Sequential designs are ~350x slower
+  when covariates have missing values.** `DesignSeqOneByOneAtkinson` assigns 50 `STAR` subjects (30 covariates, 28% of
+  values missing) in 33.2 s; the same 50 rows imputed beforehand take 0.09 s. The design-balance run shows the same
+  pattern for KK14, KK21, KK21stepwise, SPBR and RandomBlockSize (63-77 s per draw at n = 50, over 150 s at n = 200).
+  The likely cause is the `missingness_method = "impute"` path re-imputing the whole covariate matrix at every arrival.
+  - Repro: the STAR subset built by `R/package_tests/real_data_catalog.R` (`rdc_resolve()` then
+    `rdc_outcome_subset(trial, 1)`), 50 rows, `add_one_subject_to_experiment_and_assign()` per row, with and without
+    the NAs filled in.
+  - Done when: the per-arrival cost with missing covariates is close to the complete-data cost (or the cause is
+    documented and bounded), measured on this repro.
+
+<a id="todo-186"></a>
+
+- [ ] TODO-186 (added 2026-11-26, agent; audit decision `code-duplication-ded18c68a`): **A failed negative-binomial
+  candidate can enter KK21 stepwise selection with score zero.** The negative-binomial scorer returns a negative
+  sentinel on an unusable fit, which the selection loop converts to zero. If all remaining fits fail, the loop
+  still inserts a candidate and conditions subsequent fits on it. A thrown ordinal fit is instead skipped.
+  Decide whether to skip failed fits consistently, retaining a valid zero score as a distinct result. [C++]
+  - Done when: the selector distinguishes a valid zero score from an unusable fit, including when every
+    remaining candidate fails.
+
+<a id="todo-187"></a>
+
+- [ ] TODO-187 (added 2026-11-26, agent; split from v1.0.7-TODO-183): **Incidence GLM randomization p-values are NA
+  whenever the estimate was computed first on the same object.** `InferenceIncidLogRegr`, `InferenceIncidProbitRegr`
+  and `InferenceIncidModifiedPoisson`: a fresh object's `compute_rand_two_sided_pval(r = 49)` returns a value (0.24 for
+  probit on `RCT2::jd` `cdi`, whose estimate is an ordinary 0.104; 0.08 for logit on `laryngoscope`), but after
+  `compute_estimate()` the same call returns NA with no warning and records
+  `randomization_observed_statistic_unavailable`. Cause, found on HEAD 2026-11-26: the warm start the full fit stores
+  makes the observed-statistic refit in `compute_treatment_estimate_during_randomization_inference()` (e.g.
+  `inference_incidence_probit.R` ~L105) fail its reasonableness check; `private$clear_fit_warm_start()` before that
+  call restores the value (-6.53 probit, -24.78 logit on `laryngoscope`). Output depends on call history, so
+  `InferenceSuite` and any script that estimates first get NA. Not fixed here: `inference_incidence_probit.R`,
+  `inference_incidence_modified_poisson.R` and `inference_all_abstract_rand.R` carry another session's uncommitted edits.
+  - Repro: `RCT2::jd` (`cdi`) or `laryngoscope` (`intubation_overall_S_F`) built with
+    `R/package_tests/real_data_catalog.R` (`rdc_resolve`, `rdc_outcome_subset`, `rdc_new_design`, `rdc_add_responses`),
+    then `inf$compute_estimate(); set.seed(1); inf$compute_rand_two_sided_pval(r = 49)` vs the same on a fresh object.
+  - Done when: the randomization p-value is the same with and without a prior `compute_estimate()` (a test pins it),
+    and the corpus rows citing this TODO are `ok`.
+
+<a id="todo-188"></a>
+
+- [ ] TODO-188 (added 2026-11-26, agent; split from v1.0.7-TODO-183): **`InferenceSurvivalCoxPHRegr` returns NA for
+  the treatment effect when only a nuisance covariate's coefficient diverges.** The fit treats the estimate as
+  non-estimable when any coefficient passes |20| (`cox_partial_likelihood_coefficients_extreme()`), so a rare factor
+  level or a missingness indicator with no events kills a well-defined treatment estimate. On HEAD the fit converges
+  with a sensible treatment coefficient on `cgd` (`survival::coxph` gives -1.27; EDI's converged fit has a `hos.cat` level at 32.3),
+  `supraclavicular` (-0.33 and 1.79; `fentanyl_is_missing` / `bmi_is_missing` near -22), `frailtypack::reduce` (0.08;
+  `discharge` -20.4) and `udca` `varices.dt` (`stage` -23.6). Since v1.0.7-TODO-183 the NA now warns and names the
+  diverged column; whether to report the treatment estimate in this case is an owner choice.
+  - Owner decision pending: [DECISION-v1.0.7-TODO-188](PENDING_DECISIONS.md#DECISION-v1.0.7-TODO-188) (apply the divergence rule to the treatment coefficient only, or drop the diverging covariate and refit, or keep NA?).
+  - Done when: the ruling is implemented and the corpus rows citing this TODO change status accordingly.
+
+<a id="todo-189"></a>
+
+- [ ] TODO-189 (added 2026-11-26, agent; split from v1.0.7-TODO-183): **`InferenceOrdinalStereotypeLogitRegr`
+  returns a silent NA for a treatment-only fit.** With 3+ categories and no usable covariate (`respdis` y1-y4, p = 0;
+  `sanon::skin` res2 / res3, p = 1) the owner ruling of 2026-11-08 makes the fit non-estimable
+  (`stereotype_treatment_only_fit_not_identified` in `generate_mod()`), which is right, but the estimate, Wald and
+  randomization calls return NA with no warning. Fix: warn with `edi_estimate_unavailable_na()` (the v1.0.7-TODO-181
+  helper) at that point, naming the ruling and pointing at a covariate-adjusted formula or another ordinal class. Not
+  done here: `inference_ordinal_stereotype_logit.R` carries another session's uncommitted edits. The `mixor::schizophrenia`
+  randomization NA is the warn-once pattern (v1.0.7-TODO-182's decision) or this TODO; recheck after the fix.
+  - Done when: these fits warn (a test pins it) and the corpus rows citing this TODO are `nonestimable`.
+
+<a id="todo-190"></a>
+
+- [x] TODO-190 (added 2026-11-26, agent; found by v1.0.7-TODO-184; done 2026-11-26, agent): **Every rank-deficient bootstrap draw re-runs the
+  random-forest covariate imputation.** In the reusable bootstrap workers (`inference_all_abstract_non_param_boot.R`,
+  the draw loader around L1689-1760), a draw whose direct `X` subset is not full rank (a rare level or binary covariate
+  goes constant in the resample) sets `model_matrix_stale = TRUE`; the rebuild then goes through `get_X()` ->
+  `covariate_impute_if_necessary_and_then_create_model_matrix()` (`design_abstract.R` ~L1176), which starts again from
+  the raw covariates and calls `missRanger` on the resample. The loader had already set the worker design's `Ximp` to
+  the resampled imputed matrix, and its v1.0.6-TODO-84 comment says the fallback should "rebuild it from the
+  resampled Ximp", so the re-imputation looks unintended. Besides the cost, it gives rank-deficient draws freshly
+  imputed covariates while full-rank draws keep the original imputation.
+  - Evidence (HEAD via `load_all(compile = FALSE)`, single core): `opt` (n = 809, 139 covariates, 25% missing),
+    `InferenceContinOLS`: estimate, Wald and randomization calls under 0.1 s, but the percentile bootstrap at B = 5
+    takes 625 s, all of it under `missRanger` (Rprof), i.e. ~125 s per draw, one full imputation each.
+    `clubSandwich::AchievementAwardsRCT` (n = 2,000, 3.4% missing): `InferenceIncidLogRegr` base fit 0.04 s, B = 49
+    bootstrap 73 s (~1.5 s per draw = one imputation). Trials with no missing covariates are unaffected.
+  - Fix to evaluate: let the stale rebuild skip imputation when the design's `Ximp` is the loader's resampled imputed
+    matrix (a flag the loader sets with `Ximp`), and only re-derive the model matrix (drop constant / collinear columns).
+    This changes the bootstrap draws that hit the fallback (they keep the original imputed values), so check it
+    against the intent (bootstrap the analysis given the imputation, or re-impute per resample) before changing it;
+    the param-boot worker (`inference_all_abstract_param_boot.R` ~L1024) and the subset path at
+    `inference_all_abstract_non_param_boot.R` ~L2125 set `Ximp` the same way and may need the same flag.
+  - Repro: `pkgload::load_all("R/EDI", compile = FALSE)`; build the `opt` / `Birthweight` case with
+    `R/package_tests/real_data_catalog.R` (`rdc_resolve()`, `rdc_outcome_subset()`, `rdc_new_design()`,
+    `rdc_add_responses()`); `InferenceContinOLS$new(des)$compute_bootstrap_confidence_interval(B = 5, type = "percentile")`.
+  - Decided 2026-11-26 (owner): a flag `reimpute_missing_vals_each_resample` on the base bootstrap function, default FALSE (keep the original imputation); see [DECISION-v1.0.7-TODO-190](COMPLETED_DECISIONS.md#DECISION-v1.0.7-TODO-190).
+  - Done when: a rank-deficient draw costs about as much as a full-rank one on `opt`, with a test that pins the
+    chosen behavior for the imputed values of such a draw.
+  - Decided 2026-11-26 (owner): keep the original imputation by default, with a flag on the base bootstrap,
+    `reimpute_missing_vals_each_resample`, default `FALSE`.
+  - Done 2026-11-26 (agent, uncommitted). `compute_bootstrap_confidence_interval()`, `compute_bootstrap_two_sided_pval()`
+    and `approximate_bootstrap_distribution_beta_hat_T()` of `InferenceNonParamBootstrap` take
+    `reimpute_missing_vals_each_resample = FALSE`; nested internal calls inherit the caller's value (kept in
+    `private$cached_values`, package-level helpers `edi_bootstrap_reimpute_*`, since the component contract in
+    `contracts_mixins.R` lists every private member). FALSE: the reusable-worker loader and the slow subset path mark
+    the draw's design `rebuild_model_matrix_from_ximp = TRUE` (new `Design` private field), so a rebuild starts from
+    the resampled imputed rows and never calls `missRanger`. TRUE: no draw reuses the full-data matrix; each draw's
+    design rebuilds from its raw covariates (one imputation per draw), the distribution is cached under its own key,
+    the class batch kernel (`compute_fast_non_param_bootstrap_distr`) is bypassed, and an inference whose matrix
+    differs from the design's (`model_formula`, dropped perfect predictors) refuses with an error. Without missing
+    covariates neither setting changes anything (no new code path runs). Not given the flag: the parametric
+    bootstrap (covariates fixed) and the Bayesian bootstrap (reweights rows, no resampled covariates); m-out-of-n and
+    subsampling get the FALSE behavior through the same loader but no argument; class overrides of the three methods
+    (gcomp, zero-augmented, dep-cens, KK passthrough) do not accept the argument yet.
+  - Timings (HEAD, `load_all(compile = FALSE)`, single core, percentile CI): `opt` `InferenceContinOLS` B = 5: 625 s
+    before, 0.6 s after; `clubSandwich::AchievementAwardsRCT` (n = 2,000) `InferenceIncidLogRegr` B = 49: 73 s before,
+    1.0 s after.
+  - Test: `R/EDI/tests/testthat/test-bootstrap-reimpute-missing-covariates-flag.R` (13 expectations). With the fix
+    disabled the default path re-imputes 6 of 30 draws in it; with it, none.
+  - Overrides done 2026-11-26 (agent): all eight class overrides of the three methods take the flag
+    (`inference_incidence_gcomp_abstract.R`, `inference_incidence_gcomp.R`, `inference_incidence_KK_gcomp_abstract.R`,
+    `helper_gcomp.R` RR basic path, `inference_count_zero_augmented_poisson_abstract.R`,
+    `inference_survival_dep_cens_transform.R`, `inference_proportion_gcomp.R`, `inference_mixin_kk_passthrough.R`). They
+    pass it through as given or as NULL when left out (`edi_bootstrap_reimpute_forward()`; a formal with a default is
+    never "missing" in the callee, and forwarding FALSE would reset an enclosing TRUE). `InferencePropGCompMeanDiff`
+    (its screened resampler) and the KK matched-pair-plus-reservoir resampler cannot re-impute and refuse TRUE when
+    covariates are missing (`edi_assert_bootstrap_reimpute_not_requested()`). Test
+    `test-bootstrap-reimpute-flag-accepted-by-every-class.R` walks the registry (Bernoulli and KK14 designs, six
+    response types, complete and missing covariates); against the old overrides it fails 434 checks.
+  - Extended 2026-11-26 (agent, owner request): the flag is also on the bootstrap-randomization test
+    (`approximate_rand_bootstrap_distribution_beta_hat_T()`, `compute_rand_bootstrap_two_sided_pval()`,
+    `compute_rand_bootstrap_confidence_interval()`), the m-out-of-n bootstrap and PRW subsampling (distribution,
+    p-value, CI, `select_optimal_*`, `compute_subsampling_sensitivity()`, plus the g-computation overrides in
+    `inference_incidence_gcomp.R`) and DepCens's `_basic` / `_bca` / `_studentized` CIs (pass-through, NULL
+    forwarding). BRT with TRUE: each draw's resampled rows are imputed once, when the draws are made (or when
+    supplied draws first reach a TRUE call, cached in `private$cached_values$brt_reimputed_ximp` by draws_id and
+    index), and travel with the draw as `reimputed_Ximp`; both row loaders rebuild the model matrix from them
+    without imputing again, so a CI over many deltas imputes each draw once (test: at most B imputations; locally 39
+    imputations for B = 39). The fresh assignment is drawn on the re-imputed rows; TRUE draws get their own
+    draws_id and cache key; the C++ batch kernels and the CI's closed-form affine inversion are skipped. m-out-of-n
+    and subsampling key their distribution and pivot caches on the setting; a resample too small to impute gives an
+    NA draw. Memory: TRUE keeps one imputed n x p table per BRT draw for the life of the call (or of the object, for
+    supplied draws). Test `test-resampling-reimpute-flag-brt-subsampling-m-out-of-n.R` (7,130 expectations).
+  - Jackknife (checked only, owner to decide): every jackknife unit (observation, block, cluster, pair / matched set,
+    permuted block; `build_jackknife_deletion_draws()`, `inference_all_abstract_non_param_boot.R` ~L2181) fits its
+    leave-out through the same two row loaders (`approximate_jackknife_distribution_beta_hat_T_private()` ~L2558:
+    reused workers via `load_non_param_bootstrap_draw_into_worker()` -> `load_bootstrap_sample_into_design_backed_worker()`,
+    else `bootstrap_subset_inference()`). Since the fix above, a standalone jackknife reuses the original full-data
+    imputation for every leave-out, including one that drops the only subject with a rare level (before, such a
+    rank-deficient leave-out re-imputed): `opt`-like check, n = 80 with 10 missing and a singleton level, 80
+    leave-one-out fits, 0 imputations, 0.29 s. Inside a bootstrap call running with TRUE (the BCa acceleration), the
+    jackknife inherits the setting and re-imputes each leave-out (BCa, B = 12, n = 80: 80 imputations). Defect
+    found: `jack_distr_cache` is keyed `unit::n_draws` only, so after a TRUE BCa the same object's later default
+    jackknife returned the re-imputed values (differed from a fresh default jackknife by up to 4.7e-4). Fixed
+    2026-11-26: the cache key gets `::reimpute` under TRUE (`approximate_jackknife_distribution_beta_hat_T_private()`),
+    pinned by a test in `test-resampling-reimpute-flag-brt-subsampling-m-out-of-n.R` (default jackknife after a TRUE BCa
+    equals a fresh object's). Open for the owner: whether the BCa acceleration's jackknife should follow TRUE at all
+    (today it does).
+
+<a id="todo-191"></a>
+
+- [ ] TODO-191 (added 2026-11-26, agent; audit decision `code-duplication-d15664876`): **Cauchit can bypass the
+  ordinal warm-start policy.** The cauchit fit and likelihood null refits read cached parameters and Fisher
+  information directly. Probit and proportional odds use the common policy, which suppresses Fisher warm starts
+  for wide problems, among other limits. Check whether cauchit needs the direct behavior and assess both numerical
+  and runtime effects before aligning the accessors.
+
+<a id="todo-192"></a>
+
+- [ ] TODO-192 (added 2026-11-26, agent; audit decision `code-duplication-d2e855eb9`): **Check KK mixed-model jackknife SE inflation across outcomes.**
+  The count KK GLMM increases its model-based standard error when the design jackknife gives a larger value. The ordinal KK GLMM reports the model standard error. Confirm whether both should use the same rule, including cases where one variance estimate is unavailable.
+
+<a id="todo-193"></a>
+
+- [ ] TODO-193 (added 2026-11-26, agent; audit decision `code-duplication-d853f318a`): **Keep the stratified Cox prebuilt cache aligned with the fallback.**
+  When the informative-row stratified native path fails, the all-rows fallback may still read the stratified prebuilt cache. If that retry succeeds, the likelihood context records strata = NULL and stratified = FALSE. Force the first attempt to fail in a regression fixture and check that the all-rows fallback uses an unstratified cache.
+
+<a id="todo-194"></a>
+
+- [x] TODO-194 (added 2026-11-26, agent; audit decision `code-duplication-dc61886c3`): **Accept a first GEE cluster
+  label of -1.** The previous grouping code treated -1 as a sentinel. If the first sorted cluster had that label,
+  the code tried to extend a group before creating it. The shared grouping code starts a group explicitly on the
+  first row. The rebuilt R and Python fits both match the equivalent positively relabeled data exactly. [C++]
+
+<a id="todo-195"></a>
+
+- [ ] TODO-195 (added 2026-11-26, agent, owner request; found by the likelihood-spec partial-match audit): **Use exact
+  `[[ ]]` lookups for optional fit fields in the three shared files every likelihood class's fits pass through.**
+  - `$` on an R list partially matches names, so asking a fit list for a field it lacks returns a field whose name
+    starts with it. This was a real (latent) bug in two specs, now fixed with `[[ ]]` (uncommitted as of
+    2026-11-26): `inference_count_zero_augmented_poisson_abstract.R` (HurdlePoisson / ZIP full-fit wrapper) and
+    `inference_proportion_beta.R`, where `fit$information` matched `information_invertible` and the information hook
+    returned a 1 x 1 TRUE instead of the matrix. Regression tests:
+    `test-zero-augmented-likelihood-spec-exact-field-lookup.R`, `test-beta-regression-likelihood-spec-exact-field-lookup.R`.
+  - Left unfixed because another session had these files staged: the generic consumers that read any spec's fit.
+    - `R/EDI/R/inference_ext_likelihood_test_memoization.R` L37 and L83: the default `extract_start` reads
+      `fit_obj$params %||% fit_obj$b %||% fit_obj$coefficients` (and the same for `null_fit`).
+    - `R/EDI/R/inference_ext_param_bootstrap_estimate.R` L46: `fit$b %||% fit$params %||% fit$coefficients`.
+    - `R/EDI/R/inference_ext_information_matrix.R` ~L41-70: `fit$fisher_information`, `fit$observed_information`,
+      `fit$information_type` and, in the fallbacks, `fit$information`. The last is the same trap as the fixed bug
+      whenever a fit carries `information_invertible` but no `information` and the spec has no information hook.
+  - Risk today: none observed. A runtime scan of 53 likelihood classes with `options(warnPartialMatchDollar = TRUE)`
+    at n = 120 and n = 40 found no partial match after the two fixes (13 classes produced no spec on the fixture and
+    were checked statically only). The trap is theoretical: e.g. a null fit with no `params` and no `b` but one
+    other `b*` element (a raw `glm` object has `boundary`) would make `$b` return it.
+  - Fix: switch those reads to `fit[["params"]]`, `fit[["b"]]`, `fit[["coefficients"]]`, `fit[["information"]]` and so
+    on (exact by default for lists; nested reads as `fit[["mod"]][["neg_ll"]]`); leave `$<-` assignments alone.
+    Behaviour must not change.
+  - Done when: the three files use exact lookups for optional fields; the two regression tests above and the
+    likelihood test suites (`test-full-likelihood-migration-baseline.R`, `test-asymp-inference-paths.R`,
+    `test-parametric-bootstrap-lr-all-capable-classes.R`) pass; and a rerun of the partial-match scan (harness
+    `pm_scan.R`, kept in `/tmp/claude-1000/specaudit_work/` while it lasts) reports none.
+
+<a id="todo-196"></a>
+
+- [ ] TODO-196 (added 2026-11-26, agent, owner request; found by the likelihood-spec partial-match audit, see
+  v1.0.7-TODO-195): **`get_adjacent_category_logit_score_cpp()` (and `_hessian_cpp()`) segfault R when `params` has
+  the wrong length.** [C++]
+  - Found: the audit's runtime scan called `InferenceOrdinalAdjCatLogitRegr`'s spec `score` hook on a
+    `generate_mod()` result that has no `params`, so `as.numeric(fit$params)` was `numeric(0)`; the kernel used it
+    unchecked and R crashed. Normal use never passes such a fit (the hook gets `fit_null()` / full fits, which carry
+    `params`), so no user path is known to hit it, but a crash instead of an error is never acceptable.
+  - Cause: `R/EDI/src/fast_adjacent_category_logit.cpp` L259 (`get_adjacent_category_logit_score_cpp`) and L278
+    (`get_adjacent_category_logit_hessian_cpp`) build `AdjacentCategoryLogitNegLogLik fun(X, y_mapped, K)` and call
+    `fun(params, grad)` / `fun.hessian(params)` without checking that `params.size()` equals the layout the objective
+    indexes (the ncol(X) coefficients plus the K - 1 category intercepts, per the class's parameter layout in
+    `EDI_INFERENCE_LIKELIHOOD_PROPERTIES`), so Eigen reads past the end of the vector.
+  - Fix: in both exports, `Rcpp::stop()` with a clear message when `params.size()` is not the expected length (and
+    when `X.rows()` differs from `y`'s length); do the same check in any shared helper the `[[Rcpp::export]]`s go
+    through, not only in the R hook. Check the sibling ordinal kernels' exported `get_*_score_cpp` /
+    `get_*_hessian_cpp` (cumulative logit / probit / cloglog / cauchit, continuation ratio, stereotype, the KK
+    conditional adjacent-category kernel) for the same missing check and add it where absent. Needs a targeted
+    compile of the touched `.cpp` files only (CLAUDE.md: EDI_UNITY=0, no full rebuild).
+  - Test: a testthat_bulk file (named for the behaviour) that calls each fixed export with a too-short and a too-long
+    `params` (and `numeric(0)`) and expects an R error, not a crash; run it in a child R process (`callr` or
+    `system2`) so a regression shows as a failed test instead of killing the test runner.
+  - Done when: the exports stop with an error on a wrong-length `params`, the new test passes, and the existing
+    adjacent-category tests (`test-adjacent-category-logit-kernel-vglm-acat-reference-score-hessian-and-fixed-coefficients.R`
+    and the other `*adjacent-category*` files) still pass.

@@ -94,7 +94,7 @@ test_that("with 3+ categories a fit whose only covariate is dropped (collinear w
 	# seeds tried; the other 3 give the documented reason). generate_mod() only assigns the
 	# documented reason after the hardened refit returns a usable treatment-only fit; when that
 	# refit is rejected at a loading boundary the boundary reason wins instead.
-	skip("v1.0.6-TODO-257: all-covariates-dropped fit reports stereotype_treatment_only_fit_at_loading_boundary, not the documented stereotype_treatment_only_fit_not_identified")
+	skip("v1.0.7-TODO-111: all-covariates-dropped fit reports stereotype_treatment_only_fit_at_loading_boundary, not the documented stereotype_treatment_only_fit_not_identified")
 	expect_identical(inf$.__enclos_env__$private$cached_values$nonestimable_reason,
 		"stereotype_treatment_only_fit_not_identified")
 })

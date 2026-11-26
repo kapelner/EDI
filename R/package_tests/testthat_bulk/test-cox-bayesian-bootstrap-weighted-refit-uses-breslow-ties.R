@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-271: every EDI Cox point estimate uses Breslow ties (fast_coxph_regression.cpp,
+# v1.0.6-TODO-170: every EDI Cox point estimate uses Breslow ties (fast_coxph_regression.cpp,
 # and the R fallbacks pinned to ties = "breslow"), but the weighted refits behind the Cox
 # Bayesian bootstraps (weighted_cox_bootstrap_surrogate_fit() and kk_ivwc_weighted_cox_half()
 # in globals.R) used survival::coxph()'s default Efron ties. On tied event times a replicate

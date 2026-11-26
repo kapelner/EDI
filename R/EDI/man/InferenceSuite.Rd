@@ -640,7 +640,7 @@ weight \code{0} (excluded). Need not pre-sum to 1.}
   (\code{list(pval, stat, method = "cauchy_combination", n_classes_used,
   n_estimand_groups, estimands_used, weighting, weights_used,
   classes_used)} -- the Cauchy-combination-test p-value/statistic
-  across all usable rows under the resolved weighting policy;
+  across rows with finite p-values and finite, positive weights;
   \code{weights_used}/\code{classes_used} are keyed/valued by each
   row's \code{results} name, not \code{results_table$inference_class}
   directly, since that column can repeat under \code{formulas};

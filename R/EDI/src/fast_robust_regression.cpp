@@ -148,7 +148,7 @@ RobustModelResult fast_robust_regression_internal(
     // 2. Scale estimation (MAD of residuals, median(|r|) / 0.6745, as MASS::rlm).
     // "M" re-estimates it from the current residuals at the top of every IRLS
     // iteration, exactly like MASS::rlm(method = "M", scale.est = "MAD"); "MM"
-    // keeps it fixed at the start value (v1.0.6-TODO-50).
+    // keeps it fixed at the start value (v1.0.6-TODO-15).
     auto mad_scale = [n](const Eigen::VectorXd& resid) {
         std::vector<double> abs_r(n);
         for (int i = 0; i < n; ++i) abs_r[i] = std::abs(resid[i]);
@@ -178,7 +178,7 @@ RobustModelResult fast_robust_regression_internal(
     // "MM" (fixed scale) floors the scale so the weights never divide by zero.
     // "M" leaves the start scale unclamped so the exact-fit stop at the top of
     // iteration 1 can fire: with a start whose MAD is 0, MASS::rlm returns the
-    // start and reports convergence, and so must this loop (v1.0.6-TODO-273).
+    // start and reports convergence, and so must this loop (v1.0.6-TODO-172).
     // A tiny positive MAD is used as is, as rlm does and as later iterations do.
     if (!update_scale_each_iter && res.scale < 1e-10) res.scale = 1e-10;
 
@@ -201,7 +201,7 @@ RobustModelResult fast_robust_regression_internal(
             // Exact fit (MAD 0): MASS::rlm stops here, returns the current
             // coefficients and reports convergence. At iteration 1 no WLS step
             // has run yet, so the information matrix is built from the current
-            // weights (all 1, as rlm's returned w) (v1.0.6-TODO-273).
+            // weights (all 1, as rlm's returned w) (v1.0.6-TODO-172).
             res.scale = 1e-10;
             res.converged = true;
             if (!estimate_only) {
@@ -259,7 +259,7 @@ RobustModelResult fast_robust_regression_internal(
         // Check convergence. "M" uses MASS::rlm's test.vec = "resid" criterion
         // (relative change in the residual vector <= tol, rlm's `acc`), so that
         // with the same start, scale update and tolerance it stops on the same
-        // iteration as rlm (v1.0.6-TODO-50); "MM" keeps the relative
+        // iteration as rlm (v1.0.6-TODO-15); "MM" keeps the relative
         // coefficient-change criterion.
         const bool conv_now = update_scale_each_iter
             ? std::sqrt((r_old - r).squaredNorm() / std::max(1e-20, r_old.squaredNorm())) <= tol
@@ -345,7 +345,7 @@ std::optional<double> fast_robust_regression_ssq_b_j_internal(
         // Huber's (1981) small-sample correction kappa = 1 + p Var(psi') / (n mean(psi')^2),
         // as MASS:::summary.rlm applies it (Var with denominator n - 1). Without it the
         // SE was low by the factor 1 / kappa and the KK IVWC inverse-variance weights
-        // disagreed with the MASS::rlm path (v1.0.6-TODO-50).
+        // disagreed with the MASS::rlm path (v1.0.6-TODO-15).
         const double p_free_d = double(fixed_spec.free_idx.size());
         const double var_psi_prime = (n > 1) ? (psi_prime - m).square().sum() / double(n - 1) : 0.0;
         const double kappa = 1.0 + p_free_d * var_psi_prime / (double(n) * m * m);

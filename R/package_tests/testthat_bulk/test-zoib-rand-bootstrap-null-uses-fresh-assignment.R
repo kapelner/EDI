@@ -1,10 +1,10 @@
-# v1.0.6-TODO-167: InferencePropZeroOneInflatedBetaRegr's bootstrap randomization
+# v1.0.6-TODO-115: InferencePropZeroOneInflatedBetaRegr's bootstrap randomization
 # test (BRT) reuses the bootstrap worker estimator, whose fast path fit the
 # design matrices snapshotted by the row-resample loader (treatment column =
 # observed w[i_b]) against the sharp-null responses the BRT loader installs
 # afterwards. Every "null" draw was centred at the estimate, so the BRT p-value
 # was ~0.85 at a strong effect while the randomization test gave 0.01. Same bug
-# as v1.0.6-TODO-150 (PropGComp).
+# as v1.0.6-TODO-101 (PropGComp).
 
 make_zoib_brt_fixture = function(effect, seed = 1L, n = 80L){
 	set.seed(seed)

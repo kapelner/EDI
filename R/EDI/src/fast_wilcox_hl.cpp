@@ -333,8 +333,7 @@ double apply_shift_hl(double y_val, double delta, int transform_code, double zer
 // std::vector<double>) but has internal linkage (anonymous namespace), so
 // it can't be called from a separate Python binding translation unit
 // directly. This wrapper -- external linkage, same TU, so it CAN see the
-// anonymous-namespace function -- replicates wilcox_hl_point_estimate_cpp's
-// exact filtering/grouping logic on plain Eigen types.
+// anonymous-namespace function -- shares filtering and grouping with the R wrapper.
 double wilcox_hl_point_estimate_result(const Eigen::Ref<const Eigen::VectorXd>& y,
                                         const Eigen::Ref<const Eigen::VectorXi>& w) {
     std::vector<double> y_t;
@@ -371,29 +370,11 @@ double wilcox_hl_signed_rank_point_estimate_cpp( const Eigen::Map<Eigen::VectorX
 
 // [[Rcpp::export]]
 double wilcox_hl_point_estimate_cpp(SEXP w, SEXP y) {
-	IntegerVector w_r_coerced(w); Eigen::Map<const Eigen::VectorXi> w_vec_coerced(w_r_coerced.begin(), w_r_coerced.size());
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-	
-
-    
-    std::vector<double> y_t;
-    std::vector<double> y_c;
-    y_t.reserve(y_vec_coerced.size());
-    y_c.reserve(y_vec_coerced.size());
-
-    const double* y_ptr = y_vec_coerced.data();
-    const int* w_ptr = w_vec_coerced.data();
-    int n = y_vec_coerced.size();
-
-    for (int i = 0; i < n; ++i) {
-        if (!std::isfinite(y_ptr[i])) continue;
-        if (w_ptr[i] == 1) y_t.push_back(y_ptr[i]);
-        else if (w_ptr[i] == 0) y_c.push_back(y_ptr[i]);
-    }
-
-    return hl_from_groups(std::move(y_t), std::move(y_c));
+	IntegerVector w_r_coerced(w);
+	Eigen::Map<const Eigen::VectorXi> w_vec(w_r_coerced.begin(), w_r_coerced.size());
+	NumericVector y_r_coerced(y);
+	Eigen::Map<const Eigen::VectorXd> y_vec(y_r_coerced.begin(), y_r_coerced.size());
+	return wilcox_hl_point_estimate_result(y_vec, w_vec);
 }
 
 // [[Rcpp::export]]

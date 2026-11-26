@@ -1,11 +1,11 @@
-# v1.0.6-TODO-195 item (2), owner decision 2026-11-19: the count-part
+# v1.0.6-TODO-140 item (2), owner decision 2026-11-19: the count-part
 # coefficients of the zero-augmented count classes are learned from the rows with
 # a positive count, so a count-part covariate that is aliased on those rows
 # (constant there, or a linear combination of earlier columns) is not identified.
 # Such columns are now dropped before fitting, as glm drops aliased columns, with
 # one edi_covariate_dropped_warning naming them; before, the fit wandered along
 # the flat direction (arbitrary ZIP estimate, NA standard error). The treatment is
-# never dropped: when it is itself aliased the fit stays NA (v1.0.6-TODO-186).
+# never dropped: when it is itself aliased the fit stays NA (v1.0.6-TODO-132).
 
 zero_aug_alias_classes = c("InferenceCountHurdlePoisson", "InferenceCountZeroInflatedPoisson",
 	"InferenceCountHurdleNegBin", "InferenceCountZeroInflatedNegBin")

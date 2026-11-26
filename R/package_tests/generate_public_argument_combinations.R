@@ -357,14 +357,14 @@ write_generation_outputs = function(cases, cases_file = cases_path, rejected_fil
 }
 
 # ---------------------------------------------------------------------------------------------
-# Data-shape cases (v1.0.6-TODO-97). The cases above vary argument values on the canonical
+# Data-shape cases (v1.0.7-TODO-41). The cases above vary argument values on the canonical
 # fixtures; these vary the data (public_argument_combination_fixtures.R, "Data-shape axes") and run
 # a fixed set of inference methods at their defaults on each cell. Cells cover every legal pair of
 # axis values (a greedy covering array over the full factorial, filtered by
 # data_shape_cell_violations()), not the full factorial: ~2,000 legal cells shrink to the number
 # needed to cover the largest pair product (inference class x design). Results go through
 # run_case() like every other case, with an output_outcome column that separates a silent NA from
-# a documented one, so the NA gate (v1.0.6-TODO-95) can fail on it.
+# a documented one, so the NA gate (v1.0.6-TODO-54) can fail on it.
 # ---------------------------------------------------------------------------------------------
 
 data_shape_inference_classes = list(
@@ -393,7 +393,7 @@ data_shape_methods = list(
 	compute_bootstrap_confidence_interval = list(args = "B=501L;show_progress=FALSE", invariants = "ci_length_2;ci_ordered;numeric_finite_or_documented_missing"),
 	compute_bootstrap_two_sided_pval = list(args = "B=501L;show_progress=FALSE", invariants = "pval_in_0_1;strong_effect_detected"),
 	compute_rand_two_sided_pval = list(args = "r=101L;show_progress=FALSE", invariants = "pval_in_0_1;strong_effect_detected"),
-	# unit = "auto": the jackknife is where clustered designs silently gave NA (v1.0.6-TODO-74).
+	# unit = "auto": the jackknife is where clustered designs silently gave NA (v1.0.7-TODO-37).
 	compute_jackknife_wald_confidence_interval = list(args = "", invariants = "ci_length_2;ci_ordered;numeric_finite_or_documented_missing")
 )
 
@@ -430,7 +430,7 @@ legal_data_shape_cells = function() {
 # ties go to the first cell in expand.grid order.
 #
 # Two passes. n = NULL breaks the whole design for some classes today (KK21 cannot even assign,
-# v1.0.6-TODO-76; no n = NULL design can be analyzed, v1.0.6-TODO-77), so a single pass would cover
+# v1.0.6-TODO-38; no n = NULL design can be analyzed, v1.0.6-TODO-39), so a single pass would cover
 # many (inference class, censoring)-style pairs only on n = NULL cells that never reach the
 # inference call. Pass 1 covers every pair among fixed-n cells; pass 2 adds cells only for the
 # pairs that involve n = NULL.
@@ -490,8 +490,8 @@ data_shape_case_row = function(fixture_id, class_name, method_name, args, invari
 
 # The InferenceRandCustom block: R and C++ statistics returning one value, several values, NA, and
 # (R only) NA on some permutations. The documented contract is one finite scalar
-# (?InferenceRandCustom), so a several-value statistic must be refused (v1.0.6-TODO-83) and a nonzero
-# delta on an incidence response must be refused however the statistic is given (v1.0.6-TODO-81).
+# (?InferenceRandCustom), so a several-value statistic must be refused (v1.0.6-TODO-44) and a nonzero
+# delta on an incidence response must be refused however the statistic is given (v1.0.6-TODO-42).
 custom_statistic_kinds = c("r_scalar", "r_vector", "r_na", "r_sometimes_na", "cpp_scalar", "cpp_vector", "cpp_na")
 
 custom_statistic_value = function(kind) {
@@ -548,7 +548,7 @@ custom_statistic_cases = function(tier = "nightly") {
 			add("compute_rand_two_sided_pval", "r=101L;show_progress=FALSE", "pval_in_0_1;strong_effect_detected")
 			add("compute_rand_two_sided_pval", "r=101L;na.rm=FALSE;show_progress=FALSE", "pval_in_0_1")
 			if (identical(cell$response_type, "incidence")) {
-				# The roxygen bans a nonzero delta on incidence responses (v1.0.6-TODO-81).
+				# The roxygen bans a nonzero delta on incidence responses (v1.0.6-TODO-42).
 				add("compute_rand_two_sided_pval", "r=101L;delta=0.1;show_progress=FALSE", "documented_refusal")
 			}
 			if (identical(cell$response_type, "continuous") && kind %in% c("r_scalar", "cpp_scalar")) {

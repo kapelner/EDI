@@ -49,11 +49,11 @@
 #' of blocks in stratum \eqn{h}. Before EDI 1.0.6 a replicate deleted a
 #' whole stratum (2-4 replicates on typical data, so the jackknife was \code{NA}), and a
 #' design object saved before 1.0.6, which has no block record, still does
-#' (v1.0.6-TODO-231).
+#' (v1.0.6-TODO-165).
 #' When any stratum holds fewer than 10 permuted-block units, the automatic unit is one subject
 #' within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
 #' jackknife with subjects as units): with few blocks in a stratum the permuted-block
-#' jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
+#' jackknife-Wald test was too liberal (v1.0.7-TODO-122). An explicit
 #' \code{unit = "permuted_block"} still deletes permuted blocks.
 #'
 #' @references Efron, B. (1971). "Forcing a sequential experiment to be balanced."
@@ -122,8 +122,8 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 			private$block_sizes = as.integer(block_sizes)
 			private$uses_covariates = !is.null(strata_cols)
 			private$sequential_bootstrap_whole_group = FALSE
-			# v1.0.6-TODO-350: a plain list, not an environment. R6's clone(deep = TRUE) and the
-			# v1.0.6-TODO-316 rollback snapshot copy fields by reference, so an environment was
+			# v1.0.6-TODO-218: a plain list, not an environment. R6's clone(deep = TRUE) and the
+			# v1.0.6-TODO-196 rollback snapshot copy fields by reference, so an environment was
 			# shared with every copy and a copy's assignments advanced the original's queues.
 			# A list is copied on modify. Keys get a "s:" prefix because a list element named ""
 			# cannot be looked up.
@@ -158,7 +158,7 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 				n_C = current_block_size - n_T
 				new_block = sample(c(rep(1, n_T), rep(0, n_C)))
 				private$strata_states[[key]] = new_block
-				# v1.0.6-TODO-231: number the new block and remember its stratum and size, so the
+				# v1.0.6-TODO-165: number the new block and remember its stratum and size, so the
 				# jackknife can delete one permuted block at a time (block sizes are random, so the
 				# blocks cannot be rebuilt afterwards from the enrolment order the way SPBR's are).
 				private$permuted_block_keys = c(private$permuted_block_keys, key)
@@ -181,7 +181,7 @@ DesignSeqOneByOneRandomBlockSize = define_design_class(
 		strata_cols = NULL,
 		block_sizes = NULL,
 		strata_states = NULL, # hash map of stratum -> vector of remaining assignments
-		# v1.0.6-TODO-231: the permuted blocks as assign_wt() drew them. permuted_block_ids[t] is the
+		# v1.0.6-TODO-165: the permuted blocks as assign_wt() drew them. permuted_block_ids[t] is the
 		# block of subject t; permuted_block_keys[b] / permuted_block_sizes[b] are block b's stratum key
 		# and drawn size; current_permuted_block_by_key[[key]] is the stratum's block being filled.
 		# A plain list/vectors (not an environment) so duplicate()'s shallow clone copies them.

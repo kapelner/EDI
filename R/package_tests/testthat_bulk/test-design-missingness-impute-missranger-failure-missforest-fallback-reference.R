@@ -13,7 +13,7 @@ library(EDI)
 # for real, not just dispatch-checked.
 #   1. When missRanger() throws, missForest() is invoked exactly once (a call-count probe) and the
 #      resulting Ximp has no missing values, with every observed (non-NA) value preserved exactly.
-#   2. The same fallback also runs correctly once responses are recorded. Since v1.0.6-TODO-44 the
+#   2. The same fallback also runs correctly once responses are recorded. Since v1.0.6-TODO-9 the
 #      imputation no longer uses the response (see test-covariate-imputation-ignores-outcome.R).
 
 miss_covariates <- function(n = 30L, seed = 3L) {

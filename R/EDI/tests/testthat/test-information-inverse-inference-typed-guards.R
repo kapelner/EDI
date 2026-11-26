@@ -59,7 +59,7 @@ test_that("zero-augmented Poisson inference preserves typed nonestimability for 
 		private$za_X_cov_all <- cbind(x = x, x_duplicate = x)
 		private$za_Xzi_cov_all <- matrix(numeric(), nrow = n, ncol = 0L)
 
-		# v1.0.6-TODO-218 (1): this fixture has no excess zeros (zero part driven to 0).
+		# v1.0.6-TODO-159 (1): this fixture has no excess zeros (zero part driven to 0).
 		estimate <- suppressMessages(inf$compute_estimate(), classes = "edi_no_zero_inflation_message")
 		expect_true(is.finite(estimate), info = class_name)
 		expect_false(private$cached_mod$information_invertible, info = class_name)
@@ -69,7 +69,7 @@ test_that("zero-augmented Poisson inference preserves typed nonestimability for 
 		                  "model_standard_error_unavailable", info = class_name)
 		expect_identical(private$cached_values$nonestimable_stage, "se", info = class_name)
 
-		# v1.0.6-TODO-380: NA with an edi_wald_unavailable_warning (was a bootstrap fallback).
+		# v1.0.6-TODO-225: NA with an edi_wald_unavailable_warning (was a bootstrap fallback).
 		ci <- expect_warning(
 			inf$compute_asymp_confidence_interval(),
 			class = "edi_wald_unavailable_warning"
@@ -117,7 +117,7 @@ test_that("ZINB inference maps a guarded singular covariance to typed SE nonesti
 	                  "model_standard_error_unavailable")
 	expect_identical(private$cached_values$nonestimable_stage, "se")
 
-	# v1.0.6-TODO-380: NA with an edi_wald_unavailable_warning (was a bootstrap fallback).
+	# v1.0.6-TODO-225: NA with an edi_wald_unavailable_warning (was a bootstrap fallback).
 	ci <- expect_warning(
 		inf$compute_asymp_confidence_interval(),
 		class = "edi_wald_unavailable_warning"

@@ -2071,7 +2071,6 @@ ticked in their **owning plans**; this list is the release index.
   - Decided 2026-11-26 (owner): (a) robust score / LR / gradient are HurdlePoisson's default; see [DECISION-v1.1.0-TODO-174](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-174). The 500 accepted campaign rows citing this TODO are pruned after the next campaign shows the `~1` cells pass.
   - Owner decision pending: [DECISION-v1.1.0-TODO-174b](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-174b) (make robust ZIP's default too, reopening DECISION-v1.1.0-TODO-216?).
 
-
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**
   - Why: accepted rows wald ~. (size 0.135, coverage 0.865), wald ~1 (size 0.085), lik_ratio ~. coverage 0.88, n = 50 prob_T 0.2; unequal allocation prob_T = 0.2 (about 10 treated at n = 50), shrinking with n (the n = 200 cell passes); 2026-11-06 run. Documented in the class's roxygen ("Small samples") for now.
   - Investigate first: share of fits at the [0,1] boundary in the treated arm; Wald SE at a boundary fit; relation to v1.0.5 TODO-181 (KKT score) and the feasible-start null refit.
@@ -2337,6 +2336,27 @@ ticked in their **owning plans**; this list is the release index.
   - Reuse. The null fit may already exist through the `null_fit_warm_start_enabled` path (`inference_all_abstract.R` ~L802, ~L1011); check before adding a new fit.
   - Step 1, measure first. Compare (beta_null, 0), today's full-fit start and fresh cold fits on: the v1.0.6-TODO-6 ZIP repro (set.seed(3), n = 80, DesignFixedBernoulli, ~x1+x2, set_seed(11), 30 permutations), a logit with a large effect (non-collapsibility case), Poisson / NegBin, a hurdle model and one ordinal model. Record the per-redraw agreement with fresh fits (D2 numerical-equivalence rule), iteration counts, the share of redraws needing a retry, and wall time at n = 200 and 1000. Run one randomization CI inversion per fixture too, comparing the (beta_null, g(delta0)) start with today's on every inversion step, and list the classes with no closed-form g. Do the same for the parametric LR bootstrap test and its CI inversion on the fixtures whose class supports it (start (beta_null(delta), g(delta)) vs today's), recording how often the column-drop loop runs under each start (shared with v1.1.0-TODO-191 step 1). Report to the owner before changing any default.
   - Step 2. If step 1 favors it, make it the base start for randomization redraws and parametric LR bootstrap unrestricted refits (an opt-in first if results change beyond D2 tolerance; release rule for default changes otherwise). Classes whose redraws already start from their own data keep that unless step 1 shows the new start is better for them.
+  - 2026-11-26 (owner request), two additions:
+    - Evidence for step 1, from the v1.0.7-TODO-105 agent (ZINB randomization test, current tree, calibration
+      campaign 2026-11-15-e36c7710's generator, FixedBernoulli prob_T 0.5, n = 50, `~.`, 30 datasets, 15,060 redraw
+      fits; scripts and results in `/tmp/claude-1000/zinb105/`): with every redraw warm-started from the observed
+      full fit, 12% of redraw fits stop at a converged interior local maximum (gradient about 1e-7, zero-part
+      coefficients about 1) that `fast_zinb_cpp_guarded()` does not flag, while the MLE lies on a zero-part
+      separation ridge up to 13.6 negative log-likelihood units lower (pscl and a plain cold start both reach it).
+      Adding one cold-start candidate cut the misses from 64 to 30 of 502 draws on one dataset; there are several
+      such ridges, so reaching the MLE every time is not a realistic target. The effect on size was not measured.
+      At n = 1000 `~1` the same tree has no missed MLEs and nominal size on four designs, so the problem is
+      small-n and nonconcave-specific. Add this fixture (ZINB, n = 50, `~.`) to step 1.
+    - A second reason for the shared start: exactness. A randomization test is exact when the statistic is one
+      fixed function of the data and the assignment, applied the same way to the observed assignment and to every
+      redraw. Warm-starting the redraws from the observed fit breaks that symmetry: a redraw's statistic then depends
+      on the observed assignment through its start, which matters whenever different starts can end at different
+      local maxima (the nonconcave classes, `likelihood_concave = FALSE`). Fitting the observed data and every
+      redraw from the same start, (beta_null, 0) for the p-value and (beta_null, g(delta0)) for each CI step,
+      restores exactness by construction, whether or not each fit reaches the global maximum. So for the
+      nonconcave classes, step 2 should apply the same start to the observed fit too, not only to the redraws (or
+      use a fixed multistart rule, such as cold plus null-fit start keeping the best, for all of them). For
+      concave classes the start only affects speed.
   - Done when: step 1's table is recorded here; if adopted, redraws match fresh fits within D2 on the step 1 fixtures, results are identical across `set_num_cores()` values, and NEWS names the change.
 
 - [ ] TODO-271 (added 2026-11-25, agent, owner request): **Type I error on real outcomes by re-randomization: a real-data null wave, run first in every monthly calibration campaign.**
@@ -2348,6 +2368,22 @@ ticked in their **owning plans**; this list is the release index.
   - Step 1, measure first. On 5-10 catalog datasets covering all six response types (suggested: `cgd` survival, `lalonde.exp` continuous, `strep_tb` ordinal, `indo_rct` incidence, `polyps` count, `Sleuth2::case1301` proportion; 223 catalog rows are CRAN-hosted with Redistribution `yes`), run 200 null redraws per (outcome, class) locally at the datasets' own n, and record: rejection rates at 0.05 per procedure, how they compare with the simulated null cells at the nearest n, the share of fits that fail or are non-estimable, and seconds per replicate (for `calibration_study_costs.csv`). Report to the owner before changing the planner: which datasets and outcomes to include, whether to subsample, how many replicates per unit (the simulated null uses --null-reps), and the added campaign cost in shards.
   - Step 2. If step 1 is approved: a dataset loader for the calibration scripts (from the installed CRAN packages, keyed by the catalog row), the `real_null` effect in the planner, runner, analysis and README renderer, and roster rules for which classes apply to each outcome's response type.
   - Done when: a campaign's first waves run the real-data null units and publish their size table and figure; the randomization-test cells pass the exactness check; any real-data cell outside the band has an open TODO or an accepted row citing one; and `R/package_tests/calibration/` documents the wave.
+
+- [ ] TODO-272 (added 2026-11-26, agent, owner request): **Weekly class-architecture audit: inheritance, components, mixins and overrides.**
+  - Plan: `../new_feature_plans/v1_1_0/class_architecture_audit.md`.
+  - A new audit on the `audit.yml` framework (`audit-class-architecture.yml`, Saturday 07:07 UTC). It loads EDI with
+    `pkgload::load_all(compile = FALSE)` in CI, exports the class graph (parents, resolved components, Pattern-1
+    mixins, where each effective method comes from), runs mechanical checks and asks Sonnet for one verdict per new
+    finding: `intentional`, `refactor` or `bug` (a bug needs a failing test).
+  - Checks, ranked: paired overrides (a class overrides one of a coupled pair and inherits the other, the shape of the
+    2026-10-12 KK Wilcox bootstrap-statistic bug); pull-up candidates; parent methods almost every child overrides;
+    no-op `super$` overrides; thin abstracts and deep chains; mixin/component hygiene (single-host mixins, stale
+    `EDI_MIXIN_ALLOWED_COLLISIONS` entries, contract drift); repeated component sets; large classes.
+  - Report only: one issue (label `audit-class-architecture`), decisions `class-architecture-d<hex>`, no PR. Does not
+    repeat the pre-push wiring tests.
+  - Start with the plan's Phase 0 (export the graph once, count what each check would flag, owner sets thresholds).
+  - Decided 2026-11-26 (owner): (b) paired-override rules also run in pre-push (done: `test-class-architecture-paired-overrides.R`, rules in `R/EDI/tests/testthat/class_architecture_paired_overrides.csv`); see [DECISION-v1.1.0-TODO-272](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-272).
+  - Done when: the plan's Phases 0-4 are ticked.
 
 - [ ] ~~TODO-192~~ **→ moved 2026-11-10 to `release_v1_0_7.md → TODO-9`** (owner approval of the v1.0.6 triage): Realistic proportion data for `tune_EDI_for_this_machine()`.
 

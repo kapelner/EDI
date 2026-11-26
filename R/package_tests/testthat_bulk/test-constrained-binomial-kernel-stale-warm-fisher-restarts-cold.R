@@ -1,13 +1,13 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-209 (2): the constrained binomial kernels (fast_log_binomial_regression.cpp) used a
+# v1.0.6-TODO-150 (2): the constrained binomial kernels (fast_log_binomial_regression.cpp) used a
 # supplied warm Fisher information (and, in the weighted kernels, warm working weights) for the first
 # Newton step. When that curvature came from a fit on other data (another randomization draw's
 # assignment), the line search rejected every step and the kernel returned the warm start unchanged
-# with converged = FALSE (~30% of identity-link draws in v1.0.6-TODO-205). The kernel now redoes such a
+# with converged = FALSE (~30% of identity-link draws in v1.0.6-TODO-146). The kernel now redoes such a
 # fit from the cold start, so it returns exactly what a cold call returns; fits whose warm first step is
-# accepted are unchanged. (The R-side cold retry from v1.0.6-TODO-205 stays.) Needs the owner's build.
+# accepted are unchanged. (The R-side cold retry from v1.0.6-TODO-146 stays.) Needs the owner's build.
 
 stale_fisher_fixture <- function(seed = 1L, n = 20L) {
 	set.seed(seed)

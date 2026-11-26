@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-154: overwrite_all_subject_assignments() had two copies (Design and
+# v1.0.6-TODO-106: overwrite_all_subject_assignments() had two copies (Design and
 # DesignFixed). There is now one body in Design: w must be a 0/1 vector over every
 # subject, and every subject must be in -- t = n for a fixed design, all n arrived
 # for a sequential design with n, any t >= 1 for an open-ended sequential design.

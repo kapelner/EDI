@@ -69,9 +69,9 @@ block structure in the resampling scheme, analogous to the cluster-level bootstr
     \emph{Introduction to Variance Estimation}, 2nd ed., Sec. 4.5; formulas in
     \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A block of one subject
     contributes nothing. The jackknife-Wald test and interval use the t distribution
-    with \eqn{\sum_h (n_h - 1)} degrees of freedom (v1.0.6-TODO-231). Before EDI 1.0.6
+    with \eqn{\sum_h (n_h - 1)} degrees of freedom (v1.0.6-TODO-165). Before EDI 1.0.6
     a replicate deleted a whole block, which left only as many replicates as blocks
-    (v1.0.6-TODO-4).
+    (v1.0.6-TODO-1).
   \item \strong{Not block-aware:} the regression-type classes (OLS, Lin, robust,
     quantile, GLM, ordinal, survival regressions, ...) add \emph{no} block fixed
     effects automatically; the blocks enter the model only if the blocking column is
@@ -124,13 +124,13 @@ Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd,
 }
 \if{html}{\out{<details><summary>+ inherited public methods from DesignFixed</summary>
 <ul>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Design</summary>
 <ul>
+  <li><a href='../../EDI/html/Design.html#method-Design-add_all_subject_responses'><code>Design$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-196: three leftovers from v1.0.6-TODO-194.
+# v1.0.6-TODO-141: three leftovers from v1.0.6-TODO-139.
 # (1) The g-computation risk-ratio log-scale subsampling / m-out-of-n pivot
 #     (compute_rr_resampling_pivot(), plain and KK) read the original estimate with
 #     error = function(e) NA_real_, so a timeout became an NA result. It now uses
@@ -119,7 +119,7 @@ test_that("the RR classes accept a list b / m and use the selector's size", {
 			expect_equal(ci_list, ci_ref, tolerance = 1e-8, info = info)
 			expect_true(all(is.finite(ci_list)), info = info)
 
-			# v1.0.6-TODO-191: at B = 30 the usable-draw cap (default 0.8) can trip on degenerate draws;
+			# v1.0.6-TODO-137: at B = 30 the usable-draw cap (default 0.8) can trip on degenerate draws;
 			# this test is about the list-valued size, so it lifts the cap.
 			pv_args = list(B = 30, show_progress = FALSE, min_fraction_usable_samples = 0)
 			pv_args[[size_arg]] = list(B = 25)

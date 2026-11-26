@@ -474,7 +474,7 @@ NULL
 #' no data set was \code{NA} and the sizes stayed 0.040 and 0.030. Set
 #' \code{min_fraction_usable_samples} higher to return \code{NA} sooner, or lower (down to 0) to use
 #' whatever usable draws there are.
-#' \strong{The p-value is symmetric} (since v1.0.6-TODO-230): with the pivot draws
+#' \strong{The p-value is symmetric} (since v1.0.6-TODO-164): with the pivot draws
 #' \eqn{T^*_j = \sqrt{b}(\log\widehat{RR}^*_j - \log\widehat{RR})} (\eqn{\sqrt{m}} for m-out-of-n) and
 #' \eqn{t = \sqrt{n}(\log\widehat{RR} - \log\delta)}, it is the share of usable draws with
 #' \eqn{|T^*_j| \ge |t|} (at least \eqn{1/B}), not the equal-tailed
@@ -525,7 +525,7 @@ InferenceIncidKKGCompRiskRatio = define_inference_class(
 			private$create_design_matrix()
 		},
 		get_estimand_type = function() "RR",
-		# v1.0.6-TODO-168 (a): adds the log(RR) symmetric studentized interval.
+		# v1.0.6-TODO-116 (a): adds the log(RR) symmetric studentized interval.
 		bayesian_bootstrap_ci_types = c("percentile", "basic", "wald", "studentized", "bootstrap-t", "bca", "symmetric-percentile-t")
 	),
 	overrides = list(

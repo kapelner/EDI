@@ -22,7 +22,7 @@ using namespace glmm;
 namespace {
 
 // v1.1.0-TODO-265 follow-up (owner 2026-11-24): coarse-to-fine quadrature. With more than this
-// many Gauss-Hermite nodes (the KK CLMM classes pass 60, v1.0.6-TODO-48), the variance multistart
+// many Gauss-Hermite nodes (the KK CLMM classes pass 60, v1.0.6-TODO-13), the variance multistart
 // runs on a 20-node objective and only its winner is refit on the requested rule, warm-started.
 // The likelihood and gradient cost are linear in the node count, so the multistart costs a
 // third; the reported fit (estimate, gradient test, SE) is the requested rule's optimum.
@@ -183,22 +183,10 @@ edi::ResultMap run_fast_ordinal_clmm(const GLMMData& dat, int K, int j_T, bool e
             }
         }
 
-        LikelihoodFitResult best_fit;
-        bool have_finite_fit = false;
         std::vector<LikelihoodFitResult> finite_fits;
-        for (const auto& start_candidate : starts) {
-            LikelihoodFitResult fit = optimize_fixed_likelihood(
-                obj, start_candidate, fixed_spec, maxit, eps_g,
-                optimization_alg, "lbfgs", 0, info_start_ptr);
-            if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
-            finite_fits.push_back(fit);
-            if (!have_finite_fit || fit.value < best_fit.value) {
-                best_fit = fit;
-                have_finite_fit = true;
-            }
-        }
-        if (!have_finite_fit)
-            throw std::runtime_error("ordinal CLMM produced no finite multistart fit");
+        LikelihoodFitResult best_fit = glmm::best_multistart_fit(
+            obj, starts, fixed_spec, maxit, eps_g, optimization_alg, info_start_ptr,
+            "ordinal CLMM produced no finite multistart fit", &finite_fits);
         lbfgs_gradient_norm = best_fit.gradient_norm;
 
         // v1.1.0-TODO-265 / clmm_sigma_collapse_false_convergence.md TODO-5 (owner 2026-11-23,

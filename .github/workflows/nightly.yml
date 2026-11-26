@@ -14,7 +14,7 @@ name: nightly
 #                          every night regardless of changes
 #   fuzz-discover, fuzz    libFuzzer harnesses of the native C++ suite (cpp_tests/fuzz/),
 #                          time-boxed, corpus kept between runs; succeeds while cpp_tests/
-#                          does not exist yet (v1.0.6 TODO-15)
+#                          does not exist yet (v1.0.7 TODO-12)
 #   resume-calibration     last job: restarts a stalled calibration campaign (see below)
 #   repro, repro-compare   cross-platform and core-count reproducibility
 #                          (cross_platform_reproducibility.md TODO-4, release_v1_1_0.md
@@ -300,7 +300,7 @@ jobs:
         run: Rscript package_tests/run_public_argument_combination_nightly.R ""
 
       # Every registry target (or a dispatch's regex). Report-only while the harness is
-      # unfinished for most targets (release_v1_0_6.md TODO-23): its failures are mostly
+      # unfinished for most targets (release_v1_0_7.md TODO-18): its failures are mostly
       # harness defects, so a scheduled ALL sweep does not fail the run. A dispatch that
       # names its own targets is gating. Reuses the gate step's results (same case ids).
       - name: Run public argument-combination nightly (${{ github.event_name == 'workflow_dispatch' && inputs.argument_targets || 'ALL' }})
@@ -322,7 +322,7 @@ jobs:
             echo "Unexpected errors: $errors; invariant failures: $invariants (sweep outcome: ${{ steps.argsweep.outcome }})."
             echo; echo "Failures by target: see public_argument_combination_failures.csv in the artifact."; } >> "$GITHUB_STEP_SUMMARY"
           if [ "${{ steps.argsweep.outcome }}" = "failure" ]; then
-            echo "::warning title=Argument combinations (report-only)::$errors unexpected error(s), $invariants invariant failure(s) across all targets; mostly harness gaps (release_v1_0_6.md TODO-23)"
+            echo "::warning title=Argument combinations (report-only)::$errors unexpected error(s), $invariants invariant failure(s) across all targets; mostly harness gaps (release_v1_0_7.md TODO-18)"
           fi
 
       - name: Upload argument-combination artifacts
@@ -955,6 +955,8 @@ jobs:
           mkdir site/benchmarks
           cp report/index.html report/benchmark_model_fits.md site/benchmarks/
           if [ -d report/python ]; then cp -r report/python site/benchmarks/; fi
+          # bench-report keeps the branch's design-balance/ (design-balance-real-data.yml); keep it on the site too.
+          if [ -d report/design-balance ]; then cp -r report/design-balance site/benchmarks/; fi
       - if: steps.site.outputs.has == 'true'
         uses: actions/upload-pages-artifact@v5
         with:

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-272: the safeguarded (step-halving) logistic IRLS pass checked each step at the top
+# v1.0.6-TODO-171: the safeguarded (step-halving) logistic IRLS pass checked each step at the top
 # of the next iteration, so the step taken at iter = maxit - 1 was never checked. A fit that hit
 # the iteration cap from a far warm start could return a negative log-likelihood far above its
 # start (seed-1 fixture below: start 408.4, maxit = 1 returned 36767.6, maxit = 2 returned

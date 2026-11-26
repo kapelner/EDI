@@ -232,7 +232,7 @@ walk_assertion_calls = function(expr, fn, api_meta, inside_assert_block = FALSE)
 		if (!is.null(ty) && !is.null(at)) emit(as.call(list(as.name("assertChoice"), ty, choices = at)))
 	}
 	# EDI's assert_min_fraction_usable_samples(x) (EDI/R/inference_all_abstract_non_param_boot.R,
-	# v1.0.6-TODO-12) is checkmate::assertNumber(x, lower = 0, upper = 1, finite = TRUE): a
+	# v1.0.6-TODO-2) is checkmate::assertNumber(x, lower = 0, upper = 1, finite = TRUE): a
 	# finite scalar in [0, 1], recorded as the equivalent assertNumeric contract.
 	if (identical(nm, "assert_min_fraction_usable_samples") && length(expr) >= 2L) {
 		call = as.call(list(as.name("assertNumeric"), expr[[2L]], len = 1L, lower = 0, upper = 1, any.missing = FALSE))

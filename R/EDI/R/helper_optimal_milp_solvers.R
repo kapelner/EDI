@@ -24,7 +24,7 @@ EDI_OPTIMAL_ROI_SOLVERS = c("glpk", "gurobi", "cplex")
 # override via solver_args$linearization_max_n.
 EDI_OPTIMAL_DEFAULT_LINEARIZATION_MAX_N = 20L
 # solver = "auto" gives the abs_sum_diff MILP this many seconds (GLPK tm_limit) before it falls back to
-# annealing; the MILP alone had not returned after 400 s at n = 40 (v1.0.6-TODO-296).
+# annealing; the MILP alone had not returned after 400 s at n = 40 (v1.0.6-TODO-183).
 EDI_OPTIMAL_DEFAULT_MILP_TIME_LIMIT = 30
 
 # Closed-set validation (fail fast on typos, never pass unchecked names into
@@ -109,7 +109,7 @@ prepare_optimal_objective_matrices = function(X_raw, objective){
 		# The check runs on the correlation matrix, not Sigma: rcond() is not
 		# invariant to column scaling, so full-rank covariates on very
 		# different scales (e.g. 1e-7 vs 1) must not count as singular
-		# (v1.0.6-TODO-54). A column that is constant up to rounding relative
+		# (v1.0.6-TODO-18). A column that is constant up to rounding relative
 		# to its own magnitude (so collinear with the intercept) still falls
 		# back; that test is scale-invariant too.
 		col_sd_S = sqrt(diag(Sigma))
@@ -142,7 +142,7 @@ milp_solve_l1 = function(A, n_T, roi_solver = "glpk", verbose = FALSE, time_limi
 	model = ompr::add_constraint(model, ompr::sum_expr(w[i], i = 1:n) == n_T)
 	model = ompr::add_constraint(model, ompr::sum_expr(A[j, i] * w[i], i = 1:n) - tvar[j] <= 0, j = 1:p)
 	model = ompr::add_constraint(model, ompr::sum_expr(A[j, i] * w[i], i = 1:n) + tvar[j] >= 0, j = 1:p)
-	# time_limit (seconds) is passed to GLPK as tm_limit (v1.0.6-TODO-296); other ROI solvers ignore it.
+	# time_limit (seconds) is passed to GLPK as tm_limit (v1.0.6-TODO-183); other ROI solvers ignore it.
 	use_limit = !is.null(time_limit) && is.finite(time_limit) && identical(roi_solver, "glpk")
 	result = if (use_limit) {
 		ompr::solve_model(model, ompr.roi::with_ROI(solver = roi_solver, verbose = verbose,

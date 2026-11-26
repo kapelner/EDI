@@ -139,7 +139,7 @@ gcomp_cache_failed_standardized_effects = function(cached_values, inference_read
 #' mean one over all rows, so the result does not depend on their overall scale and
 #' unit weights reproduce the unweighted HC0 sandwich that
 #' \code{gcomp_logistic_post_fit_cpp()} / \code{gcomp_fractional_logit_post_fit_cpp()}
-#' compute (v1.0.6-TODO-134: the Bayesian-bootstrap studentized path needs a per-draw
+#' compute (v1.0.6-TODO-88: the Bayesian-bootstrap studentized path needs a per-draw
 #' standard error).
 #'
 #' @return The \eqn{p \times p} covariance matrix (named like \code{coef_hat}), or
@@ -184,7 +184,7 @@ gcomp_weighted_logistic_sandwich_vcov = function(X_fit, y, coef_hat, row_weights
 #' bootstrap weights): a cluster drawn k times adds k copies of its outer product,
 #' the frequency-weight convention of \code{gcomp_weighted_logistic_sandwich_vcov()}.
 #' The weights are rescaled to mean one over all rows, so unit weights reproduce
-#' \code{gcomp_logistic_cluster_post_fit_cpp()}'s covariance (v1.0.6-TODO-149: the
+#' \code{gcomp_logistic_cluster_post_fit_cpp()}'s covariance (v1.0.6-TODO-100: the
 #' Bayesian-bootstrap studentized path needs a per-draw standard error).
 #'
 #' @return The \eqn{p \times p} covariance matrix (named like \code{coef_hat}), or
@@ -222,7 +222,7 @@ gcomp_weighted_logistic_cluster_sandwich_vcov = function(X_fit, y, coef_hat, row
 
 #' Weighted logistic refit for a g-computation resampling replicate, with retries.
 #'
-#' v1.0.6-TODO-192: a replicate's fit is accepted only when IRLS reports convergence
+#' v1.0.6-TODO-138: a replicate's fit is accepted only when IRLS reports convergence
 #' and \code{private$coefficients_are_usable()} accepts the coefficients. The attempts
 #' run in order: the chained warm start of the previous accepted replicate
 #' (\code{chain_beta}, when its length matches), the full-data fit's warm start, then a
@@ -278,7 +278,7 @@ gcomp_weighted_logistic_fit_with_retries = function(private, X_fit, y_fit, w_fit
 
 #' Logistic g-computation fit with a covariate-drop retry loop and a sandwich covariance.
 #'
-#' Shared by the KK and non-KK incidence g-computation classes (v1.0.6-TODO-193,
+#' Shared by the KK and non-KK incidence g-computation classes (v1.0.7-TODO-54,
 #' code-duplication audit decision \code{code-duplication-da35f9c8f}); they differ only in
 #' the fitted-probability clamp and the post-fit covariance (HC0 for the non-KK class,
 #' KK-pair cluster-robust for the KK class), passed in as \code{clip_eps} and
@@ -299,7 +299,7 @@ gcomp_weighted_logistic_fit_with_retries = function(private, X_fit, y_fit, w_fit
 #' @noRd
 gcomp_fit_logistic_with_sandwich = function(private, X_full, estimate_only, clip_eps, post_fit){
 	X_curr = X_full
-	# v1.0.6-TODO-138: remember the QR-rank design and its first fit so the caller can name
+	# v1.0.6-TODO-92: remember the QR-rank design and its first fit so the caller can name
 	# covariates the drop loop removed beyond collinearity.
 	rank_colnames = NULL
 	rank_coefs = NULL
@@ -340,7 +340,7 @@ gcomp_fit_logistic_with_sandwich = function(private, X_full, estimate_only, clip
 		}
 		private$set_fit_warm_start(coef_hat, "beta", fisher = mod$fisher_information)
 
-		# v1.0.6-TODO-191: the IRLS convergence flag, read by gcomp_record_fit_diagnostics().
+		# v1.0.6-TODO-137: the IRLS convergence flag, read by gcomp_record_fit_diagnostics().
 		fit_converged = if (is.null(mod$converged)) NA else as.logical(mod$converged)[1L]
 		if (estimate_only){
 			return(list(
@@ -397,12 +397,12 @@ gcomp_fit_logistic_with_sandwich = function(private, X_full, estimate_only, clip
 }
 
 #' Records the accepted logistic working-model fit's convergence and separation flags
-#' (v1.0.6-TODO-191).
+#' (v1.0.6-TODO-137).
 #'
 #' Called from both g-computation classes' \code{shared()} once a fit is accepted. Stores
 #' \code{converged} (the IRLS flag; \code{NA} when the fitter does not report one) and
 #' \code{n_extreme}, the number of subjects whose fitted probability is numerically 0 or 1
-#' (\code{edi_logistic_n_fitted_extreme()}, the criterion of the v1.0.6-TODO-109
+#' (\code{edi_logistic_n_fitted_extreme()}, the criterion of the v1.0.6-TODO-63
 #' separation warning). No returned value changes;
 #' \code{gcomp_rr_resample_is_degenerate()} reads them on a subsample / m-out-of-n worker.
 #'
@@ -414,7 +414,7 @@ gcomp_record_fit_diagnostics = function(private, X_fit, coefficients, converged 
 	invisible(NULL)
 }
 
-#' Is a risk-ratio subsample / m-out-of-n resample degenerate? (v1.0.6-TODO-191)
+#' Is a risk-ratio subsample / m-out-of-n resample degenerate? (v1.0.6-TODO-137)
 #'
 #' \code{worker_priv} is the private environment of the reused worker after it has
 #' computed the estimate on the draw. The draw is degenerate when
@@ -452,7 +452,7 @@ gcomp_rr_resample_is_degenerate = function(worker_priv){
 
 #' Log-scale PRW subsampling / m-out-of-n p-value and confidence interval for a risk ratio.
 #'
-#' One body for the subsampling and m-out-of-n families (v1.0.6-TODO-193, code-duplication
+#' One body for the subsampling and m-out-of-n families (v1.0.7-TODO-54, code-duplication
 #' audit decision \code{code-duplication-d593b90a9}); \code{family} picks the draw method,
 #' the size argument (\code{b} or \code{m}), the failure-reason prefix and the procedure
 #' tag. The pivot itself is \code{private$compute_rr_resampling_pivot()}.
@@ -474,7 +474,7 @@ gcomp_rr_resampling_label = function(family){
 }
 
 #' Warning detail when too few risk-ratio subsampling / m-out-of-n draws are usable
-#' (v1.0.6-TODO-191).
+#' (v1.0.6-TODO-137).
 #'
 #' @keywords internal
 #' @noRd
@@ -504,7 +504,7 @@ gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, s
 		min_fraction_usable_samples = min_fraction_usable_samples)
 	if (!isTRUE(pivot$ok)) {
 		if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, pivot$reason, "estimate", procedure = family)
-		# v1.0.6-TODO-191: too many degenerate / failed draws; one warning (silent inside resampling).
+		# v1.0.6-TODO-137: too many degenerate / failed draws; one warning (silent inside resampling).
 		if (!is.null(pivot$detail)) {
 			edi_warn_procedure_na(self, private, procedure = paste(gcomp_rr_resampling_label(family), "p-value"),
 				reason = pivot$reason, detail = pivot$detail)
@@ -515,7 +515,7 @@ gcomp_rr_resampling_two_sided_pval = function(self, private, family, delta, B, s
 		if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, paste0(family, "_too_few_finite_estimates"), "estimate")
 		return(NA_real_)
 	}
-	# v1.0.6-TODO-230 (owner decision 2026-11-20): symmetric p-value, mean(|pivot| >= |t_obs|).
+	# v1.0.6-TODO-164 (owner decision 2026-11-20): symmetric p-value, mean(|pivot| >= |t_obs|).
 	private$resampling_centered_pval(pivot$centered_scaled, est = pivot$log_est, delta = log(delta), n_units = pivot$n_units, scaling = "sqrt_n", symmetric = TRUE)
 }
 
@@ -527,7 +527,7 @@ gcomp_rr_resampling_confidence_interval = function(self, private, family, alpha,
 	fam = gcomp_rr_resampling_family(self, family)
 	pivot = private$compute_rr_resampling_pivot(fam$distribution_fn, fam$size_arg_name, size, B, resampling_type, show_progress, alpha = alpha,
 		min_fraction_usable_samples = min_fraction_usable_samples)
-	# v1.0.6-TODO-191: too many degenerate / failed draws; one warning (silent inside resampling).
+	# v1.0.6-TODO-137: too many degenerate / failed draws; one warning (silent inside resampling).
 	if (!isTRUE(pivot$ok) && !is.null(pivot$detail)) {
 		if (isTRUE(private$harden)) private$missing_bootstrap_ci(alpha, pivot$reason, stage = "estimate", procedure = family, warn = FALSE)
 		edi_warn_procedure_na(self, private, procedure = paste(gcomp_rr_resampling_label(family), "confidence interval"),
@@ -553,7 +553,7 @@ gcomp_rr_resampling_confidence_interval = function(self, private, family, alpha,
 #' Private risk-ratio / null-value methods shared by the incidence g-computation classes.
 #'
 #' One copy for \code{InferenceIncidGCompAbstract} and \code{InferenceIncidKKGCompAbstract}
-#' (v1.0.6-TODO-193, code-duplication audit decision \code{code-duplication-db001874c}):
+#' (v1.0.7-TODO-54, code-duplication audit decision \code{code-duplication-db001874c}):
 #' the default null value, the log-scale bootstrap / Bayesian-bootstrap risk-ratio
 #' intervals, the risk-ratio jackknife-Wald methods and the log-scale subsampling /
 #' m-out-of-n pivot. Both classes add this list to their R6 \code{private} list.
@@ -564,14 +564,16 @@ gcomp_incid_rr_private_methods = list(
 	default_null_value = function(){
 		if (identical(private$get_estimand_type(), "RR")) 1 else 0
 	},
-	compute_rr_bootstrap_basic_confidence_interval = function(alpha = 0.05, B = 501, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
+	compute_rr_bootstrap_basic_confidence_interval = function(alpha = 0.05, B = 501, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L,
+			reimpute_missing_vals_each_resample = NULL){
 		ci = c(NA_real_, NA_real_)
 		names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 		est = as.numeric(self$compute_estimate(estimate_only = FALSE))[1L]
 		if (!is.finite(est) || est <= 0) {
 			return(private$missing_bootstrap_ci(alpha, "bootstrap_original_estimate_unavailable", stage = "estimate"))
 		}
-		boot_distr = as.numeric(self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress))
+		boot_distr = as.numeric(self$approximate_bootstrap_distribution_beta_hat_T(B = B, show_progress = show_progress,
+			reimpute_missing_vals_each_resample = reimpute_missing_vals_each_resample))
 		if (isTRUE(na.rm)) {
 			boot_distr = boot_distr[is.finite(boot_distr) & boot_distr > 0]
 		} else if (any(!is.finite(boot_distr) | boot_distr <= 0)) {
@@ -580,7 +582,7 @@ gcomp_incid_rr_private_methods = list(
 		if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 			return(private$missing_bootstrap_ci(alpha, "bootstrap_too_few_finite_estimates", stage = "estimate"))
 		}
-		# v1.0.6-TODO-175 (3): the same replicate and interval checks as the other bootstrap
+		# v1.0.6-TODO-121 (3): the same replicate and interval checks as the other bootstrap
 		# CI types (both judge a risk ratio on log(RR)); before, a degenerate basic interval
 		# such as [1.4e-8, 20] or [0.04, 7.6e7] was returned silently.
 		if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
@@ -609,7 +611,7 @@ gcomp_incid_rr_private_methods = list(
 		if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 			return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_too_few_finite_estimates", stage = "estimate"))
 		}
-		# v1.0.6-TODO-175 (3): same checks as the generic Bayesian-bootstrap CI types.
+		# v1.0.6-TODO-121 (3): same checks as the generic Bayesian-bootstrap CI types.
 		if (private$bootstrap_ci_estimates_extreme(boot_distr, est = est)) {
 			return(private$missing_bootstrap_ci(alpha, "bayesian_bootstrap_extreme_finite_estimates", stage = "estimate"))
 		}
@@ -629,7 +631,7 @@ gcomp_incid_rr_private_methods = list(
 		}
 		ci
 	},
-	# v1.0.6-TODO-137: shared with the KK/non-KK sibling; the helpers in
+	# v1.0.6-TODO-91: shared with the KK/non-KK sibling; the helpers in
 	# inference_all_abstract_jackknife.R apply the compute_jackknife_summary()
 	# guards and warn on every NA.
 	compute_rr_jackknife_log_se = function(unit = "auto"){
@@ -658,13 +660,13 @@ gcomp_incid_rr_private_methods = list(
 	# a log(delta) null, as already done for the bootstrap/BBT CIs and the
 	# jackknife-Wald methods above, fixes this the same way.
 	compute_rr_resampling_pivot = function(distribution_fn, size_arg_name, size, B, resampling_type, show_progress, alpha = NULL, min_fraction_usable_samples = 0.8){
-		# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-196).
+		# Control conditions (timeouts, interrupts) re-throw, as in the generic pivots (v1.0.6-TODO-141).
 		est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 		if (!is.finite(est) || est <= 0) {
 			return(list(ok = FALSE, reason = "resampling_original_estimate_unavailable"))
 		}
 		# A list-valued b / m goes through the same minimum-volatility selector as the
-		# generic paths (v1.0.6-TODO-196); a failed selection is recorded even unhardened.
+		# generic paths (v1.0.6-TODO-141); a failed selection is recorded even unhardened.
 		if (is.list(size)) {
 			family = if (identical(size_arg_name, "b")) "subsampling" else "m_out_of_n"
 			size = private$select_resampling_size_from_spec(family, size, B = B, alpha = alpha,
@@ -688,7 +690,7 @@ gcomp_incid_rr_private_methods = list(
 		if (!length(finite)) {
 			return(list(ok = FALSE, reason = "resampling_too_few_finite_estimates"))
 		}
-		# v1.0.6-TODO-191: degenerate draws (NaN from edi_mark_degenerate_resampling_worker_draw()) and
+		# v1.0.6-TODO-137: degenerate draws (NaN from edi_mark_degenerate_resampling_worker_draw()) and
 		# failed fits (NA) are unusable. Below min_fraction_usable_samples of the B draws the
 		# procedure returns NA; otherwise the pivot is built from the usable draws only.
 		n_total = length(draws)
@@ -711,7 +713,7 @@ gcomp_incid_rr_private_methods = list(
 			n_units = unit_info$n_units
 		)
 	},
-	# Subsampling and m-out-of-n share one body (v1.0.6-TODO-193, code-duplication audit
+	# Subsampling and m-out-of-n share one body (v1.0.7-TODO-54, code-duplication audit
 	# decision code-duplication-d593b90a9): gcomp_rr_resampling_two_sided_pval() /
 	# gcomp_rr_resampling_confidence_interval() below.
 	compute_rr_subsampling_two_sided_pval = function(delta = 1, B = 501, b = NULL, show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, min_fraction_usable_samples = 0.8){
@@ -727,3 +729,315 @@ gcomp_incid_rr_private_methods = list(
 		gcomp_rr_resampling_confidence_interval(self, private, "m_out_of_n", alpha, B, m, show_progress, min_number_usable_samples, bootstrap_type, min_fraction_usable_samples)
 	}
 )
+
+# Share the risk-scale dispatch while keeping each class’s resampling delegate.
+gcomp_incid_bootstrap_confidence_interval = function(private, base_method, alpha, B, type, na.rm, show_progress, min_number_usable_samples,
+		reimpute_missing_vals_each_resample = NULL) {
+	type_resolved = tolower(type %||% "percentile")
+	if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "basic")) {
+		return(private$compute_rr_bootstrap_basic_confidence_interval(alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples,
+			reimpute_missing_vals_each_resample = reimpute_missing_vals_each_resample))
+	}
+	base_method(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples,
+		reimpute_missing_vals_each_resample = reimpute_missing_vals_each_resample)
+}
+
+gcomp_incid_bootstrap_two_sided_pval = function(private, base_method, delta, B, type, na.rm, show_progress, min_number_usable_samples, min_fraction_usable_samples,
+		reimpute_missing_vals_each_resample = NULL) {
+	if (is.null(delta)){
+		delta = private$default_null_value()
+	}
+	base_method(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, min_fraction_usable_samples = min_fraction_usable_samples,
+		reimpute_missing_vals_each_resample = reimpute_missing_vals_each_resample)
+}
+
+gcomp_incid_bayesian_bootstrap_two_sided_pval = function(private, base_method, delta, B, type, na.rm, show_progress, min_number_usable_samples, weighting_unit_type, min_fraction_usable_samples) {
+	if (is.null(delta)){
+		delta = private$default_null_value()
+	}
+	base_method(delta = delta, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type, min_fraction_usable_samples = min_fraction_usable_samples)
+}
+
+gcomp_incid_bayesian_bootstrap_confidence_interval = function(private, base_method, alpha, B, type, na.rm, show_progress, min_number_usable_samples, weighting_unit_type) {
+	type_resolved = tolower(type %||% "percentile")
+	# v1.0.6-TODO-116 (a): symmetric studentized interval on log(RR) (RR classes only).
+	if (identical(private$get_estimand_type(), "RR") && identical(type_resolved, "symmetric-percentile-t")) {
+		return(edi_rr_bayesian_bootstrap_symmetric_studentized_ci(self, private, alpha = alpha, B = B, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+	}
+	if (identical(private$get_estimand_type(), "RR") && type_resolved %in% c("basic", "wald")) {
+		return(private$compute_rr_bayesian_bootstrap_log_confidence_interval(alpha = alpha, B = B, type = type_resolved, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type))
+	}
+	base_method(alpha = alpha, B = B, type = type, na.rm = na.rm, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, weighting_unit_type = weighting_unit_type)
+}
+
+gcomp_incid_jackknife_wald_two_sided_pval = function(private, base_method, delta, unit) {
+	if (is.null(delta)){
+		delta = private$default_null_value()
+	}
+	if (identical(private$get_estimand_type(), "RR")) {
+		return(private$compute_rr_jackknife_wald_two_sided_pval(delta = delta, unit = unit))
+	}
+	base_method(delta = delta, unit = unit)
+}
+
+gcomp_incid_jackknife_wald_confidence_interval = function(private, base_method, alpha, unit) {
+	if (identical(private$get_estimand_type(), "RR")) {
+		return(private$compute_rr_jackknife_wald_confidence_interval(alpha = alpha, unit = unit))
+	}
+	base_method(alpha = alpha, unit = unit)
+}
+
+gcomp_incid_rand_estimate = function(self, private, estimate_only) {
+	# Ensure we have the best design from the original data
+	if (is.null(private$best_X_colnames)){
+		private$shared(estimate_only = TRUE)
+	}
+	# Fallback if initial fit failed
+	if (is.null(private$best_X_colnames)){
+		return(self$compute_estimate(estimate_only = estimate_only))
+	}
+	# Use the same design matrix structure as the original fit
+	X_cols = private$best_X_colnames
+	X_data = private$get_X()
+
+	if (length(X_cols) == 0L){
+		# Univariate case
+		X = cbind("(Intercept)" = 1, treatment = private$w)
+	} else {
+		# Multivariate case
+		X_cov = X_data[, intersect(X_cols, colnames(X_data)), drop = FALSE]
+		X = cbind("(Intercept)" = 1, treatment = private$w, X_cov)
+	}
+	fit = tryCatch(
+		fast_logistic_regression_cpp(
+			X = X,
+			y = as.numeric(private$y),
+			warm_start_beta = private$get_fit_warm_start_for_length("beta", ncol(X)),
+			warm_start_fisher_info = private$get_fit_warm_start_fisher(ncol(X))
+		),
+		error = function(e) {
+			if (is_edi_control_condition(e)) stop(e)
+			NULL
+		}
+	)
+	if (is.null(fit) || !private$coefficients_are_usable(as.numeric(fit$b))){
+		return(NA_real_)
+	}
+	private$set_fit_warm_start(fit$b, "beta", fisher = fit$fisher_information)
+
+	# Standardized effect
+	coef_hat = as.numeric(fit$b)
+	X1 = X
+	X0 = X
+	X1[, 2L] = 1
+	X0[, 2L] = 0
+	risk1 = mean(stats::plogis(as.numeric(X1 %*% coef_hat)))
+	risk0 = mean(stats::plogis(as.numeric(X0 %*% coef_hat)))
+	estimand = private$get_estimand_type()
+	if (identical(estimand, "RD")) return(risk1 - risk0)
+	if (risk1 > 0 && risk0 > 0) return(risk1 / risk0)
+	NA_real_
+}
+
+gcomp_incid_coefficients_are_usable = function(private, coef_hat) {
+	length(coef_hat) > 0L &&
+		all(is.finite(coef_hat)) &&
+		max(abs(coef_hat), na.rm = TRUE) <= private$max_abs_reasonable_coef
+}
+
+gcomp_incid_compute_standardized_effects_r = function(private, fit) {
+	X_fit = fit$X
+	coef_hat = fit$coefficients
+	vcov_robust = fit$vcov
+	j_treat = fit$j_treat
+	estimate_only = isTRUE(fit$estimate_only)
+	potential_outcomes = gcomp_logistic_potential_outcomes(X_fit, coef_hat, j_treat)
+	X1 = potential_outcomes$X1
+	X0 = potential_outcomes$X0
+	risk1_i = potential_outcomes$risk1_i
+	risk0_i = potential_outcomes$risk0_i
+	risk1 = potential_outcomes$risk1
+	risk0 = potential_outcomes$risk0
+	rd = risk1 - risk0
+	log_rr = if (risk1 > 0 && risk0 > 0) log(risk1) - log(risk0) else NA_real_
+	rr = if (is.finite(log_rr)) exp(log_rr) else NA_real_
+	if (estimate_only){
+		return(list(
+			risk1 = risk1,
+			risk0 = risk0,
+			rd = rd,
+			se_rd = NA_real_,
+			log_rr = log_rr,
+			rr = rr,
+			se_log_rr = NA_real_,
+			full_coefficients = coef_hat,
+			full_vcov = NULL,
+			summary_table = NULL
+		))
+	}
+	grad1 = as.numeric(crossprod(X1, risk1_i * (1 - risk1_i))) / nrow(X1)
+	grad0 = as.numeric(crossprod(X0, risk0_i * (1 - risk0_i))) / nrow(X0)
+	grad_rd = grad1 - grad0
+	var_rd = as.numeric(t(grad_rd) %*% vcov_robust %*% grad_rd)
+	grad_log_rr = if (risk1 > 0 && risk0 > 0) grad1 / risk1 - grad0 / risk0 else rep(NA_real_, length(grad1))
+	var_log_rr = if (all(is.finite(grad_log_rr))) as.numeric(t(grad_log_rr) %*% vcov_robust %*% grad_log_rr) else NA_real_
+	std_err = sqrt(pmax(diag(vcov_robust), 0))
+	z_vals = coef_hat / std_err
+	summary_table = cbind(
+		Value = coef_hat,
+		`Std. Error` = std_err,
+		`z value` = z_vals,
+		`Pr(>|z|)` = 2 * stats::pnorm(-abs(z_vals))
+	)
+	list(
+		risk1 = risk1,
+		risk0 = risk0,
+		rd = rd,
+		se_rd = if (is.finite(var_rd) && var_rd >= 0) sqrt(var_rd) else NA_real_,
+		log_rr = log_rr,
+		rr = rr,
+		se_log_rr = if (is.finite(var_log_rr) && var_log_rr >= 0) sqrt(var_log_rr) else NA_real_,
+		full_coefficients = coef_hat,
+		full_vcov = vcov_robust,
+		summary_table = summary_table
+	)
+}
+
+gcomp_incid_compute_standardized_effects = function(private, fit) {
+	if (isTRUE(fit$estimate_only)){
+		return(private$compute_standardized_effects_r(fit))
+	}
+	coef_hat = fit$coefficients
+	fast = fit$post_fit
+	if (is.null(fast)){
+		return(private$compute_standardized_effects_r(fit))
+	}
+	vcov_robust = fast$vcov
+	colnames(vcov_robust) = rownames(vcov_robust) = names(coef_hat)
+	std_err = fast$std_err
+	names(std_err) = names(coef_hat)
+	z_vals = fast$z_vals
+	names(z_vals) = names(coef_hat)
+	summary_table = cbind(
+		Value = coef_hat,
+		`Std. Error` = std_err,
+		`z value` = z_vals,
+		`Pr(>|z|)` = 2 * stats::pnorm(-abs(z_vals))
+	)
+	list(
+		risk1 = fast$risk1,
+		risk0 = fast$risk0,
+		rd = fast$rd,
+		se_rd = fast$se_rd,
+		log_rr = fast$log_rr,
+		rr = fast$rr,
+		se_log_rr = fast$se_log_rr,
+		full_coefficients = coef_hat,
+		full_vcov = vcov_robust,
+		summary_table = summary_table
+	)
+}
+
+gcomp_incid_get_effect_estimate = function(private) {
+	estimand = private$get_estimand_type()
+	if (identical(estimand, "RD")) return(private$cached_values$rd)
+	private$cached_values$rr
+}
+
+gcomp_incid_compute_effect_confidence_interval = function(self, private, alpha, rr_label) {
+	z = stats::qnorm(1 - alpha / 2)
+	estimand = private$get_estimand_type()
+	if (identical(estimand, "RD")){
+		est = private$cached_values$rd
+		se = private$cached_values$se_rd
+		if (!is.finite(est) || !is.finite(se) || se <= 0){
+			return(c(NA_real_, NA_real_))
+		}
+		ci = est + c(-1, 1) * z * se
+	} else {
+		log_rr = private$cached_values$log_rr
+		se_log_rr = private$cached_values$se_log_rr
+		if (!is.finite(log_rr) || !is.finite(se_log_rr) || se_log_rr <= 0){
+			return(c(NA_real_, NA_real_))
+		}
+		ci_log = log_rr + c(-1, 1) * z * se_log_rr
+		if (!all(is.finite(exp(ci_log)))){
+			stop(rr_label, " RR: could not compute a finite delta-method confidence interval.")
+		}
+		ci = exp(ci_log)
+	}
+	names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
+	ci
+}
+
+gcomp_incid_compute_effect_pvalue = function(self, private, delta) {
+	estimand = private$get_estimand_type()
+	if (is.null(delta)){
+		delta = private$default_null_value()
+	}
+	if (should_run_asserts()) {
+		assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
+	}
+	if (identical(estimand, "RD")){
+		est = private$cached_values$rd
+		se = private$cached_values$se_rd
+		if (!is.finite(est) || !is.finite(se) || se <= 0){
+			return(NA_real_)
+		}
+		z_stat = (est - delta) / se
+	} else {
+		log_rr = private$cached_values$log_rr
+		se_log_rr = private$cached_values$se_log_rr
+		if (should_run_asserts()) {
+			if (delta <= 0){
+				stop("For RR inference, delta must be strictly positive.")
+			}
+		}
+		if (!is.finite(log_rr) || !is.finite(se_log_rr) || se_log_rr <= 0){
+			return(NA_real_)
+		}
+		z_stat = (log_rr - log(delta)) / se_log_rr
+	}
+	2 * stats::pnorm(-abs(z_stat))
+}
+
+gcomp_incid_fit_and_cache_effects = function(self, private, estimate_only) {
+	X_full = gcomp_normalize_treatment_design_matrix(
+		private$build_design_matrix(),
+		covariate_names = private$get_covariate_names
+	)
+	fit = private$fit_logistic_with_sandwich(X_full, estimate_only = estimate_only)
+	if (!is.null(fit)) {
+		private$best_X_colnames = setdiff(colnames(fit$X), c("(Intercept)", "treatment"))
+	}
+	effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
+	treatment_only_fallback = FALSE
+	if (private$harden && (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)) && ncol(X_full) > 2L){
+		fit = private$fit_logistic_with_sandwich(X_full[, 1:2, drop = FALSE], estimate_only = estimate_only)
+		treatment_only_fallback = TRUE
+		effects = if (!is.null(fit)) private$compute_standardized_effects(fit) else NULL
+	}
+	if (is.null(fit) || is.null(effects) || !private$effects_are_usable(effects, estimate_only)){
+		private$set_failed_fit_cache(inference_ready = !estimate_only)
+		return(invisible(NULL))
+	}
+	# v1.0.6-TODO-63: separation warning (once per object, silent in resampling; no numeric change).
+	edi_warn_logistic_separation_once(self, private, fit$X, fit$coefficients)
+	# v1.0.6-TODO-137: convergence / separation flags for the risk-ratio subsampling filter.
+	gcomp_record_fit_diagnostics(private, fit$X, fit$coefficients, converged = fit$converged)
+	# v1.0.6-TODO-92: name covariates dropped beyond collinearity (same rules).
+	edi_warn_gcomp_covariate_drop(self, private, X_full, fit, treatment_only_fallback)
+	private$cached_values = gcomp_cache_standardized_effects(
+		private$cached_values,
+		effects,
+		inference_ready = !estimate_only
+	)
+	# v1.0.6-TODO-102: the studentized BRT reads beta_hat_T next to s_beta_hat_T; without it
+	# every null statistic was NA (as in inference_incidence_gcomp_abstract.R's shared()).
+	private$cached_values$beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$rd else effects$rr
+	# v1.0.6-TODO-100: the generic studentized bootstrap reads s_beta_hat_T (replicate
+	# and original SEs); mirror get_standard_error()'s value. Full fits only.
+	if (!estimate_only) {
+		private$cached_values$s_beta_hat_T = if (identical(private$get_estimand_type(), "RD")) effects$se_rd else effects$rr * effects$se_log_rr
+	}
+}

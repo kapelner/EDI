@@ -215,7 +215,7 @@ InferenceIncidRiskDiff = define_inference_class(
 		# StandardModelCache component (whose standard_model_cache capability
 		# requires likelihood_tests, tier >= quasi). The likelihood-free subset
 		# it actually uses -- the shared() model-cache state machine (now the
-		# shared standard_model_cache_shared() helper, v1.0.6-TODO-193), the
+		# shared standard_model_cache_shared() helper, v1.0.7-TODO-54), the
 		# cached-SE/df getters, and the design-backed bootstrap-worker
 		# delegation -- is small enough to own here directly. get_standard_
 		# error() drops the source's information-matrix-preference branch: that
@@ -323,8 +323,7 @@ InferenceIncidRiskDiff = define_inference_class(
 					}
 				},
 				fit_ok = function(mod, X_fit, keep){
-					j_treat = mod$j_treat
-					if (is.null(mod) || length(mod$b) < j_treat || !is.finite(mod$b[j_treat])) return(FALSE)
+					if (!fit_has_finite_treatment_coefficient(mod)) return(FALSE)
 					if (estimate_only) return(TRUE)
 					if (is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0) return(TRUE)
 					if (is.null(finite_estimate_fallback)) {
@@ -333,7 +332,7 @@ InferenceIncidRiskDiff = define_inference_class(
 					FALSE
 				}
 			)
-			# v1.0.6-TODO-389: a perfect fit (e.g. y = w, RD = 1) has zero residuals, so the HC0
+			# v1.0.6-TODO-197: a perfect fit (e.g. y = w, RD = 1) has zero residuals, so the HC0
 			# variance is 0 and every column-dropping retry was rejected, losing the finite point
 			# estimate (compute_estimate() returned NA). When no attempt has a usable SE, keep the
 			# first fit with a finite treatment coefficient and mark only its SE non-estimable.

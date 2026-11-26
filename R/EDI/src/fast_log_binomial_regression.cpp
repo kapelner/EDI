@@ -217,13 +217,13 @@ constexpr double kKktLambdaRelTol = 1e-3;
 // kCycleGuardStartIter iterations, or that never reverse, are bit-identical.
 constexpr int kCycleGuardStartIter = 20;
 
-// v1.0.6-TODO-267: Fisher scoring can also crawl toward an interior MLE. With a
+// v1.0.6-TODO-203: Fisher scoring can also crawl toward an interior MLE. With a
 // row close to (not on) a mean bound, e.g. an identity-link y = 1 row at
 // mu = 0.9996 (working weight ~2300 against an observed curvature ~1), the
 // expected information overstates the curvature in that direction by three
 // orders of magnitude, each Fisher step closes only a small fraction of the
 // remaining distance, and the fit runs into maxit with converged = FALSE. On
-// draw 27 of the v1.0.6-TODO-205 randomization fixture (n = 20, `~ x1`) the
+// draw 27 of the v1.0.6-TODO-146 randomization fixture (n = 20, `~ x1`) the
 // cold fit needed 2817 iterations at tol 1e-12, so at the default maxit = 100
 // InferenceIncidBinomialIdentityRiskDiff dropped x1 and reported 0.0833 instead
 // of the MLE 0.1666. From iteration kObservedNewtonStartIter on, a fit that has
@@ -243,7 +243,7 @@ constexpr int kCycleGuardStartIter = 20;
 // kObservedNewtonStartIter iterations are bit-identical.
 constexpr int kObservedNewtonStartIter = 20;
 
-// v1.0.6-TODO-275: hard bound on the KKT confirmation iterations past maxit.
+// v1.0.6-TODO-174: hard bound on the KKT confirmation iterations past maxit.
 // A small step next to a bound only sets kkt_confirm_pending, and the loop runs
 // one more iteration (even past maxit) so the KKT gate can judge the new point.
 // That iteration either stops or clears the flag and takes the observed-
@@ -321,7 +321,7 @@ inline BoundKktVerdict kkt_verdict_at_bounds(const Eigen::LDLT<Eigen::MatrixXd>&
   return out;
 }
 
-// v1.0.6-TODO-221: convergence check that tiny Fisher-scoring steps cannot fool.
+// v1.0.6-TODO-162: convergence check that tiny Fisher-scoring steps cannot fool.
 // The loop scores with the expected information X' W X, w = 1/(mu(1-mu))
 // (identity) or mu/(1-mu) (log). Next to a mean bound that weight is huge
 // (~1/distance), while the observed curvature of the rows that do not sit on the
@@ -339,7 +339,7 @@ inline BoundKktVerdict kkt_verdict_at_bounds(const Eigen::LDLT<Eigen::MatrixXd>&
 // decrement g' d (twice the predicted log-likelihood gain; scaled down when
 // the full step would leave the mean support) is at most
 // tol * (2 |loglik| + 0.1) (glm's relative deviance tolerance, as in the
-// logistic fix for v1.0.6-TODO-170), or if that Newton increment passes the
+// logistic fix for v1.0.6-TODO-118), or if that Newton increment passes the
 // loop's relative-change test with the KKT gate's slack. Otherwise the loop goes
 // on with observed-information Newton steps (same projection and line search)
 // until it converges. Where the observed information is singular (a log-link
@@ -423,7 +423,7 @@ inline bool observed_newton_confirms_convergence(const ObservedNewtonStep& st,
   return st.d.norm() / (beta_free.norm() + 1e-10) <= kKktTolFactor * tol;
 }
 
-// v1.0.6-TODO-142: a start outside the mean support can never be repaired by
+// v1.0.7-TODO-47: a start outside the mean support can never be repaired by
 // the loop below. Its log-likelihood is -Inf, the TODO-128 projection holds
 // every out-of-support row whose increment points further out, and the line
 // search only accepts a finite log-likelihood, so the first iteration rejects
@@ -515,254 +515,12 @@ inline bool pull_infeasible_start_into_support(Eigen::VectorXd& beta_free,
 // to link/dlopen from another TU -- see this session's history for the
 // recurring bug this fixes). The low-level helpers above stay anonymous
 // since they're only ever called from within this same file.
-edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                                       const Eigen::Ref<const Eigen::VectorXd>& y,
-                                       BinomialConstrainedLink link_type,
-                                       int maxit,
-                                       double tol,
-                                       std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                       std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                       std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                       bool smart_cold_start = true,
-                                       std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                       std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                       bool estimate_only = false) {
-  const int n = (int)X.rows();
-  const int p = (int)X.cols();
-  require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
-  if (y.size() != n) throw std::invalid_argument("dimension mismatch in constrained binomial regression");
-  FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
-  const int p_free = (int)fixed_spec.free_idx.size();
-  Eigen::MatrixXd X_free(n, p_free);
-  for (int j = 0; j < p_free; ++j) X_free.col(j) = X.col(fixed_spec.free_idx[j]);
-  Eigen::VectorXd eta_fixed = Eigen::VectorXd::Zero(n);
-  for (int j = 0; j < (int)fixed_spec.fixed_idx.size(); ++j) {
-    eta_fixed.noalias() += X.col(fixed_spec.fixed_idx[j]) * fixed_spec.fixed_values[j];
-  }
-
-  Eigen::VectorXd beta = Eigen::VectorXd::Zero(p);
-  if (warm_start_beta.has_value()) {
-    beta = *warm_start_beta;
-    if (beta.size() != p) throw std::invalid_argument("warm_start_beta must have length equal to ncol(X)");
-  } else if (smart_cold_start) {
-    if (link_type == BinomialConstrainedLink::kLog) {
-      beta = ols_smart_cold_start_beta_on_log1p_or_legacy(X, y, Eigen::VectorXd::Zero(p), fixed_spec);
-    } else {
-      beta = ols_smart_cold_start_beta_or_legacy(X, y, Eigen::VectorXd::Zero(p), fixed_spec);
-    }
-  } else {
-    const double y_mean = std::min(std::max(y.mean(), kMinMu), kMaxMu);
-    beta[0] = (link_type == BinomialConstrainedLink::kLog) ? std::log(y_mean) : y_mean;
-  }
-  beta = apply_fixed_values(beta, fixed_spec);
-  Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
-  // v1.0.6-TODO-142: an infeasible start is pulled into the mean support; the
-  // warm Fisher information then belongs to another point and is not used.
-  const bool start_pulled_into_support = pull_infeasible_start_into_support(beta_free, X_free, eta_fixed, y, link_type);
-  if (start_pulled_into_support) beta = expand_free_params(beta_free, beta, fixed_spec);
-
-  bool converged = false;
-  bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
-  bool observed_newton_mode = false; // v1.0.6-TODO-221: see observed_newton_step()
-  Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
-  Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
-  Eigen::VectorXd z_adj(n);
-
-  // Cache ll at current beta — carried forward across iterations to avoid one
-  // loglik_constrained_binomial call per accepted step.
-  double ll_curr = loglik_constrained_binomial(X, y, beta, link_type);
-
-  int iterations = 0;
-  Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
-  bool have_prev_step = false;
-  // v1.0.6-TODO-275: see kKktConfirmMaxExtraIter (iter - maxit cannot overflow).
-  for (int iter = 0; iter < maxit || (kkt_confirm_pending && iter - maxit < kKktConfirmMaxExtraIter); ++iter) {
-    edi_check_R_user_interrupt_every(iter);
-    iterations = iter + 1;
-    const Eigen::VectorXd eta = eta_fixed + X_free * beta_free;
-
-    // In-place update of mu and w to avoid temporary arrays
-    for (int i = 0; i < n; ++i) {
-        double ei = eta[i];
-        if (link_type == BinomialConstrainedLink::kLog) {
-            if (ei > kMaxEtaLog) ei = kMaxEtaLog;
-            double mui = std::exp(ei);
-            if (mui < kEps) mui = kEps;
-            mu[i] = mui;
-            w[i] = std::max(mui / std::max(1.0 - mui, kEps), kEps);
-            z_adj[i] = ei + (y[i] - mui) / mui - eta_fixed[i];
-        } else {
-            if (ei < kMinMu) ei = kMinMu;
-            if (ei > kMaxMu) ei = kMaxMu;
-            mu[i] = ei;
-            w[i] = 1.0 / std::max(ei * (1.0 - ei), kEps);
-            z_adj[i] = y[i] - eta_fixed[i];
-        }
-    }
-
-    Eigen::MatrixXd XtWX;
-    bool used_warm_fisher = false;
-    if (iter == 0 && warm_start_fisher_info.has_value() && !start_pulled_into_support) {
-      const Eigen::MatrixXd& info_full = *warm_start_fisher_info;
-      if (info_full.rows() == p && info_full.cols() == p) {
-        XtWX = subset_matrix(info_full, fixed_spec.free_idx, fixed_spec.free_idx);
-        used_warm_fisher = true;
-      } else {
-        XtWX = weighted_crossprod(X_free, w);
-      }
-    } else {
-      XtWX = weighted_crossprod(X_free, w);
-    }
-    Eigen::VectorXd XtWz = weighted_crossprod_rhs(X_free, w, z_adj);
-
-    Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
-    if (ldlt.info() != Eigen::Success) {
-      if (used_warm_fisher) {
-        XtWX = weighted_crossprod(X_free, w);
-        ldlt.compute(XtWX);
-        if (ldlt.info() != Eigen::Success) {
-          return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
-        }
-      } else {
-        return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
-      }
-    }
-
-    Eigen::VectorXd beta_free_target = ldlt.solve(XtWz);
-    if (ldlt.info() != Eigen::Success || !all_finite_vec(beta_free_target)) {
-      return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
-    }
-
-    // TODO-128 step 2: KKT gate at a point with a row near a bound (see
-    // kkt_verdict_at_bounds()). Skipped on the first iteration, whose
-    // information may come from a warm start rather than from this point.
-    if (iter > 0) {
-      const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol);
-      // In observed-Newton mode the observed-information check also judges a
-      // candidate the Fisher-metric KKT gate rejects (that gate has the same
-      // inflated weights next to a bound).
-      if ((kkt.n_active > 0 && kkt.ok) || (kkt_confirm_pending && (kkt.n_active == 0 || observed_newton_mode))) {
-        // v1.0.6-TODO-221: the observed-information Newton step must agree.
-        if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta, y, link_type), beta_free, ll_curr, tol)) {
-          converged = true;
-          break;
-        }
-        observed_newton_mode = true;
-        kkt_confirm_pending = false;
-      } else if (kkt_confirm_pending) {
-        converged = false;
-        break;
-      }
-    }
-
-    // TODO-128: hold rows already on the mean-support boundary fixed.
-    // v1.0.6-TODO-221: after a rejected convergence candidate, step with the
-    // observed information (Fisher scoring if it is singular).
-    ObservedNewtonStep newton_step;
-    if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type);
-    // v1.0.6-TODO-267: see kObservedNewtonStartIter.
-    if (!observed_newton_mode && iter >= kObservedNewtonStartIter &&
-        collect_near_bound_rows(eta, link_type) == 0) {
-      newton_step = observed_newton_step(X_free, eta, y, link_type);
-      if (!(newton_step.t_feasible > 1.0)) newton_step.ok = false;
-    }
-    const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
-      ldlt, X_free, eta, beta_free_target - beta_free, link_type);
-
-    // Precompute the step direction in eta-space once per IRLS iteration so
-    // each backtracking probe is a cheap O(n) vector-add + scalar scan rather
-    // than a full O(n*p) GEMV inside loglik_constrained_binomial.
-    const Eigen::VectorXd delta_eta = X_free * delta_beta;
-
-    double step = 1.0;
-    // TODO-181 (b): see kCycleGuardStartIter.
-    const bool cycle_guard = (iter >= kCycleGuardStartIter) && have_prev_step && delta_beta.dot(prev_step_free) < 0.0;
-
-    Eigen::VectorXd beta_new = beta;
-    Eigen::VectorXd beta_free_new = beta_free;
-    Eigen::VectorXd eta_try(n);
-    bool accepted = false;
-    int step_iter = 0;
-    while (step >= 1e-8) {
-      edi_check_R_user_interrupt_every(step_iter++);
-      eta_try.noalias() = eta + step * delta_eta;
-      double ll_new = loglik_from_eta(eta_try, y, link_type);
-      if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
-        if (cycle_guard) {
-          Eigen::VectorXd eta_half(n);
-          while (step * 0.5 >= 1e-8) {
-            eta_half.noalias() = eta + (0.5 * step) * delta_eta;
-            const double ll_half = loglik_from_eta(eta_half, y, link_type);
-            if (!(std::isfinite(ll_half) && ll_half > ll_new)) break;
-            step *= 0.5;
-            ll_new = ll_half;
-            eta_try = eta_half;
-          }
-        }
-        beta_free_new = beta_free + step * delta_beta;
-        beta_new = expand_free_params(beta_free_new, beta, fixed_spec);
-        ll_curr = ll_new;  // carry forward — avoids recomputing at next iter start
-        accepted = true;
-        break;
-      }
-      step *= 0.5;
-    }
-    // v1.0.6-TODO-209: the warm Fisher information comes from a fit on other data
-    // (e.g. another randomization draw's assignment), so it can be the wrong
-    // curvature here. The first Newton step then points where the likelihood
-    // falls, the line search rejects every step, and the fit used to stop at its
-    // start with converged = FALSE (~30% of identity-link randomization draws in
-    // v1.0.6-TODO-205). Such a fit is redone from the cold start, so it returns
-    // exactly what a cold call returns. Recomputing the information at the warm
-    // start instead was tried and rejected: these warm starts often sit next to
-    // a mean bound, where the huge working weights make Newton increments tiny,
-    // and the fit then reported converged = TRUE short of the MLE (6e-3 off on a
-    // 20-subject Bernoulli draw). Fits whose warm first step was accepted are
-    // unchanged, bit for bit.
-    if (!accepted && used_warm_fisher) {
-      return fit_constrained_binomial_cpp_impl(X, y, link_type, maxit, tol, fixed_idx, fixed_values,
-                                               std::nullopt, smart_cold_start, std::nullopt, std::nullopt,
-                                               estimate_only);
-    }
-    if (!accepted) break;
-    prev_step_free = beta_free_new - beta_free;
-    have_prev_step = true;
-    // TODO-128: test the full (projected) increment, not the damped step. A
-    // step that line-search halving shrank to ~1e-8 is a stall, not
-    // convergence. When step == 1 this is the old test, bit for bit.
-    const double increment_norm = (step == 1.0) ? (beta_free_new - beta_free).norm() : delta_beta.norm();
-    if (increment_norm / (beta_free_new.norm() + 1e-10) < tol) {
-      beta = beta_new;
-      beta_free = beta_free_new;
-      // TODO-128 step 2: next to a bound a small increment is only a
-      // candidate; the KKT gate at the top of one more iteration decides.
-      if (collect_near_bound_rows(eta_try, link_type) > 0) {
-        kkt_confirm_pending = true;
-        continue;
-      }
-      // v1.0.6-TODO-221: the observed-information Newton step must agree.
-      if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta_try, y, link_type), beta_free, ll_curr, tol)) {
-        converged = true;
-        break;
-      }
-      observed_newton_mode = true;
-      continue;
-    }
-    beta = beta_new;
-    beta_free = beta_free_new;
-  }
-
-  // NOT redefined to gradient-norm-based (optimizer_diagnostics_report.md
-  // TODO-4): this IRLS loop's stopping criterion is coefficient-relative-
-  // change, not gradient-based, and there is no already-computed score/
-  // gradient here to reuse "for free" -- see fast_robust_regression.cpp for
-  // the same reasoning. hit_iteration_cap is still meaningful without
-  // touching `converged`'s definition.
-  // TODO-128 step 2: rows on a bound at the returned beta, and the capability
-  // marker kkt_converged (converged after the KKT gate; same value as
-  // converged) that tells callers this kernel has the gate.
+static edi::ResultMap constrained_binomial_fit_result(
+    const Eigen::Ref<const Eigen::MatrixXd>& X, const Eigen::VectorXd& beta,
+    BinomialConstrainedLink link_type, const Eigen::VectorXd* obs_weights,
+    bool estimate_only, bool converged, int iterations, int maxit) {
   const Eigen::VectorXd eta_returned = X * beta;
-  const int n_active_bounds = collect_near_bound_rows(eta_returned, link_type);
+  const int n_active_bounds = collect_near_bound_rows(eta_returned, link_type, obs_weights);
   if (estimate_only) {
     const bool converged_out = converged && all_finite_vec(beta);
     return edi::ResultMap()
@@ -775,6 +533,7 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
   }
 
   Eigen::VectorXd eta = X * beta;
+  Eigen::VectorXd mu, w;
   if (link_type == BinomialConstrainedLink::kLog) {
     eta = eta.array().min(kMaxEtaLog).matrix();
     mu = eta.array().exp().matrix();
@@ -786,6 +545,13 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
   }
 
   const bool converged_out = converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w);
+  Eigen::MatrixXd fisher_information;
+  if (obs_weights) {
+    const Eigen::VectorXd effective_weights = obs_weights->cwiseProduct(w);
+    fisher_information = weighted_crossprod(X, effective_weights);
+  } else {
+    fisher_information = weighted_crossprod(X, w);
+  }
   return edi::ResultMap()
     .set("b", beta)
     .set("mu_hat", mu)
@@ -793,29 +559,32 @@ edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::M
     .set("num_iter", iterations)
     .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
     .set("converged", converged_out)
-    .set("fisher_information", weighted_crossprod(X, w))
+    .set("fisher_information", fisher_information)
     .set("kkt_converged", converged_out)
     .set("n_active_bounds", n_active_bounds);
 }
 
-edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
-                                                const Eigen::Ref<const Eigen::VectorXd>& y,
-                                                const Eigen::VectorXd& obs_weights,
-                                                BinomialConstrainedLink link_type,
-                                                int maxit,
-                                                double tol,
-                                                std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-                                                std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-                                                std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
-                                                bool smart_cold_start = true,
-                                                std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
-                                                std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
-                                                bool estimate_only = false) {
+template <bool weighted>
+static edi::ResultMap fit_constrained_binomial(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                                               const Eigen::Ref<const Eigen::VectorXd>& y,
+                                               const Eigen::VectorXd* obs_weights,
+                                               BinomialConstrainedLink link_type,
+                                               int maxit,
+                                               double tol,
+                                               const std::optional<Eigen::VectorXi>& fixed_idx,
+                                               const std::optional<Eigen::VectorXd>& fixed_values,
+                                               const std::optional<Eigen::VectorXd>& warm_start_beta,
+                                               bool smart_cold_start,
+                                               const std::optional<Eigen::VectorXd>& warm_start_weights,
+                                               const std::optional<Eigen::MatrixXd>& warm_start_fisher_info,
+                                               bool estimate_only) {
   const int n = (int)X.rows();
   const int p = (int)X.cols();
   require_square_matrix(warm_start_fisher_info, p, "warm_start_fisher_info");
   if (y.size() != n) throw std::invalid_argument("dimension mismatch in constrained binomial regression");
-  if (obs_weights.size() != n) throw std::invalid_argument("weights length mismatch in constrained binomial regression");
+  if constexpr (weighted) {
+    if (obs_weights->size() != n) throw std::invalid_argument("weights length mismatch in constrained binomial regression");
+  }
   FixedParamSpec fixed_spec = make_fixed_param_spec(p, fixed_idx, fixed_values);
   const int p_free = (int)fixed_spec.free_idx.size();
   Eigen::MatrixXd X_free(n, p_free);
@@ -841,31 +610,44 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
   }
   beta = apply_fixed_values(beta, fixed_spec);
   Eigen::VectorXd beta_free = subset_vector(beta, fixed_spec.free_idx);
-  // v1.0.6-TODO-142: see the unweighted fitter; zero-weight rows do not constrain.
-  const bool start_pulled_into_support = pull_infeasible_start_into_support(beta_free, X_free, eta_fixed, y, link_type, &obs_weights);
+  // v1.0.7-TODO-47: pull an infeasible start into the mean support before using
+  // warm curvature. Zero-weight rows impose no support constraint.
+  const bool start_pulled_into_support = pull_infeasible_start_into_support(beta_free, X_free, eta_fixed, y, link_type, obs_weights);
   if (start_pulled_into_support) beta = expand_free_params(beta_free, beta, fixed_spec);
 
   bool converged = false;
   bool kkt_confirm_pending = false;  // TODO-128 step 2: see the KKT gate below
-  bool observed_newton_mode = false; // v1.0.6-TODO-221: see observed_newton_step()
+  bool observed_newton_mode = false; // v1.0.6-TODO-162: see observed_newton_step()
   Eigen::VectorXd mu = Eigen::VectorXd::Constant(n, y.mean());
   Eigen::VectorXd w = Eigen::VectorXd::Constant(n, 1.0);
   Eigen::VectorXd z_adj(n);
-  Eigen::VectorXd w_eff(n);
+  Eigen::VectorXd w_eff(weighted ? n : 0);
+  const Eigen::VectorXd& scoring_weights = weighted ? w_eff : w;
   Eigen::VectorXd eta_try(n);
   Eigen::VectorXd warm_weights_vec;
-  const bool has_warm_start_weights = warm_start_weights.has_value();
+  // Keep the unweighted API's historical handling of this argument (v1.0.7-TODO-127).
+  const bool has_warm_start_weights = weighted && warm_start_weights.has_value();
   if (has_warm_start_weights) {
     warm_weights_vec = *warm_start_weights;
     if (warm_weights_vec.size() != n) throw std::invalid_argument("warm_start_weights must have length equal to nrow(X)");
   }
 
-  double ll_curr = weighted_loglik_constrained_binomial(X, y, obs_weights, beta, link_type);
+  // Keep each likelihood's original arithmetic, including observation weights.
+  const auto loglik_at_eta = [&](const Eigen::VectorXd& trial_eta) {
+    if constexpr (weighted) {
+      return weighted_loglik_from_eta(trial_eta, y, *obs_weights, link_type);
+    } else {
+      return loglik_from_eta(trial_eta, y, link_type);
+    }
+  };
+  double ll_curr = weighted
+    ? weighted_loglik_constrained_binomial(X, y, *obs_weights, beta, link_type)
+    : loglik_constrained_binomial(X, y, beta, link_type);
 
   int iterations = 0;
   Eigen::VectorXd prev_step_free;     // TODO-181 (b): last accepted step, for the cycle guard
   bool have_prev_step = false;
-  // v1.0.6-TODO-275: see kKktConfirmMaxExtraIter.
+  // v1.0.6-TODO-174: see kKktConfirmMaxExtraIter.
   for (int iter = 0; iter < maxit || (kkt_confirm_pending && iter - maxit < kKktConfirmMaxExtraIter); ++iter) {
     edi_check_R_user_interrupt_every(iter);
     iterations = iter + 1;
@@ -887,28 +669,28 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
         w[i] = use_warm_weights ? warm_weights_vec[i] : 1.0 / std::max(ei * (1.0 - ei), kEps);
         z_adj[i] = y[i] - eta_fixed[i];
       }
-      w_eff[i] = obs_weights[i] * w[i];
+      if constexpr (weighted) w_eff[i] = (*obs_weights)[i] * w[i];
     }
 
     Eigen::MatrixXd XtWX;
-    bool used_warm_fisher_w = false;
+    bool used_warm_fisher = false;
     if (iter == 0 && warm_start_fisher_info.has_value() && !start_pulled_into_support) {
       const Eigen::MatrixXd& info_full = *warm_start_fisher_info;
       if (info_full.rows() == p && info_full.cols() == p) {
         XtWX = subset_matrix(info_full, fixed_spec.free_idx, fixed_spec.free_idx);
-        used_warm_fisher_w = true;
+        used_warm_fisher = true;
       } else {
-        XtWX = weighted_crossprod(X_free, w_eff);
+        XtWX = weighted_crossprod(X_free, scoring_weights);
       }
     } else {
-      XtWX = weighted_crossprod(X_free, w_eff);
+      XtWX = weighted_crossprod(X_free, scoring_weights);
     }
-    Eigen::VectorXd XtWz = weighted_crossprod_rhs(X_free, w_eff, z_adj);
+    Eigen::VectorXd XtWz = weighted_crossprod_rhs(X_free, scoring_weights, z_adj);
 
     Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
     if (ldlt.info() != Eigen::Success) {
-      if (used_warm_fisher_w) {
-        XtWX = weighted_crossprod(X_free, w_eff);
+      if (used_warm_fisher) {
+        XtWX = weighted_crossprod(X_free, scoring_weights);
         ldlt.compute(XtWX);
         if (ldlt.info() != Eigen::Success) {
           return edi::ResultMap().set("b", beta).set("mu_hat", mu).set("working_weights", w).set("converged", false).set("hit_iteration_cap", false).set("num_iter", iterations).set("kkt_converged", false);
@@ -927,13 +709,13 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     // kkt_verdict_at_bounds()). Skipped on the first iteration, whose
     // information may come from a warm start rather than from this point.
     if (iter > 0) {
-      const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol, &obs_weights);
+      const BoundKktVerdict kkt = kkt_verdict_at_bounds(ldlt, X_free, eta, beta_free_target - beta_free, beta_free, link_type, tol, obs_weights);
       // In observed-Newton mode the observed-information check also judges a
       // candidate the Fisher-metric KKT gate rejects (that gate has the same
       // inflated weights next to a bound).
       if ((kkt.n_active > 0 && kkt.ok) || (kkt_confirm_pending && (kkt.n_active == 0 || observed_newton_mode))) {
-        // v1.0.6-TODO-221: the observed-information Newton step must agree.
-        if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta, y, link_type, &obs_weights), beta_free, ll_curr, tol)) {
+        // v1.0.6-TODO-162: the observed-information Newton step must agree.
+        if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta, y, link_type, obs_weights), beta_free, ll_curr, tol)) {
           converged = true;
           break;
         }
@@ -946,17 +728,17 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     }
 
     // TODO-128: hold rows already on the mean-support boundary fixed.
-    // v1.0.6-TODO-221: see the unweighted fitter.
+    // After a rejected convergence candidate, use observed information when available.
     ObservedNewtonStep newton_step;
-    if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type, &obs_weights);
-    // v1.0.6-TODO-267: see kObservedNewtonStartIter.
+    if (observed_newton_mode) newton_step = observed_newton_step(X_free, eta, y, link_type, obs_weights);
+    // v1.0.6-TODO-203: see kObservedNewtonStartIter.
     if (!observed_newton_mode && iter >= kObservedNewtonStartIter &&
-        collect_near_bound_rows(eta, link_type, &obs_weights) == 0) {
-      newton_step = observed_newton_step(X_free, eta, y, link_type, &obs_weights);
+        collect_near_bound_rows(eta, link_type, obs_weights) == 0) {
+      newton_step = observed_newton_step(X_free, eta, y, link_type, obs_weights);
       if (!(newton_step.t_feasible > 1.0)) newton_step.ok = false;
     }
     const Eigen::VectorXd delta_beta = newton_step.ok ? newton_step.d : project_increment_off_active_bounds(
-      ldlt, X_free, eta, beta_free_target - beta_free, link_type, &obs_weights);
+      ldlt, X_free, eta, beta_free_target - beta_free, link_type, obs_weights);
     const Eigen::VectorXd delta_eta = X_free * delta_beta;
     double step = 1.0;
     // TODO-181 (b): see kCycleGuardStartIter.
@@ -968,13 +750,13 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     while (step >= 1e-8) {
       edi_check_R_user_interrupt_every(step_iter++);
       eta_try.noalias() = eta + step * delta_eta;
-      double ll_new = weighted_loglik_from_eta(eta_try, y, obs_weights, link_type);
+      double ll_new = loglik_at_eta(eta_try);
       if (std::isfinite(ll_new) && ll_new >= ll_curr - 1e-10) {
         if (cycle_guard) {
           Eigen::VectorXd eta_half(n);
           while (step * 0.5 >= 1e-8) {
             eta_half.noalias() = eta + (0.5 * step) * delta_eta;
-            const double ll_half = weighted_loglik_from_eta(eta_half, y, obs_weights, link_type);
+            const double ll_half = loglik_at_eta(eta_half);
             if (!(std::isfinite(ll_half) && ll_half > ll_new)) break;
             step *= 0.5;
             ll_new = ll_half;
@@ -989,13 +771,12 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
       }
       step *= 0.5;
     }
-    // v1.0.6-TODO-209: as in fit_constrained_binomial_cpp_impl, a first step
-    // built from the warm weights / Fisher information that the line search
-    // rejects is redone from the cold start (the result equals a cold call).
-    if (!accepted && (used_warm_fisher_w || use_warm_weights)) {
-      return fit_constrained_binomial_weighted_cpp_impl(X, y, obs_weights, link_type, maxit, tol, fixed_idx,
-                                                        fixed_values, std::nullopt, smart_cold_start,
-                                                        std::nullopt, std::nullopt, estimate_only);
+    // Warm weights or Fisher information can come from a different assignment.
+    // If backtracking rejects the resulting first step, retry from the cold start.
+    if (!accepted && (used_warm_fisher || use_warm_weights)) {
+      return fit_constrained_binomial<weighted>(X, y, obs_weights, link_type, maxit, tol, fixed_idx,
+                                                fixed_values, std::nullopt, smart_cold_start,
+                                                std::nullopt, std::nullopt, estimate_only);
     }
     if (!accepted) break;
     prev_step_free = beta_free_new - beta_free;
@@ -1009,12 +790,12 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
       beta_free = beta_free_new;
       // TODO-128 step 2: next to a bound a small increment is only a
       // candidate; the KKT gate at the top of one more iteration decides.
-      if (collect_near_bound_rows(eta_try, link_type, &obs_weights) > 0) {
+      if (collect_near_bound_rows(eta_try, link_type, obs_weights) > 0) {
         kkt_confirm_pending = true;
         continue;
       }
-      // v1.0.6-TODO-221: the observed-information Newton step must agree.
-      if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta_try, y, link_type, &obs_weights), beta_free, ll_curr, tol)) {
+      // v1.0.6-TODO-162: the observed-information Newton step must agree.
+      if (observed_newton_confirms_convergence(observed_newton_step(X_free, eta_try, y, link_type, obs_weights), beta_free, ll_curr, tol)) {
         converged = true;
         break;
       }
@@ -1025,47 +806,47 @@ edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const
     beta_free = beta_free_new;
   }
 
-  // NOT redefined to gradient-norm-based -- see the unweighted variant above
-  // for the same reasoning (optimizer_diagnostics_report.md TODO-4).
+  // The IRLS convergence criterion uses coefficient change; the loop has
+  // no gradient norm to reuse for optimizer diagnostics.
   // TODO-128 step 2: rows on a bound at the returned beta, and the capability
   // marker kkt_converged (converged after the KKT gate; same value as
   // converged) that tells callers this kernel has the gate.
-  const Eigen::VectorXd eta_returned = X * beta;
-  const int n_active_bounds = collect_near_bound_rows(eta_returned, link_type, &obs_weights);
-  if (estimate_only) {
-    const bool converged_out = converged && all_finite_vec(beta);
-    return edi::ResultMap()
-      .set("b", beta)
-      .set("converged", converged_out)
-      .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
-      .set("num_iter", iterations)
-      .set("kkt_converged", converged_out)
-      .set("n_active_bounds", n_active_bounds);
-  }
+  return constrained_binomial_fit_result(X, beta, link_type, obs_weights, estimate_only, converged, iterations, maxit);
+}
 
-  Eigen::VectorXd eta = X * beta;
-  if (link_type == BinomialConstrainedLink::kLog) {
-    eta = eta.array().min(kMaxEtaLog).matrix();
-    mu = eta.array().exp().matrix();
-    w = (mu.array() / (1.0 - mu.array()).max(kEps)).max(kEps).matrix();
-  } else {
-    eta = eta.array().max(kMinMu).min(kMaxMu).matrix();
-    mu = eta;
-    w = (1.0 / (mu.array() * (1.0 - mu.array())).max(kEps)).max(kEps).matrix();
-  }
-  w_eff = obs_weights.cwiseProduct(w);
+edi::ResultMap fit_constrained_binomial_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                                       const Eigen::Ref<const Eigen::VectorXd>& y,
+                                       BinomialConstrainedLink link_type,
+                                       int maxit,
+                                       double tol,
+                                       std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
+                                       std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
+                                       std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
+                                       bool smart_cold_start = true,
+                                       std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
+                                       std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
+                                       bool estimate_only = false) {
+  return fit_constrained_binomial<false>(X, y, nullptr, link_type, maxit, tol, fixed_idx, fixed_values,
+                                         warm_start_beta, smart_cold_start, warm_start_weights,
+                                         warm_start_fisher_info, estimate_only);
+}
 
-  const bool converged_out = converged && all_finite_vec(beta) && all_finite_vec(mu) && all_finite_vec(w);
-  return edi::ResultMap()
-    .set("b", beta)
-    .set("mu_hat", mu)
-    .set("working_weights", w)
-    .set("num_iter", iterations)
-    .set("hit_iteration_cap", (iterations >= maxit) && !converged_out)
-    .set("converged", converged_out)
-    .set("fisher_information", weighted_crossprod(X, w_eff))
-    .set("kkt_converged", converged_out)
-    .set("n_active_bounds", n_active_bounds);
+edi::ResultMap fit_constrained_binomial_weighted_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                                                const Eigen::Ref<const Eigen::VectorXd>& y,
+                                                const Eigen::VectorXd& obs_weights,
+                                                BinomialConstrainedLink link_type,
+                                                int maxit,
+                                                double tol,
+                                                std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
+                                                std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
+                                                std::optional<Eigen::VectorXd> warm_start_beta = std::nullopt,
+                                                bool smart_cold_start = true,
+                                                std::optional<Eigen::VectorXd> warm_start_weights = std::nullopt,
+                                                std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
+                                                bool estimate_only = false) {
+  return fit_constrained_binomial<true>(X, y, &obs_weights, link_type, maxit, tol, fixed_idx, fixed_values,
+                                        warm_start_beta, smart_cold_start, warm_start_weights,
+                                        warm_start_fisher_info, estimate_only);
 }
 
 edi::ResultMap fit_constrained_binomial_with_var_cpp_impl(const Eigen::Ref<const Eigen::MatrixXd>& X,

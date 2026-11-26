@@ -10,11 +10,11 @@ library(EDI)
 # ("JKn") jackknife, unit = "observation_within_block" (Wolter 2007, Sec. 4.5). With ~1 the leave-one-out
 # Poisson estimate is the closed-form log ratio of arm means, so the fallback is checked exactly against a
 # hand computation.
-# v1.0.6-TODO-4: DesignFixedBlocking and DesignSeqOneByOneSPBR no longer use the block (= stratum) as their
+# v1.0.6-TODO-1: DesignFixedBlocking and DesignSeqOneByOneSPBR no longer use the block (= stratum) as their
 # automatic jackknife unit: FixedBlocking jackknifes one subject at a time within strata (the same stratified
 # estimator the fallback uses) and SPBR one permuted block at a time. The fallback
 # below is therefore checked on DesignSeqOneByOneRandomBlockSize, whose automatic unit is still the block.
-# v1.0.6-TODO-231: DesignSeqOneByOneRandomBlockSize now records its permuted blocks at assignment and
+# v1.0.6-TODO-165: DesignSeqOneByOneRandomBlockSize now records its permuted blocks at assignment and
 # jackknifes one block at a time too. Only a design object without that record (saved before EDI 1.0.6)
 # keeps the whole-stratum unit, so the fallback is checked on such an object (the record is cleared).
 
@@ -92,7 +92,7 @@ for (design in "rbs") {
 		expect_gt(jkn$std_error, hand$model_se)                # overdispersion: design SE > Poisson SE
 
 		p_model <- 2 * pnorm(-abs(hand$estimate / hand$model_se))
-		# v1.0.6-TODO-231: the stratified jackknife uses t with sum_h (n_h - 1) df.
+		# v1.0.6-TODO-165: the stratified jackknife uses t with sum_h (n_h - 1) df.
 		df_jk <- length(f$strata) - length(unique(f$strata))
 		p_jk <- 2 * pt(-abs(jkn$jk_estimate / jkn$std_error), df_jk)
 		expect_equal(inf$compute_asymp_two_sided_pval(), max(p_model, p_jk), tolerance = 1e-6)
@@ -104,7 +104,7 @@ for (design in "rbs") {
 	})
 }
 
-test_that("~1 Poisson on a 4-stratum FixedBlocking design uses the stratified jackknife directly (v1.0.6-TODO-4)", {
+test_that("~1 Poisson on a 4-stratum FixedBlocking design uses the stratified jackknife directly (v1.0.6-TODO-1)", {
 	f <- strat_fixture("blocking")
 	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 	inf$num_cores <- 1L
@@ -130,7 +130,7 @@ test_that("~1 Poisson on a 4-stratum FixedBlocking design uses the stratified ja
 	expect_equal(inf$compute_asymp_two_sided_pval(), max(p_model, p_jk), tolerance = 1e-6)
 })
 
-test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackknife (v1.0.6-TODO-4)", {
+test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackknife (v1.0.6-TODO-1)", {
 	f <- strat_fixture("spbr")
 	inf <- InferenceCountPoisson$new(f$des, model_formula = ~1, verbose = FALSE)
 	inf$num_cores <- 1L
@@ -140,7 +140,7 @@ test_that("~1 Poisson on a 4-stratum SPBR design uses the permuted-block jackkni
 	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
 })
 
-test_that("~1 Poisson on a 4-stratum RandomBlockSize design uses its recorded permuted blocks (v1.0.6-TODO-231)", {
+test_that("~1 Poisson on a 4-stratum RandomBlockSize design uses its recorded permuted blocks (v1.0.6-TODO-165)", {
 	# n = 480 gives at least 16 permuted blocks per stratum, above
 	# EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM (10).
 	f <- strat_fixture("rbs", n = 480L)
@@ -150,7 +150,7 @@ test_that("~1 Poisson on a 4-stratum RandomBlockSize design uses its recorded pe
 	expect_identical(p$resolve_jackknife_unit("auto"), "permuted_block")
 	expect_false(p$use_within_block_jackknife_fallback())
 	expect_true(is.finite(inf$compute_jackknife_wald_two_sided_pval()))
-	# v1.0.6-TODO-270: at n = 240 the smallest stratum has 8 permuted blocks, so
+	# v1.0.7-TODO-122: at n = 240 the smallest stratum has 8 permuted blocks, so
 	# the jackknife deletes one subject within its stratum instead.
 	f_small <- strat_fixture("rbs")
 	p_small <- InferenceCountPoisson$new(f_small$des, model_formula = ~1, verbose = FALSE)$.__enclos_env__$private
@@ -169,7 +169,7 @@ test_that("the stratified fallback stays off on unstratified designs and where t
 	inf$num_cores <- 1L
 	expect_false(inf$.__enclos_env__$private$use_within_block_jackknife_fallback())
 
-	# Many blocks (8 strata): no fallback (since v1.0.6-TODO-4 the automatic unit here is the subject
+	# Many blocks (8 strata): no fallback (since v1.0.6-TODO-1 the automatic unit here is the subject
 	# within its stratum, not the block, so the jackknife is finite regardless of the stratum count).
 	set.seed(6)
 	n <- 200L

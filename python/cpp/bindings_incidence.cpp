@@ -4,45 +4,13 @@
 #include <pybind11/eigen.h>
 #include <pybind11/stl.h>
 #include "_helper_functions_core.h"
+#include "gee_grouped_fit.h"
 #include <algorithm>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace py = pybind11;
-
-enum class GEEFamily { GAUSSIAN, BINOMIAL, POISSON };
-
-// Matches R/EDI/src/fast_gee.cpp's file-local GEEResult exactly (no shared
-// header exists for it) -- keep in sync if that struct's field list ever
-// changes. A stale/short mirror here previously caused a real stack-buffer
-// overflow: gee_pairs_singletons_cpp_impl (compiled against the real,
-// longer struct) writes hit_iteration_cap/gradient_norm past the end of
-// the caller's (short-struct-sized) local, corrupting the stack.
-struct GEEResult {
-    Eigen::VectorXd beta;
-    double alpha;
-    Eigen::MatrixXd vcov;
-    double quasi_loglik;
-    Eigen::VectorXd score;
-    Eigen::MatrixXd bread;
-    bool converged;
-    int niter;
-    bool hit_iteration_cap;
-    double gradient_norm;
-};
-
-GEEResult gee_pairs_singletons_cpp_impl(
-    const Eigen::Ref<const Eigen::MatrixXd>& X,
-    const Eigen::Ref<const Eigen::VectorXd>& y,
-    const std::vector<int>& grp_start,
-    const std::vector<int>& grp_size,
-    GEEFamily family,
-    const Eigen::Ref<const Eigen::VectorXd>& weights,
-    std::optional<Eigen::VectorXd> warm_start_beta,
-    std::optional<Eigen::MatrixXd> warm_start_fisher_info,
-    int maxit, double tol
-);
 
 struct MNCIBounds { double lower; double upper; };
 double mn_pvalue_cpp(double x_t, double n_t, double x_c, double n_c, double delta, double p_t_obs, double p_c_obs);
@@ -60,32 +28,9 @@ void bind_incidence(py::module_& m) {
                                       std::optional<Eigen::MatrixXd> warm_start_fisher_info,
                                       int maxit,
                                       double tol) {
-        GEEFamily family = GEEFamily::GAUSSIAN;
-        if (family_str == "binomial") family = GEEFamily::BINOMIAL;
-        else if (family_str == "poisson") family = GEEFamily::POISSON;
-
-        const int n = static_cast<int>(y.size());
-        std::vector<int> ord(n);
-        for (int i = 0; i < n; ++i) ord[i] = i;
-        std::sort(ord.begin(), ord.end(), [&](int a, int b) { return group_id[a] < group_id[b]; });
-
-        Eigen::MatrixXd X_s(n, X.cols());
-        Eigen::VectorXd y_s(n);
-        for (int i = 0; i < n; ++i) {
-            X_s.row(i) = X.row(ord[i]);
-            y_s[i] = y[ord[i]];
-        }
-        std::vector<int> grp_start, grp_size;
-        int prev = -1;
-        for (int i = 0; i < n; ++i) {
-            int g = group_id[ord[i]];
-            if (g != prev) { grp_start.push_back(i); grp_size.push_back(1); prev = g; }
-            else grp_size.back()++;
-        }
-
-        GEEResult res = gee_pairs_singletons_cpp_impl(
-            X_s, y_s, grp_start, grp_size, family, Eigen::VectorXd(),
-            warm_start_beta, warm_start_fisher_info, maxit, tol);
+        const GEEResult res = fit_gee_pairs_singletons_grouped(
+            X, y, group_id, family_str, nullptr, warm_start_beta, warm_start_fisher_info,
+            maxit, tol);
 
         py::dict out;
         out["beta"] = res.beta;

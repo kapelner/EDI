@@ -22,7 +22,7 @@ fixture); test_matches_r_fixture_default_smart_cold_start below is the new
 test that checks Python's now-fixed default against a fresh R fixture
 computed with smart_cold_start omitted (i.e. R's own default, FALSE).
 
-res["neg_loglik"] and res["mu"]: until v1.0.6-TODO-188 the binding returned
+res["neg_loglik"] and res["mu"]: until v1.0.6-TODO-134 the binding returned
 res.neg_ll, which fast_neg_bin_internal never sets (it keeps the
 log-likelihood in res.sigma2_hat, which R returns as $logLik), so
 neg_loglik was NaN and mu had shape (0,). The binding now returns
@@ -128,7 +128,7 @@ def test_estimate_only_true_still_returns_b():
     assert res["b"] == pytest.approx(R_B, abs=1e-6, rel=1e-6)
 
 
-# v1.0.6-TODO-188: neg_loglik and mu. R reference, EDI 1.0.5 source loaded with
+# v1.0.6-TODO-134: neg_loglik and mu. R reference, EDI 1.0.5 source loaded with
 # pkgload::load_all("R/EDI", compile = FALSE), computed 2026-11-20 on the same
 # fixture via
 #   r <- EDI:::fast_neg_bin_with_var_cpp(X, y)            # default start

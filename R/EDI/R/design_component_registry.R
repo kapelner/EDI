@@ -159,40 +159,44 @@ design_component_private_names = function(component) {
 # against EDI_DESIGN_COMPONENTS instead of EDI_INFERENCE_COMPONENTS. Kept as a
 # separate, parallel implementation rather than a shared/refactored one so this
 # work cannot regress the already-shipped, tested Inference component machinery.
-resolve_design_component_dependencies = function(component_names, satisfied_components = character()) {
+resolve_registered_component_dependencies = function(component_names, satisfied_components, registry, get_component, label) {
 	duplicated_direct = sort(unique(component_names[duplicated(component_names)]))
 	if (length(duplicated_direct) > 0L) {
 		stop(sprintf(
-			"Duplicate direct design component(s): %s",
+			"Duplicate direct %s(s): %s",
+			label,
 			paste(duplicated_direct, collapse = ", ")
 		), call. = FALSE)
 	}
-	component_registry_names = ls(EDI_DESIGN_COMPONENTS)
+	component_registry_names = ls(registry)
 	unknown_components = setdiff(component_names, component_registry_names)
 	if (length(unknown_components) > 0L) {
 		stop(sprintf(
-			"Unknown design component(s): %s",
+			"Unknown %s(s): %s",
+			label,
 			paste(unknown_components, collapse = ", ")
 		), call. = FALSE)
 	}
 	scaffold_components = component_names[vapply(component_names, function(component_name) {
-		identical(get_design_component(component_name)$status, "scaffold")
+		identical(get_component(component_name)$status, "scaffold")
 	}, logical(1L))]
 	if (length(scaffold_components) > 0L) {
 		stop(sprintf(
-			"Scaffold design component(s) cannot be resolved: %s",
+			"Scaffold %s(s) cannot be resolved: %s",
+			label,
 			paste(scaffold_components, collapse = ", ")
 		), call. = FALSE)
 	}
 
 	direct_dependency_hits = character()
 	for (component_name in component_names) {
-		deps = get_design_component(component_name)$dependencies
+		deps = get_component(component_name)$dependencies
 		direct_dependency_hits = c(direct_dependency_hits, intersect(component_names, deps))
 	}
 	if (length(direct_dependency_hits) > 0L) {
 		stop(sprintf(
-			"Direct design component list duplicates transitive dependency component(s): %s",
+			"Direct %s list duplicates transitive dependency component(s): %s",
+			label,
 			paste(sort(unique(direct_dependency_hits)), collapse = ", ")
 		), call. = FALSE)
 	}
@@ -206,16 +210,17 @@ resolve_design_component_dependencies = function(component_names, satisfied_comp
 		if (component_name %in% visiting) {
 			cycle = c(path, component_name)
 			stop(sprintf(
-				"Design component dependency cycle detected: %s",
+				"%s dependency cycle detected: %s",
+				paste0(toupper(substr(label, 1L, 1L)), substring(label, 2L)),
 				paste(cycle, collapse = " -> ")
 			), call. = FALSE)
 		}
 		if (!(component_name %in% component_registry_names)) {
-			stop(sprintf("Unknown design component(s): %s", component_name), call. = FALSE)
+			stop(sprintf("Unknown %s(s): %s", label, component_name), call. = FALSE)
 		}
-		component = get_design_component(component_name)
+		component = get_component(component_name)
 		if (identical(component$status, "scaffold")) {
-			stop(sprintf("Scaffold design component(s) cannot be resolved: %s", component_name), call. = FALSE)
+			stop(sprintf("Scaffold %s(s) cannot be resolved: %s", label, component_name), call. = FALSE)
 		}
 		visiting <<- c(visiting, component_name)
 		for (dep in component$dependencies) {
@@ -233,13 +238,17 @@ resolve_design_component_dependencies = function(component_names, satisfied_comp
 	resolved
 }
 
+resolve_design_component_dependencies = function(component_names, satisfied_components = character()) {
+	resolve_registered_component_dependencies(component_names, satisfied_components,
+		EDI_DESIGN_COMPONENTS, get_design_component, "design component")
+}
+
 # Parser-backed body-reference contract, mirroring component_body_references()/
 # component_declared_reference_names()/validate_component_body_references() in
 # contracts_mixins.R. Only "private" and "self" receivers are tracked -- Design
 # components don't call super$ (they aren't deep-inheritance mixins the way some
 # Inference components are), so there's no third receiver category to declare.
-design_component_body_references = function(component) {
-	refs = list(private = character(), self = character())
+collect_component_body_references = function(component, refs) {
 	collect_from_expr = function(expr) {
 		if (!is.call(expr) && !is.expression(expr)) return(invisible(NULL))
 		if (is.call(expr) &&
@@ -264,33 +273,41 @@ design_component_body_references = function(component) {
 	lapply(refs, function(x) sort(unique(x)))
 }
 
-design_component_declared_reference_names = function(component) {
+design_component_body_references = function(component) {
+	collect_component_body_references(component, list(private = character(), self = character()))
+}
+
+component_private_and_self_declarations = function(component, allowed_refs = list()) {
 	list(
 		private = sort(unique(c(
 			component$provides_private_methods,
 			component$owns_state,
 			component$requires_state,
 			component$requires_private_methods,
-			component$optional_private_methods
+			component$optional_private_methods,
+			allowed_refs$private %||% character()
 		))),
 		self = sort(unique(c(
 			component$provides_public_methods,
 			component$requires_public_methods,
-			component$optional_public_methods
+			component$optional_public_methods,
+			allowed_refs$self %||% character()
 		)))
 	)
 }
 
-validate_design_component_body_references = function(component) {
-	refs = design_component_body_references(component)
-	declared = design_component_declared_reference_names(component)
+design_component_declared_reference_names = function(component) {
+	component_private_and_self_declarations(component)
+}
+
+validate_component_references = function(component_name, refs, declared) {
 	offenders = character()
 	for (receiver in names(refs)) {
 		missing = setdiff(refs[[receiver]], declared[[receiver]])
 		if (length(missing) > 0L) {
 			offenders = c(offenders, sprintf(
 				"%s has undeclared %s reference(s): %s",
-				component$name, receiver, paste(missing, collapse = ", ")
+				component_name, receiver, paste(missing, collapse = ", ")
 			))
 		}
 	}
@@ -298,6 +315,11 @@ validate_design_component_body_references = function(component) {
 		stop(paste(offenders, collapse = "\n"), call. = FALSE)
 	}
 	invisible(TRUE)
+}
+
+validate_design_component_body_references = function(component) {
+	validate_component_references(component$name, design_component_body_references(component),
+		design_component_declared_reference_names(component))
 }
 
 # Registers components using either reference-identical methods from the still-live
@@ -364,7 +386,7 @@ populate_design_component_registry = function(ns = environment(populate_design_c
 		requires_state = c("t", "Xraw", "y"),
 		requires_public_methods = "get_X_raw",
 		# get_strata_keys() reads the host constructor's formals so its unequal-blocks
-		# error names only arguments the class takes (v1.0.6-TODO-73).
+		# error names only arguments the class takes (v1.0.6-TODO-36).
 		optional_public_methods = "initialize",
 		requires_private_methods = "has_private_method",
 		optional_private_methods = "get_or_compute_block_ids",

@@ -51,7 +51,7 @@ test_that("only the standard-Cox (reservoir) piece succeeds: beta_hat_T = beta_r
 
 test_that("both pieces succeed: the IVWC combination matches the closed-form weighted formula exactly", {
 	# Seed 6: both reservoir arms are non-empty (4/4). Seed 3 had no treated reservoir
-	# subject, and since v1.0.6-TODO-133 (owner decision 2026-11-18) a reservoir with an
+	# subject, and since v1.0.6-TODO-87 (owner decision 2026-11-18) a reservoir with an
 	# empty arm is dropped without fitting, so the combination branch was never reached.
 	inf <- mk_fixture(6L)
 	priv <- inf$.__enclos_env__$private

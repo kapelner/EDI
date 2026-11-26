@@ -1,7 +1,7 @@
-# v1.0.6-TODO-153: InferenceCountZeroInflatedPoisson and InferenceCountZeroInflatedNegBin
+# v1.0.6-TODO-105: InferenceCountZeroInflatedPoisson and InferenceCountZeroInflatedNegBin
 # accept smart_cold_start_default (as their hurdle siblings and the shared
 # zero-augmented abstract already did) and forward it to the fit.
-# v1.0.6-TODO-156: InferenceIncidRiskDiff's private shared() records a class-specific
+# v1.0.6-TODO-107: InferenceIncidRiskDiff's private shared() records a class-specific
 # generate_mod_nonestimable_reason when generate_mod() returns NULL, as
 # StandardModelCacheSource's shared() does, instead of always "model_fit_unavailable".
 
@@ -45,7 +45,7 @@ for (cls_name in c("InferenceCountZeroInflatedPoisson", "InferenceCountZeroInfla
 }
 
 test_that("InferenceIncidRiskDiff: an all-zero response keeps the estimate and marks only the SE non-estimable", {
-	# v1.0.6-TODO-389 (2026-11-24): with y all 0 the fit is perfect (RD = 0, HC0 variance 0). It used
+	# v1.0.6-TODO-197 (2026-11-24): with y all 0 the fit is perfect (RD = 0, HC0 variance 0). It used
 	# to be rejected outright (reason model_fit_unavailable, estimate NA); the finite estimate is now
 	# kept and only the SE is non-estimable.
 	seq_des = simulate_incid_design(3L, y = rep(0, 40L))

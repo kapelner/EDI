@@ -703,7 +703,7 @@ InferenceAbstractKKCondLogitGLMM = define_inference_class(
 
 # Likelihood-test spec of the joint conditional-logit (discordant pairs) plus
 # random-intercept GLMM (concordant pairs / reservoir) likelihood, shared by
-# InferenceAbstractKKCondLogitGLMM and InferencePropKKGLMM (v1.0.6-TODO-193,
+# InferenceAbstractKKCondLogitGLMM and InferencePropKKGLMM (v1.0.7-TODO-54,
 # code-duplication audit dup-51b70d0e54ad). include_d = TRUE adds the prepared
 # data `d` to the spec, which InferencePropKKGLMM's simulate_under_lik_null()
 # reads. The Hessian serves as observed, Fisher and default information.

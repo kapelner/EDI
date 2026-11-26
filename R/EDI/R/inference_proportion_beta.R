@@ -186,31 +186,8 @@ InferencePropBetaRegr = define_inference_class(
 		#'   only the point estimate; used by randomization and bootstrap resampling
 		#'   paths.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			if (identical(self$get_estimand(), "marginal_mean_diff")) {
-				return(private$compute_marginal_estimand_estimate("marginal_mean_diff", estimate_only = estimate_only))
-			}
-			# 2026-08-24 (marginal_estimand_report.md TODO-9): re-derive the
-			# conditional beta_hat_T/s_beta_hat_T/df from the estimand-invariant
-			# private$cached_mod every call, rather than trusting
-			# private$cached_values$beta_hat_T/s_beta_hat_T to already hold the
-			# conditional values -- same fix TODO-4/5 needed for the same reason.
-			mod = private$cached_mod
-			if (!is.null(mod)) {
-				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[2L])[1L]
-				if (!estimate_only) {
-					ssq = mod$ssq_b_2 %||% mod$ssq_b_j
-					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					private$cached_values$df = mod$df %||% Inf
-					if (is.finite(ssq) && ssq > 0) {
-						private$cached_values$s_beta_hat_T = sqrt(ssq)
-						private$clear_nonestimable_state()
-					} else {
-						private$cache_nonestimable_se("model_standard_error_unavailable")
-					}
-				}
-			}
-			private$cached_values$beta_hat_T
+			compute_cached_mean_difference_estimate(self, private, estimate_only,
+				function(mod) 2L, function(mod) mod$ssq_b_2 %||% mod$ssq_b_j)
 		},
 		#' @description Wald confidence interval, dispatched by
 		#'   \code{testing_type} for the conditional estimand (score/gradient/
@@ -225,21 +202,7 @@ InferencePropBetaRegr = define_inference_class(
 		#' @param alpha Two-sided miscoverage rate; the returned interval
 		#'   targets \code{1 - alpha} coverage.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			self$compute_estimate(estimate_only = FALSE)
-			if (private$testing_type == "wald") {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-				}
-			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			compute_mean_difference_estimand_ci(self, private, alpha)
 		},
 		#' @description Wald two-sided p-value, dispatched by
 		#'   \code{testing_type} exactly as
@@ -248,21 +211,7 @@ InferencePropBetaRegr = define_inference_class(
 		#' @param delta Null treatment-effect value under the current estimand
 		#'   (conditional log-odds-ratio, or marginal mean difference).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			self$compute_estimate(estimate_only = FALSE)
-			if (private$testing_type == "wald") {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-				}
-			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			compute_mean_difference_estimand_pval(self, private, delta)
 		},
 		#' @description Refits the beta model with subject/block-level weights
 		#'   applied to the fitting log-likelihood (Bayesian-bootstrap or
@@ -410,8 +359,7 @@ InferencePropBetaRegr = define_inference_class(
 		# delta-method marginal SE). Calls self$compute_estimate() first so
 		# the estimand-aware cache is always current regardless of call order.
 		get_degrees_of_freedom = function(){
-			self$compute_estimate(estimate_only = FALSE)
-			private$cached_values$df %||% Inf
+			edi_estimand_degrees_of_freedom(self, private)
 		},
 		# Model-implied mean E[Y | w, x] = plogis(X %*% beta) (the beta
 		# regression mean submodel; phi does not enter the mean).
@@ -422,9 +370,7 @@ InferencePropBetaRegr = define_inference_class(
 		# with every subject plugged in at treatment column (column 2, per
 		# build_design_matrix()'s fixed convention) = 1 and = 0.
 		beta_regr_marginal_functional = function(beta, X){
-			X1 = X; X1[, 2L] = 1
-			X0 = X; X0[, 2L] = 0
-			mean(private$beta_regr_mean_from_coefs(beta, X1)) - mean(private$beta_regr_mean_from_coefs(beta, X0))
+			edi_estimand_mean_difference(beta, X, private$beta_regr_mean_from_coefs)
 		},
 		# Full-fit marginal path for compute_estimate(): reuses the single
 		# cached ML fit (private$cached_mod, populated by private$shared() via
@@ -434,32 +380,8 @@ InferencePropBetaRegr = define_inference_class(
 		# convention as every other delta-method/sandwich Wald path in this
 		# package.
 		compute_marginal_estimand_estimate = function(estimand, estimate_only = FALSE){
-			mod = private$cached_mod
-			if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
-				private$cache_nonestimable_estimate("beta_regr_marginal_fit_unavailable")
-				return(NA_real_)
-			}
-			functional = function(theta) private$beta_regr_marginal_functional(theta, mod$X)
-			point = tryCatch(functional(mod$b), error = function(e) NA_real_)
-			if (!is.finite(point)) {
-				private$cache_nonestimable_estimate("beta_regr_marginal_point_unavailable")
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = point
-			if (estimate_only) return(point)
-			if (is.null(mod$vcov)) {
-				private$cache_nonestimable_se("beta_regr_marginal_vcov_unavailable")
-				return(point)
-			}
-			dm = marginal_estimand_delta_se(mod$b, mod$vcov, functional)
-			private$cached_values$df = Inf
-			if (is.finite(dm$se) && dm$se >= 0) {
-				private$cached_values$s_beta_hat_T = dm$se
-				private$clear_nonestimable_state()
-			} else {
-				private$cache_nonestimable_se("beta_regr_marginal_se_unavailable")
-			}
-			point
+			cache_delta_method_marginal_estimate(private, private$cached_mod,
+				private$beta_regr_marginal_functional, estimate_only, reason_prefix = "beta_regr")
 		},
 		best_X_colnames = NULL,
 		get_complexity_tier = function() "heavy",
@@ -494,7 +416,7 @@ InferencePropBetaRegr = define_inference_class(
 			} else {
 				ws_args$start_beta
 			}
-			# v1.0.6-TODO-189: under estimand = "marginal_mean_diff" the statistic is
+			# v1.0.6-TODO-135: under estimand = "marginal_mean_diff" the statistic is
 			# the g-computation mean difference (below), and the reused worker computes
 			# it through compute_estimate(), which refits phi; refit phi here too so the
 			# randomization and BRT slow paths match the worker. The conditional path
@@ -517,7 +439,7 @@ InferencePropBetaRegr = define_inference_class(
 			}
 			private$set_fit_warm_start(c(as.numeric(res$coefficients), log(as.numeric(res$phi))), "params", fisher = res$fisher_information)
 			if (!is_marginal) return(as.numeric(res$coefficients[2]))
-			# v1.0.6-TODO-189: return the statistic on the estimand's own scale; the
+			# v1.0.6-TODO-135: return the statistic on the estimand's own scale; the
 			# randomization test, the BRT and their reused worker all compare it with
 			# compute_estimate(), the marginal mean difference here.
 			point = tryCatch(private$beta_regr_marginal_functional(as.numeric(res$coefficients), X), error = function(e) NA_real_)
@@ -623,30 +545,34 @@ InferencePropBetaRegr = define_inference_class(
 					if (is.null(res)) return(NULL)
 					list(b = as.numeric(res$coefficients), phi = res$phi, neg_loglik = res$neg_loglik, fisher_information = res$fisher_information)
 				},
+				# Fit fields are read by exact name (`[[`), never `$`: `$` partially
+				# matches list names, and generate_mod()'s full-fit wrapper carries
+				# `information_invertible` but no `information`, so `fit$information`
+				# returned that flag instead of falling through to the Fisher information.
 				extract_start = function(fit){
-					c(as.numeric(fit$b), log(as.numeric(fit$phi)))
+					c(as.numeric(fit[["b"]]), log(as.numeric(fit[["phi"]])))
 				},
 				score = function(fit){
-					params = c(as.numeric(fit$b), log(as.numeric(fit$phi)))
+					params = c(as.numeric(fit[["b"]]), log(as.numeric(fit[["phi"]])))
 					get_beta_regression_score_cpp(X_fit, y, params)
 				},
 				observed_information = function(fit){
-					params = c(as.numeric(fit$b), log(as.numeric(fit$phi)))
+					params = c(as.numeric(fit[["b"]]), log(as.numeric(fit[["phi"]])))
 					-get_beta_regression_hessian_cpp(X_fit, y, params)
 				},
 				fisher_information = function(fit){
-					fit$fisher_information %||% {
-						params = c(as.numeric(fit$b), log(as.numeric(fit$phi)))
+					fit[["fisher_information"]] %||% {
+						params = c(as.numeric(fit[["b"]]), log(as.numeric(fit[["phi"]])))
 						-get_beta_regression_hessian_cpp(X_fit, y, params)
 					}
 				},
 				information = function(fit){
-					fit$information %||% fit$fisher_information %||% {
-						params = c(as.numeric(fit$b), log(as.numeric(fit$phi)))
+					fit[["information"]] %||% fit[["fisher_information"]] %||% {
+						params = c(as.numeric(fit[["b"]]), log(as.numeric(fit[["phi"]])))
 						-get_beta_regression_hessian_cpp(X_fit, y, params)
 					}
 				},
-				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
+				neg_loglik = function(fit){ as.numeric(fit[["neg_loglik"]]) }
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){

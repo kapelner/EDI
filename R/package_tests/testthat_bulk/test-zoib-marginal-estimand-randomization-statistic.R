@@ -1,4 +1,4 @@
-# v1.0.6-TODO-184: InferencePropZeroOneInflatedBetaRegr's randomization statistic
+# v1.0.6-TODO-130: InferencePropZeroOneInflatedBetaRegr's randomization statistic
 # (compute_treatment_estimate_during_randomization_inference) always returned the
 # conditional interior-beta coefficient, even under estimand = "marginal_mean_diff".
 # The plain randomization test and the BRT slow path therefore ran on the

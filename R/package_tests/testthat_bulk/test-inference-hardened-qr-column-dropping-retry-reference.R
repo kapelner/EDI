@@ -71,7 +71,7 @@ test_that("failed fits retry with columns dropped in reverse pivot order until a
 	expected_seq <- c(list(keep0), lapply(seq_along(removable), function(k) sort(setdiff(keep0, removable[seq_len(k)]))))
 
 	r <- recorder(ok_after = 3L)
-	# v1.0.6-TODO-138: an accepted fit that dropped columns beyond the QR rank set warns once.
+	# v1.0.6-TODO-92: an accepted fit that dropped columns beyond the QR rank set warns once.
 	expect_warning(
 		out <- priv$fit_with_hardened_qr_column_dropping(X, r$fit_fun, r$fit_ok, required_cols = 1:2),
 		class = "edi_covariate_dropped_warning"

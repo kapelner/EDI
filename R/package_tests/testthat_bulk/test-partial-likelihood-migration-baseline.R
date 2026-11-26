@@ -393,7 +393,7 @@ test_that("LWA Cox and survival rank-regression components expose extracted help
 			"kk_lwa_cox_fit_model",
 			"kk_lwa_cox_for_matched_pairs",
 			"kk_lwa_cox_for_reservoir",
-			# v1.0.6-TODO-217: weighted (Bayesian-bootstrap) refit of the IVWC estimator.
+			# v1.0.6-TODO-158: weighted (Bayesian-bootstrap) refit of the IVWC estimator.
 			"compute_weighted_estimate_ivwc"
 		)
 	)

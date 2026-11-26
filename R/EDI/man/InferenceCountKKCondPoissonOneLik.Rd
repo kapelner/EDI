@@ -41,7 +41,7 @@ model-only test and can be narrower than \code{"lik_ratio"}. Its
 design-conservative version is the separate testing type
 \code{"lik_ratio_bartlett_approx_design_conservative"}: the larger of the
 model-only Bartlett p-value and the design Wald p-value, and the union of
-the two intervals (v1.0.6-TODO-380).
+the two intervals (v1.0.6-TODO-225).
 
 Computes the randomization distribution of the treatment effect estimate under the sharp null.
 

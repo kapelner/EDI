@@ -66,7 +66,7 @@
 	invisible(NULL)
 }
 
-# v1.0.6-TODO-235 (2): row selection and scaling for a weighted (Bayesian-bootstrap)
+# v1.0.6-TODO-169 (2): row selection and scaling for a weighted (Bayesian-bootstrap)
 # quantile half. Rows with a zero, negative or non-finite weight carry no information
 # and are dropped: quantreg::rq() would keep them as all-zero rows of the LP, and its
 # "nid" sparsity estimate (bandwidth from the row count) would still count them. A
@@ -202,25 +202,13 @@ KKQuantileRegrIVWCSource = list(
 			X_orig = private$matrix_with_n_rows(X, n_rows)
 			if (ncol(X_orig) == 0L) return(list(X = X_orig, keep = integer(0)))
 			reduced = qr_reduce_full_rank_cpp(X_orig)
-			keep = as.integer(reduced$keep)
-			if (length(keep) > 0L && all(is.finite(keep)) && all(keep >= 1L) && all(keep <= ncol(X_orig))){
-				X_red = X_orig[, keep, drop = FALSE]
-				return(list(X = X_red, keep = keep))
-			}
-			X_red = private$matrix_with_n_rows(reduced$X_reduced, nrow(X_orig))
-			list(X = X_red, keep = seq_len(ncol(X_red)))
+			kk_quantile_rank_reduction_result(private, X_orig, reduced)
 		},
 		reduce_preserve_cols_matrix = function(X, required_cols){
 			X_orig = as.matrix(X)
 			if (ncol(X_orig) == 0L) return(list(X = X_orig, keep = integer(0)))
 			reduced = qr_reduce_preserve_cols_cpp(X_orig, required_cols)
-			keep = as.integer(reduced$keep)
-			if (length(keep) > 0L && all(is.finite(keep)) && all(keep >= 1L) && all(keep <= ncol(X_orig))){
-				X_red = X_orig[, keep, drop = FALSE]
-				return(list(X = X_red, keep = keep))
-			}
-			X_red = private$matrix_with_n_rows(reduced$X_reduced, nrow(X_orig))
-			list(X = X_red, keep = seq_len(ncol(X_red)))
+			kk_quantile_rank_reduction_result(private, X_orig, reduced)
 		},
 		set_colnames_safely = function(X, names_vec){
 			n = ncol(X)
@@ -275,7 +263,7 @@ KKQuantileRegrIVWCSource = list(
 			}
 			invisible(NULL)
 		},
-		# v1.0.6-TODO-235 (2): the Bayesian-bootstrap replicate. Both halves are refit by
+		# v1.0.6-TODO-169 (2): the Bayesian-bootstrap replicate. Both halves are refit by
 		# weighted quantile regression, quantreg::rq(weights = ), under the draw's
 		# Dirichlet weights (pair weight = mean of its two subjects' row weights; reservoir
 		# subjects keep their own), each half takes its standard error from that weighted
@@ -302,7 +290,7 @@ KKQuantileRegrIVWCSource = list(
 			private$cached_values$s_beta_hat_T = if (estimate_only) NA_real_ else sqrt(pooled$ssq)
 			pooled$beta
 		},
-		# `weights` (v1.0.6-TODO-235): one weight per matched pair, in increasing pair id
+		# `weights` (v1.0.6-TODO-169): one weight per matched pair, in increasing pair id
 		# (the KKstats row order), for the Bayesian-bootstrap replicate. NULL is the
 		# unweighted fit. Pairs with a zero weight are dropped (see kk_quantile_weighted_rows()).
 		quantile_for_matched_pairs = function(weights = NULL){
@@ -358,7 +346,7 @@ KKQuantileRegrIVWCSource = list(
 			beta = tryCatch(coef(fit)[["(Intercept)"]], error = function(e) NA_real_)
 			list(beta = beta, ssq = if (is.finite(se) && se > 0) se^2 else NA_real_)
 		},
-		# `weights` (v1.0.6-TODO-235): one weight per reservoir subject, in KKstats row
+		# `weights` (v1.0.6-TODO-169): one weight per reservoir subject, in KKstats row
 		# order, for the Bayesian-bootstrap replicate; NULL is the unweighted fit.
 		quantile_for_reservoir = function(weights = NULL){
 			y_r = private$transform_y_fn_list$fn(private$cached_values$KKstats$y_reservoir)
@@ -525,3 +513,13 @@ KKQuantileRegrIVWCSource = list(
 		}
 	)
 )
+
+kk_quantile_rank_reduction_result = function(private, X_orig, reduced) {
+	keep = as.integer(reduced$keep)
+	if (length(keep) > 0L && all(is.finite(keep)) && all(keep >= 1L) && all(keep <= ncol(X_orig))){
+		X_red = X_orig[, keep, drop = FALSE]
+		return(list(X = X_red, keep = keep))
+	}
+	X_red = private$matrix_with_n_rows(reduced$X_reduced, nrow(X_orig))
+	list(X = X_red, keep = seq_len(ncol(X_red)))
+}

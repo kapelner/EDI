@@ -21,7 +21,7 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 }
 
 gate_artifact = function(name) file.path(repo_root, "package_tests", name)
-# NA audit (v1.0.6-TODO-95): silent NA outputs fail the gate; see na_audit_gate.R.
+# NA audit (v1.0.6-TODO-54): silent NA outputs fail the gate; see na_audit_gate.R.
 source(gate_artifact("na_audit_gate.R"), local = TRUE)
 
 gate_paths = list(
@@ -235,11 +235,11 @@ build_quality_gate_report = function(inputs, exports = load_edi_exports()) {
 	report
 }
 
-# NA audit rows (v1.0.6-TODO-95) from the results' output_outcome column. The allowlist row
+# NA audit rows (v1.0.6-TODO-54) from the results' output_outcome column. The allowlist row
 # that let a case through (kind, TODO or warning class) is appended to its detail.
 argument_combination_na_audit_rows = function(inputs) {
 	cases = na_audit_cases_from_argument_results(inputs$results)
-	# The data-shape matrix (v1.0.6-TODO-97, run_public_argument_data_shape_matrix.R) writes its
+	# The data-shape matrix (v1.0.7-TODO-41, run_public_argument_data_shape_matrix.R) writes its
 	# own results file; its rows are held to the same rule.
 	shape = if (!is.null(inputs$data_shape_results) && nrow(inputs$data_shape_results)) na_audit_cases_from_argument_results(inputs$data_shape_results)
 	if (!is.null(shape)) cases = if (is.null(cases)) shape else rbind(cases, shape)

@@ -65,7 +65,7 @@ test_that("bootstrap CIs are identical at 1, 2 and 3 fork workers", {
 		isTRUE(EDI:::edi_env$mirai_has_been_used),
 		"fork clusters cannot be started safely after mirai has been used in this R session"
 	)
-	# v1.0.6-TODO-425: under R CMD check --use-valgrind (R-CMD-check run 45295584606) the
+	# v1.0.6-TODO-232: under R CMD check --use-valgrind (R-CMD-check run 45295584606) the
 	# InferenceContinOLS BCa interval at 2 fork workers came back NA ("bootstrap_ci_unavailable",
 	# an error inside the parallel jackknife) while the serial one was finite. Valgrind's
 	# exit reports show five pairs of fork workers in this test where two are expected, which

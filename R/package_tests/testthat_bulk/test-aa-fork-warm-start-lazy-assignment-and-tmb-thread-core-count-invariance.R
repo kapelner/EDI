@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-53, -61, -62 and -64 (thread and random-number review audit,
+# v1.0.6-TODO-17 / v1.0.6-TODO-25 / v1.0.6-TODO-26 / v1.0.6-TODO-28 (thread and random-number review audit,
 # 2026-11-17): four seeded results that changed with set_num_cores().
 #   - TODO-53: compute_rand_bootstrap_two_sided_pval(type = "smoothed") drew
 #     each replicate's fresh assignment lazily from the executing process's RNG
@@ -53,7 +53,7 @@ core_count_count_design = function(n, lambda, design_seed = NULL) {
 	d
 }
 
-test_that("smoothed bootstrap-randomization p-value and lazily drawn assignments do not depend on the core count (v1.0.6-TODO-53)", {
+test_that("smoothed bootstrap-randomization p-value and lazily drawn assignments do not depend on the core count (v1.0.6-TODO-17)", {
 	skip_fork_core_count_invariance()
 	run = function(cores) {
 		set_num_cores(cores)
@@ -81,7 +81,7 @@ test_that("smoothed bootstrap-randomization p-value and lazily drawn assignments
 	expect_identical(r2$p, r1$p)
 })
 
-test_that("a lazily drawn assignment replays its seed and leaves the caller's RNG kind and stream alone (v1.0.6-TODO-53)", {
+test_that("a lazily drawn assignment replays its seed and leaves the caller's RNG kind and stream alone (v1.0.6-TODO-17)", {
 	d = core_count_count_design(20L, 3)
 	draw = list(w_seed = 12345L, w_rng_kind = c("Mersenne-Twister", "Inversion", "Rejection"))
 	expected = EDI:::rand_bootstrap_lazy_draw_w(d, draw)
@@ -96,7 +96,7 @@ test_that("a lazily drawn assignment replays its seed and leaves the caller's RN
 	expect_identical(get(".Random.seed", envir = globalenv()), before)
 })
 
-test_that("randomization distribution of a warm-started fit does not depend on the core count (v1.0.6-TODO-61)", {
+test_that("randomization distribution of a warm-started fit does not depend on the core count (v1.0.6-TODO-25)", {
 	skip_fork_core_count_invariance()
 	run = function(cls, cores) {
 		set_num_cores(cores)
@@ -144,7 +144,7 @@ core_count_hurdle_weighted_estimates = function(cls, cores) {
 	list(nc = as.integer(inf$num_cores), est = est)
 }
 
-test_that("hurdle negbin and hurdle Poisson bootstrap-weighted glmmTMB fits do not depend on the core count (v1.0.6-TODO-62, -64)", {
+test_that("hurdle negbin and hurdle Poisson bootstrap-weighted glmmTMB fits do not depend on the core count (v1.0.6-TODO-26 / v1.0.6-TODO-28)", {
 	skip_on_cran()
 	skip_if_not_installed("glmmTMB")
 	# Before the fix the estimates differed by up to 3e-11 between 1 and 2 TMB threads.

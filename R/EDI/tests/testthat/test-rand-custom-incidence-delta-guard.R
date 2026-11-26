@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-110 / v1.0.6-TODO-81: on an incidence response, InferenceRandCustom
+# v1.0.6-TODO-64 / v1.0.6-TODO-42: on an incidence response, InferenceRandCustom
 # with a C++ statistic refused compute_rand_two_sided_pval() even at delta = 0
 # ("Use Zhang method"), while the R-function form slipped past the documented ban
 # on nonzero delta. One guard now applies to both forms: delta = 0 runs, nonzero

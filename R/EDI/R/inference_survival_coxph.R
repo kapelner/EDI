@@ -356,62 +356,24 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 		#' @description Computes an asymptotic confidence interval using the configured likelihood-backed test.
 		#' @param alpha Significance level 1 - \code{alpha}. Default 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			if (isTRUE(private$has_general_censoring) && private$testing_type != "wald") {
-				stop(
-					"testing_type = '", private$testing_type, "' is not supported for left-/",
-					"interval-censored survival data (dispatched via icenReg::ic_sp(), which has ",
-					"no partial-likelihood score/gradient/likelihood-ratio machinery to reuse). ",
-					"Use testing_type = 'wald', which is supported."
-				)
-			}
-			if (private$testing_type == "wald") {
-				private$shared(estimate_only = FALSE)
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-				}
+			if (coxph_use_cached_wald(private)) {
+				return(private$compute_z_or_t_ci_from_s_and_df(alpha))
 			}
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			edi_likelihood_asymp_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha), unsupported = NULL)
 		},
 		#' @description Computes an asymptotic two-sided p-value using the configured likelihood-backed test.
 		#' @param delta Null treatment effect to test against. Default 0.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			if (isTRUE(private$has_general_censoring) && private$testing_type != "wald") {
-				stop(
-					"testing_type = '", private$testing_type, "' is not supported for left-/",
-					"interval-censored survival data (dispatched via icenReg::ic_sp(), which has ",
-					"no partial-likelihood score/gradient/likelihood-ratio machinery to reuse). ",
-					"Use testing_type = 'wald', which is supported."
-				)
-			}
-			if (private$testing_type == "wald") {
-				private$shared(estimate_only = FALSE)
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-				}
+			if (coxph_use_cached_wald(private)) {
+				return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
 			}
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			edi_likelihood_asymp_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta), unsupported = NULL)
 		},
 		#' @description Recomputes the Cox PH treatment estimate under subject/block
 		#'   bootstrap weights (via \code{weighted_cox_bootstrap_surrogate_fit()},
@@ -475,6 +437,31 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 		},
 		cox_coefficients_extreme = function(coefs){
 			cox_partial_likelihood_coefficients_extreme(coefs, private$cox_extreme_coef_threshold)
+		},
+		# v1.0.7-TODO-183 (the v1.0.6-TODO-54 rule): the full-data fit is non-estimable, so say why
+		# instead of handing back a silent NA: one edi_estimate_unavailable_warning per object, naming
+		# the diverged coefficient(s). Once per object because generate_mod() reruns for the Wald,
+		# likelihood and resampling calls; whether every NA-returning call should warn is
+		# DECISION-v1.0.7-TODO-182. Silent inside resampling, whose replicate fits may diverge.
+		warn_coxph_nonestimable = function(reason, coefs = NULL, coef_names = NULL){
+			if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
+			if (isTRUE(private$cached_values$coxph_nonestimable_warned)) return(invisible(FALSE))
+			private$cached_values$coxph_nonestimable_warned = TRUE
+			detail = if (identical(reason, "coxph_extreme_coefficients")) {
+				coefs = as.numeric(coefs)
+				bad = which(!is.finite(coefs) | abs(coefs) > private$cox_extreme_coef_threshold)
+				which_cols = if (length(bad) && length(coef_names) == length(coefs)) {
+					paste0(" (", paste(sprintf("%s = %s", coef_names[bad], signif(coefs[bad], 3)), collapse = ", "), ")")
+				} else ""
+				paste0("A partial-likelihood coefficient diverged (|coefficient| > ", private$cox_extreme_coef_threshold, ")",
+					which_cols, ": the partial likelihood is monotone in it, typically because the treatment or a covariate ",
+					"(often a rare factor level or a missingness indicator) orders the event times perfectly.")
+			} else {
+				"The Cox partial-likelihood fit failed (neither the C++ kernel nor the R fallback converged)."
+			}
+			edi_estimate_unavailable_na(self, private, reason = reason,
+				detail = paste(detail, "Results on this object that need the estimate are NA as well."))
+			invisible(TRUE)
 		},
 		supports_likelihood_tests = function(){
 			isTRUE(private$use_rcpp)
@@ -608,6 +595,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 				
 				if (is.null(fit)) {
 					private$cached_values$likelihood_test_context = NULL
+					private$warn_coxph_nonestimable("coxph_fit_failed")
 					return(list(b = rep(NA_real_, ncol(X_fit) + 1L), vcov = matrix(NA_real_, ncol(X_fit) + 1L, ncol(X_fit) + 1L)))
 				}
 				
@@ -620,6 +608,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 				coefs = as.numeric(fit$coefficients %||% fit$b)
 				if (private$cox_coefficients_extreme(coefs)) {
 					private$cache_nonestimable_estimate("coxph_extreme_coefficients")
+					private$warn_coxph_nonestimable("coxph_extreme_coefficients", coefs, colnames(X_fit))
 					private$cached_values$likelihood_test_context = NULL
 					return(list(
 						beta_hat_T = NA_real_,
@@ -652,6 +641,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 					coefs = stats::coef(coxph_mod)
 					if (private$cox_coefficients_extreme(coefs)) {
 						private$cache_nonestimable_estimate("coxph_extreme_coefficients")
+						private$warn_coxph_nonestimable("coxph_extreme_coefficients", coefs, colnames(X_fit))
 						return(list(beta_hat_T = NA_real_, b = rep(NA_real_, ncol(X_fit) + 1L), ssq_b_2 = NA_real_, vcov = NULL))
 					}
 					list(
@@ -664,6 +654,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 					coefs = stats::coef(coxph_mod)
 					if (private$cox_coefficients_extreme(coefs)) {
 						private$cache_nonestimable_estimate("coxph_extreme_coefficients")
+						private$warn_coxph_nonestimable("coxph_extreme_coefficients", coefs, colnames(X_fit))
 						return(list(
 							beta_hat_T = NA_real_,
 							ssq_b_2 = NA_real_,
@@ -734,7 +725,7 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 			bs_samples = if (isTRUE(estimate_only)) 0L else private$icen_bs_samples
 			# ic_sp()'s covariance is a bootstrap drawn from the session RNG. With an object seed,
 			# draw it under a seed derived from it and restore the session stream afterwards, so
-			# the Wald SE does not depend on the global RNG state (v1.0.6-TODO-313).
+			# the Wald SE does not depend on the global RNG state (v1.0.6-TODO-195).
 			fit_ic_sp = function() tryCatch(
 				suppressWarnings(icenReg::ic_sp(fmla, data = dat, model = "ph", bs_samples = bs_samples)),
 				error = function(e) NULL
@@ -899,3 +890,21 @@ InferenceSurvivalCoxPHRegr = define_inference_class(
 		)
 	)
 )
+
+coxph_use_cached_wald = function(private) {
+	if (isTRUE(private$has_general_censoring) && private$testing_type != "wald") {
+		stop(
+			"testing_type = '", private$testing_type, "' is not supported for left-/",
+			"interval-censored survival data (dispatched via icenReg::ic_sp(), which has ",
+			"no partial-likelihood score/gradient/likelihood-ratio machinery to reuse). ",
+			"Use testing_type = 'wald', which is supported."
+		)
+	}
+	if (private$testing_type == "wald") {
+		private$shared(estimate_only = FALSE)
+		if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+			return(TRUE)
+		}
+	}
+	FALSE
+}

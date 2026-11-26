@@ -38,12 +38,12 @@
 #' \code{\link[EDI:InferenceJackknife]{InferenceJackknife}}). A stratum with one block
 #' contributes nothing. The jackknife-Wald test and interval use the t distribution with
 #' \eqn{\sum_h (n_h - 1)} degrees of freedom, \eqn{n_h} the number of blocks in stratum
-#' \eqn{h} (v1.0.6-TODO-231). Before EDI 1.0.6 a replicate deleted a whole stratum, which
-#' left only 2-4 replicates on typical data (v1.0.6-TODO-4).
+#' \eqn{h} (v1.0.6-TODO-165). Before EDI 1.0.6 a replicate deleted a whole stratum, which
+#' left only 2-4 replicates on typical data (v1.0.6-TODO-1).
 #' When any stratum holds fewer than 10 permuted-block units, the automatic unit is one subject
 #' within its stratum instead (\code{unit = "observation_within_block"}, the same stratified
 #' jackknife with subjects as units): with few blocks in a stratum the permuted-block
-#' jackknife-Wald test was too liberal (v1.0.6-TODO-270). An explicit
+#' jackknife-Wald test was too liberal (v1.0.7-TODO-122). An explicit
 #' \code{unit = "permuted_block"} still deletes permuted blocks.
 #'
 #' @references Zelen, M. (1974). "The randomization and stratification of patients to
@@ -100,8 +100,8 @@ DesignSeqOneByOneSPBR = define_design_class(
 			private$block_size = as.integer(block_size)
 			private$uses_covariates = TRUE
 			private$sequential_bootstrap_whole_group = TRUE
-			# v1.0.6-TODO-350: a plain list, not an environment. R6's clone(deep = TRUE) and the
-			# v1.0.6-TODO-316 rollback snapshot copy fields by reference, so an environment was
+			# v1.0.6-TODO-218: a plain list, not an environment. R6's clone(deep = TRUE) and the
+			# v1.0.6-TODO-196 rollback snapshot copy fields by reference, so an environment was
 			# shared with every copy and a copy's assignments advanced the original's queues.
 			# A list is copied on modify. Keys get a "s:" prefix because a list element named ""
 			# cannot be looked up.

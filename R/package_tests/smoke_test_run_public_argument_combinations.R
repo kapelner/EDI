@@ -75,7 +75,7 @@ expect_true(identical(persisted_after_resume$case_id, results_again$case_id), "R
 expect_true(all(results$output_outcome[results$status == "ok"] %in% c("finite", "warned_na", "recorded_na", "silent_na", "nonfinite", "non_numeric")), "ok cases carry an error outcome.")
 expect_true(all(results$output_outcome[results$status == "skipped_slow"] == "not_run"), "Constraint-rejected cases are not marked not_run.")
 
-# output_outcome vocabulary (v1.0.6-TODO-97): a silent NA is its own outcome, apart from a warned one.
+# output_outcome vocabulary (v1.0.7-TODO-41): a silent NA is its own outcome, apart from a warned one.
 expect_true(identical(classify_output_outcome(list(status = "ok", result = c(1, 2), warning_message = "")), "finite"), "Finite output misclassified.")
 expect_true(identical(classify_output_outcome(list(status = "ok", result = c(NA_real_, NA_real_), warning_message = "")), "silent_na"), "Silent NA misclassified.")
 expect_true(identical(classify_output_outcome(list(status = "ok", result = NA_real_, warning_message = "not estimable")), "warned_na"), "Warned NA misclassified.")

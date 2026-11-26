@@ -102,7 +102,7 @@ turnbull_npmle_group_stat = function(y_L, y_R, requested_stat = c("median", "res
 	as.numeric(area)
 }
 
-# v1.0.6-TODO-144: one arm's Turnbull NPMLE summary for the "median not reached"
+# v1.0.6-TODO-96: one arm's Turnbull NPMLE summary for the "median not reached"
 # warning: the lowest survival the NPMLE reaches at a finite time (S just after the
 # last Turnbull interval with a finite right end; mass on an interval ending at Inf is
 # never "used up" at a finite time), the number of usable subjects and the number whose

@@ -175,7 +175,7 @@ struct LogisticPostFitResult {
 // Shared logistic g-computation post-fit (sandwich vcov + delta-method RD /
 // log RR SEs). The HC0 and cluster-robust exports differ only in the meat, so
 // the caller passes it as meat_fn(score_resid) -> p x p matrix
-// (v1.0.6-TODO-193). caller_name goes into the dimension-mismatch error.
+// (v1.0.7-TODO-54). caller_name goes into the dimension-mismatch error.
 template <typename MeatFn>
 LogisticPostFitResult compute_gcomp_logistic_post_fit(const Eigen::Map<Eigen::MatrixXd>& X_fit,
                                                        const Eigen::Ref<const Eigen::VectorXd>& y,

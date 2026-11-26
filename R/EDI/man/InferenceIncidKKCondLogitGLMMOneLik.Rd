@@ -199,6 +199,7 @@ Zeger, S. L., Liang, K.-Y. and Albert, P. S. (1988). Models for
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_information_source_used'><code>InferenceAbstractKKCondLogitGLMM$get_information_source_used()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_diagnostics()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_last_param_bootstrap_estimate_diagnostics'><code>InferenceAbstractKKCondLogitGLMM$get_last_param_bootstrap_estimate_diagnostics()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_likelihood_test_variance'><code>InferenceAbstractKKCondLogitGLMM$get_likelihood_test_variance()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_mod'><code>InferenceAbstractKKCondLogitGLMM$get_mod()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_ci_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_ci_types()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-get_supported_bayesian_bootstrap_pval_types'><code>InferenceAbstractKKCondLogitGLMM$get_supported_bayesian_bootstrap_pval_types()</code></a></li>
@@ -212,6 +213,7 @@ Zeger, S. L., Liang, K.-Y. and Albert, P. S. (1988). Models for
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-select_optimal_b_subsampling'><code>InferenceAbstractKKCondLogitGLMM$select_optimal_b_subsampling()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-select_optimal_m_out_of_n_bootstrap'><code>InferenceAbstractKKCondLogitGLMM$select_optimal_m_out_of_n_bootstrap()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_information_preference'><code>InferenceAbstractKKCondLogitGLMM$set_information_preference()</code></a></li>
+  <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_likelihood_test_variance'><code>InferenceAbstractKKCondLogitGLMM$set_likelihood_test_variance()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-set_testing_type'><code>InferenceAbstractKKCondLogitGLMM$set_testing_type()</code></a></li>
   <li><a href='../../EDI/html/InferenceAbstractKKCondLogitGLMM.html#method-InferenceAbstractKKCondLogitGLMM-supports_rand_pval_for_incidence'><code>InferenceAbstractKKCondLogitGLMM$supports_rand_pval_for_incidence()</code></a></li>
 </ul>

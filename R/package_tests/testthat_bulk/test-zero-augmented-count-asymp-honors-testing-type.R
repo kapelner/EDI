@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-413: InferenceCountZeroInflatedPoisson, InferenceCountHurdlePoisson,
+# v1.0.6-TODO-230: InferenceCountZeroInflatedPoisson, InferenceCountHurdlePoisson,
 # InferenceCountZeroInflatedNegBin and InferenceCountHurdleNegBin listed score /
 # gradient / lik_ratio / lik_ratio_bartlett_approx in get_supported_testing_types(),
 # but compute_asymp_confidence_interval() / compute_asymp_two_sided_pval() always
@@ -84,7 +84,7 @@ test_that("compute_asymp_*() equals the direct compute_<type>_*() method for eve
 })
 
 test_that("Wald results are unchanged and equal the direct Wald methods", {
-	# Pre-fix values on this fixture (Wald was the only path before v1.0.6-TODO-413).
+	# Pre-fix values on this fixture (Wald was the only path before v1.0.6-TODO-230).
 	expected = list(
 		InferenceCountZeroInflatedPoisson = c(0.655285, -0.576724, 0.362738),
 		InferenceCountHurdlePoisson = c(0.565830, -0.562950, 0.307839),

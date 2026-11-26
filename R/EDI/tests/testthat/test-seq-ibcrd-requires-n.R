@@ -1,4 +1,4 @@
-# v1.0.6-TODO-187: DesignSeqOneByOneiBCRD requires n (owner decision 2026-11-19). With n = NULL it
+# v1.0.6-TODO-133: DesignSeqOneByOneiBCRD requires n (owner decision 2026-11-19). With n = NULL it
 # used to fall back to a Bernoulli coin while its randomization redraw still forced exact balance,
 # so the randomization distribution was wrong. n = NULL is now refused at construction; with n the
 # design is unchanged (goldens below were recorded before the change).
@@ -48,7 +48,7 @@ test_that("DesignSeqOneByOneiBCRD with n assigns exactly as before the change", 
 
 test_that("DesignSeqOneByOneiBCRD redraws keep the realized number treated", {
 	# n * prob_T not on a .5 tie here; the tie cases are in test-ibcrd-tie-rounding-redraw-count.R
-	# (v1.0.6-TODO-213).
+	# (v1.0.6-TODO-154).
 	for (cfg in list(list(n = 20L, p = 0.3, s = 2L), list(n = 15L, p = 0.5, s = 3L))) {
 		d = ibcrd_enroll(cfg$n, cfg$p, set_seed = cfg$s)
 		set.seed(5L)

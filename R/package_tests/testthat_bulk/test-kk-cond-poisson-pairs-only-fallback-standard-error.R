@@ -7,10 +7,10 @@
 # Where: R/EDI/R/inference_count_KK_cond_poisson.R:2033 (kind: na_where_defined).
 # On commit 4ce2b7126d36 this test failed with: Expected `is.finite(se)` to be TRUE. Differences:
 # `actual`: FALSE `expected`: TRUE
-# Tracked as v1.0.6-TODO-390; remove the skip() when it is fixed.
+# Tracked as v1.0.7-TODO-91; remove the skip() when it is fixed.
 
 test_that("KK cond-Poisson pairs-only fallback reports the finite conditional-logit model SE", {
-	skip("v1.0.6-TODO-390: try_pairs_only() always sets s_beta_hat_T = NA")
+	skip("v1.0.7-TODO-91: try_pairs_only() always sets s_beta_hat_T = NA")
 		set.seed(2)
 		n = 60L
 		des = DesignSeqOneByOneKK14$new(n = n, response_type = "count", verbose = FALSE)

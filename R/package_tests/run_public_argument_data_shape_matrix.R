@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# Data-shape option matrix (v1.0.6-TODO-97): pairwise cells over design, response type, n = NULL
+# Data-shape option matrix (v1.0.7-TODO-41): pairwise cells over design, response type, n = NULL
 # (mid-stream and at the end), unequal block/cluster sizes, censoring type, a missing covariate,
 # effect size and inference class, plus the InferenceRandCustom statistic block. Cells come from
 # generate_public_argument_data_shape_cases() and run through run_case() like every other
@@ -29,7 +29,7 @@ source(file.path(repo_root, "package_tests", "generate_public_argument_combinati
 source(file.path(repo_root, "package_tests", "run_public_argument_combinations.R"))
 
 # Outcomes a cell may not have: the call must give finite output, an NA it warns about, or a clear
-# error. recorded_na fails too: the user sees an NA and no warning (the v1.0.6-TODO-95 rule).
+# error. recorded_na fails too: the user sees an NA and no warning (the v1.0.6-TODO-54 rule).
 data_shape_failing_outcomes = c("silent_na", "recorded_na", "unclear_error", "nonfinite")
 
 # Failures already filed as open release TODOs. A row matches when every given field matches its
@@ -39,8 +39,8 @@ data_shape_failing_outcomes = c("silent_na", "recorded_na", "unclear_error", "no
 # (calibration-acceptance rule); delete it when the TODO closes.
 data_shape_known_issues = function() {
 	rows = list(
-		list(todo = "v1.0.6-TODO-74", fixture_id = "^data_shape__fixed_blocked_cluster__", target = "::compute_jackknife_wald_confidence_interval$"),
-		list(todo = "v1.0.6-TODO-82", target = "^InferenceRandCustom::", argument_signature = "na\\.rm=FALSE", receiver_args = "sometimes_na")
+		list(todo = "v1.0.7-TODO-37", fixture_id = "^data_shape__fixed_blocked_cluster__", target = "::compute_jackknife_wald_confidence_interval$"),
+		list(todo = "v1.0.6-TODO-43", target = "^InferenceRandCustom::", argument_signature = "na\\.rm=FALSE", receiver_args = "sometimes_na")
 	)
 	rows
 }

@@ -21,7 +21,7 @@ standard error is unavailable or non-finite, the Wald-style methods
 all return \code{NA}, with the reason recorded and an
 \code{edi_wald_unavailable_warning}; no bootstrap interval or p-value is
 substituted (they fell back to the bootstrap before EDI 1.0.6,
-v1.0.6-TODO-380). Call \code{$compute_bootstrap_confidence_interval()} for a
+v1.0.6-TODO-225). Call \code{$compute_bootstrap_confidence_interval()} for a
 bootstrap interval.
 
 \strong{Small samples.} With unequal allocation (\code{prob_T = 0.2}, about
@@ -260,7 +260,7 @@ the design's imputed covariates.}
   G-Comp mean difference using the delta-method standard error (see
   class documentation); \code{NA} with an
   \code{edi_wald_unavailable_warning} if that standard error is
-  unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_confidence_interval()}.
+  unavailable (v1.0.6-TODO-225). Identical to \code{$compute_wald_confidence_interval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_confidence_interval(alpha = 0.05)}
@@ -283,7 +283,7 @@ the design's imputed covariates.}
   \mathrm{md} = \code{delta}} using the delta-method standard error (see
   class documentation); \code{NA} with an
   \code{edi_wald_unavailable_warning} if that standard error is
-  unavailable (v1.0.6-TODO-380). Identical to \code{$compute_wald_two_sided_pval()}.
+  unavailable (v1.0.6-TODO-225). Identical to \code{$compute_wald_two_sided_pval()}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalGCompMeanDiff$compute_asymp_two_sided_pval(delta = 0)}

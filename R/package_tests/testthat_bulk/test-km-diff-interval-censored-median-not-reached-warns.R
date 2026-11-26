@@ -1,4 +1,4 @@
-# v1.0.6-TODO-144: on left/interval-censored data InferenceSurvivalKMDiff returned an NA
+# v1.0.6-TODO-96: on left/interval-censored data InferenceSurvivalKMDiff returned an NA
 # estimate with no warning when an arm's Turnbull median is not reached (the general-
 # censoring branch of shared() returned before the not-reached warning, and that warning
 # read private$y, which is NA for every censored row). Its jackknife-Wald NA also gave the
@@ -106,11 +106,11 @@ test_that("interval-censored KMDiff with both medians reached raises no not-reac
 	expect_equal(est, 6)
 })
 
-# v1.0.6-TODO-309 (docs-scenarios survival-censoring F4): the asymptotic p-value fell back to the
+# v1.0.6-TODO-193 (docs-scenarios survival-censoring F4): the asymptotic p-value fell back to the
 # bootstrap with na.rm = FALSE and returned NA (2 of 501 replicates non-finite) while the asymptotic CI
 # (which drops them) was finite; the method takes no na.rm, so the warning's advice could not be followed.
 test_that("KMDiff asymptotic CI / p-value with a missing Brookmeyer-Crowley bound are NA, not the bootstrap", {
-	# v1.0.6-TODO-380: they used to fall back to the bootstrap here (the TODO-309 fixture, whose
+	# v1.0.6-TODO-225: they used to fall back to the bootstrap here (the TODO-309 fixture, whose
 	# right-censored data leave a Brookmeyer-Crowley bound non-finite); a Wald request now gets
 	# NA with a reason. The bootstrap, called directly, still drops non-finite replicates.
 	set.seed(20261118); n = 80

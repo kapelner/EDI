@@ -7,7 +7,7 @@ library(EDI)
 # setup_randomization_template_and_shifts() helper: an incidence-response instance with no custom
 # randomization statistic errors "randomization tests with delta nonzero not supported for
 # incidence". (A sibling guard refused any design with interval-/left-censored survival data (a finite
-# y_R); the v1.0.6-TODO-143 follow-up lifted it, so that case now runs.) Both were reachable even on a Zhang-eligible or otherwise fully-supported
+# y_R); the v1.0.6-TODO-95 follow-up lifted it, so that case now runs.) Both were reachable even on a Zhang-eligible or otherwise fully-supported
 # instance, since this lower-level method has no incidence/censoring gating of its own before this
 # point. Zero test references anywhere for either message.
 
@@ -26,7 +26,7 @@ test_that("approximate_randomization_distribution_beta_hat_T(): a nonzero delta 
 	)
 })
 
-# v1.0.6-TODO-143 follow-up (owner decision 2026-11-18): the interval-censoring refusal was lifted; a
+# v1.0.6-TODO-95 follow-up (owner decision 2026-11-18): the interval-censoring refusal was lifted; a
 # nonzero delta now shifts y_L / y_R along with y.
 test_that("approximate_randomization_distribution_beta_hat_T(): a nonzero delta on a design with interval-censored data runs and moves the null distribution", {
 	set.seed(2)

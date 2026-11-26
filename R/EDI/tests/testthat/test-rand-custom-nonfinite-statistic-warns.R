@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-111: an InferenceRandCustom statistic (R or C++) that is NA/NaN on
+# v1.0.6-TODO-65: an InferenceRandCustom statistic (R or C++) that is NA/NaN on
 # the observed data gave an NA estimate and an NA randomization p-value with no
 # warning (only the nonestimable reason "custom_estimate_unavailable" was
 # recorded). It now warns, naming which statistic argument returned the value.

@@ -165,11 +165,11 @@ test_that("custom randomization migration golden tests compare distribution and 
 
 	builders = inference_migration_golden_design_builders()
 	design_continuous = builders[["continuous"]](n = 12L, seed = 20260728L)
-	# r = 12, not 9 (v1.0.6-TODO-202): the p-value needs at least 10 finite draws, so
+	# r = 12, not 9 (v1.0.6-TODO-143): the p-value needs at least 10 finite draws, so
 	# r = 9 returned NA on both sides (edi_procedure_na_warning) and the comparison
 	# checked NA == NA. The edi_perfect_predictor_warning that TODO-202 also muffled here
 	# is gone at the source: the shared fixture's noise is no longer collinear with x
-	# (v1.0.6-TODO-204), so expect_silent() now covers every warning class.
+	# (v1.0.6-TODO-145), so expect_silent() now covers every warning class.
 	expect_silent(expect_inference_migration_outputs_equal(
 		legacy_class = CustomRandLegacy,
 		migrated_class = CustomRandMigrated,

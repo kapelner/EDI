@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-275: both IRLS loops in R/EDI/src/fast_log_binomial_regression.cpp ran while
+# v1.0.6-TODO-174: both IRLS loops in R/EDI/src/fast_log_binomial_regression.cpp ran while
 # `iter < maxit || kkt_confirm_pending`, and a small step next to a mean bound sets that flag, so the loop had no
 # hard bound. With tol < 0.9 the flag cannot be set twice in a row (the confirmation iteration either stops or takes
 # an observed-information Newton step too large to pass the relative-change test), so fits end by maxit + 1; the

@@ -20,7 +20,7 @@ library(EDI)
 # The guard is driven by mocking the identity-binomial kernels to return a non-converged fit, which
 # is_identity_binomial_fit_reasonable() rejects for every column subset. Until 2026-11-18 an
 # all-ones response did this for real (the cold start sat outside the mean support and IRLS never
-# converged); since v1.0.6-TODO-142 pulls such a start into the support, that fit converges to the
+# converged); since v1.0.7-TODO-47 pulls such a start into the support, that fit converges to the
 # correct boundary MLE (intercept 1, risk difference 0), checked by the first and last tests below.
 mock_unconverged_identity_binomial <- function() {
 	bad <- function(X, ...) list(b = rep(0, NCOL(X)), converged = FALSE, ssq_b_j = NA_real_)
@@ -42,7 +42,7 @@ all_ones_design <- function(n = 30L) {
 	des
 }
 
-test_that("fast_identity_binomial_regression_weighted_cpp converges to the boundary MLE against an all-ones response (v1.0.6-TODO-142)", {
+test_that("fast_identity_binomial_regression_weighted_cpp converges to the boundary MLE against an all-ones response (v1.0.7-TODO-47)", {
 	set.seed(1); n <- 30L
 	X <- cbind(`(Intercept)` = 1, treatment = rep(0:1, n / 2))
 	y <- rep(1, n)
@@ -68,7 +68,7 @@ test_that("compute_estimate_with_bootstrap_weights caches 'binomial_identity_wei
 	expect_true(is.na(p$cached_values$beta_hat_T))
 })
 
-test_that("an all-ones weighted refit now fits: risk difference 0, not nonestimable (v1.0.6-TODO-142)", {
+test_that("an all-ones weighted refit now fits: risk difference 0, not nonestimable (v1.0.7-TODO-47)", {
 	des <- all_ones_design()
 	inf <- InferenceIncidBinomialIdentityRiskDiff$new(des, verbose = FALSE)
 	p <- inf$.__enclos_env__$private

@@ -11,7 +11,7 @@ library(EDI)
 # clone-bug era. Deterministic goldens (estimates, asymptotic CIs/p-values,
 # KK bootstrap distribution/CI) are unchanged to the last digit.
 
-# v1.0.6-TODO-204 (2026-11-19): every golden below that reads the shared
+# v1.0.6-TODO-145 (2026-11-19): every golden below that reads the shared
 # continuous fixture was re-recorded after the fixture gained a small seeded
 # noise term (inference_migration_complete_design(); its old
 # seq(-0.3, 0.3) noise was collinear with x, so y was an exact linear function
@@ -24,7 +24,7 @@ simple_wilcox_golden_design = function(n = 12L, seed = 20260728L) {
 	inference_migration_complete_design("continuous", n = n, seed = seed)
 }
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), which changed this seed's
 # allocation. With two covariates the F(2, .) cutoff near 0 scales like lambda,
 # so lambda = 0.05 (default 0.1) reproduces the allocation the goldens below
@@ -69,7 +69,7 @@ expect_simple_wilcox_golden = function(label, method, args, expected, tolerance 
 	expect_equal(actual, expected, tolerance = tolerance, info = label)
 }
 
-# v1.0.6-TODO-212: the jackknife is never supported for the Hodges-Lehmann
+# v1.0.6-TODO-153: the jackknife is never supported for the Hodges-Lehmann
 # Wilcoxon classes (jackknife_always_nonestimable()). Each jackknife method
 # returns NA and signals exactly one classed `edi_unsupported_procedure`
 # warning carrying the documented reason. The former goldens compared that NA
@@ -231,7 +231,7 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 	expect_simple_wilcox_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		# v1.0.6-TODO-212: r = 12, not 9. With r = 9 the p-value is NA (fewer
+		# v1.0.6-TODO-153: r = 12, not 9. With r = 9 the p-value is NA (fewer
 		# than the 10 finite draws the randomization p-value needs), so the
 		# golden compared NA with NA.
 		list(delta = 0, r = 12L, show_progress = FALSE),
@@ -282,13 +282,13 @@ test_that("migrated simple Wilcoxon golden outputs are stable", {
 	expect_simple_wilcox_golden(
 		"randomization bootstrap p-value",
 		"compute_rand_bootstrap_two_sided_pval",
-		# v1.0.6-TODO-212: B = 12, not 9 (B = 9 is below the 10-finite-draw
+		# v1.0.6-TODO-153: B = 12, not 9 (B = 9 is below the 10-finite-draw
 		# floor, so the golden compared NA with NA).
 		list(delta = 0, B = 12L, show_progress = FALSE),
 		# v1.2.0-TODO-207: 2 * (1 + 1) / 13 (smaller tail 1 of 12 draws); was 2 * 1 / 12.
 		4 / 13
 	)
-	# v1.0.6-TODO-212: unsupported-procedure contract, not NA-equals-NA goldens.
+	# v1.0.6-TODO-153: unsupported-procedure contract, not NA-equals-NA goldens.
 	for (jk in list(
 		list("jackknife estimate", "compute_jackknife_estimate", list(), 1L),
 		list("jackknife bias estimate", "compute_jackknife_bias_estimate", list(), 1L),
@@ -343,7 +343,7 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 	expect_kk_wilcox_golden(
 		"randomization p-value",
 		"compute_rand_two_sided_pval",
-		# v1.0.6-TODO-212: r = 12, not 9 (r = 9 is below the 10-finite-draw floor,
+		# v1.0.6-TODO-153: r = 12, not 9 (r = 9 is below the 10-finite-draw floor,
 		# so the golden compared NA with NA).
 		list(delta = 0, r = 12L, show_progress = FALSE),
 		# v1.2.0-TODO-207: 2 * (1 + 1) / 13 (smaller tail 1 of 12 draws); was 2 * 1 / 12.
@@ -373,7 +373,7 @@ test_that("migrated KK Wilcoxon golden outputs are stable", {
 		InferenceAllKKWilcoxIVWC$new(kk_wilcox_golden_design())$compute_rand_bootstrap_two_sided_pval(delta = 0, B = 9L, show_progress = FALSE),
 		"not supported for DesignSeqOneByOne designs"
 	)
-	# v1.0.6-TODO-212: unsupported-procedure contract, not NA-equals-NA goldens.
+	# v1.0.6-TODO-153: unsupported-procedure contract, not NA-equals-NA goldens.
 	for (jk in list(
 		list("jackknife estimate", "compute_jackknife_estimate", list(), 1L),
 		list("jackknife bias estimate", "compute_jackknife_bias_estimate", list(), 1L),

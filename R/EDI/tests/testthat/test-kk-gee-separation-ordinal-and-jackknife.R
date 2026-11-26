@@ -1,4 +1,4 @@
-# v1.0.6-TODO-122: two separation gaps left by v1.0.6-TODO-118.
+# v1.0.6-TODO-76: two separation gaps left by v1.0.6-TODO-72.
 # (1) InferenceOrdinalKKGEE has its own ordLORgee dispatch, so the TODO-118 check
 #     never ran: with every treated subject in the top category its asymptotic CI
 #     was (21.33, 25.80) and p ~ 1e-95, silently. Now it warns once

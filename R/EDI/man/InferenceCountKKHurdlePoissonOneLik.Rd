@@ -78,7 +78,7 @@ narrower than the design-conservative \code{"lik_ratio"} one. Its
 design-conservative version is a separate testing type,
 \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}: the
 larger of the model-only Bartlett p-value and the design Wald p-value, and the
-union of the two intervals (v1.0.6-TODO-380).
+union of the two intervals (v1.0.6-TODO-225).
 When the model-based standard error is unavailable or non-finite (e.g. a
 boundary/separation fit) the Wald confidence interval and p-value are
 \code{NA}, with the reason recorded and an \code{edi_wald_unavailable_warning};
@@ -104,7 +104,7 @@ positive matched count equals 1 and every reservoir count there is 0, the treatm
 maximum likelihood estimate, giving \code{NA} (reason
 \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
 \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
-refits apply the same rules to their own data (v1.0.6-TODO-195).
+refits apply the same rules to their own data (v1.0.6-TODO-140).
 }
 \section{Small-sample behaviour}{
 

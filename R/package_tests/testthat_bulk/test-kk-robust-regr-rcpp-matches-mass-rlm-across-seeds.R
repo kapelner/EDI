@@ -1,4 +1,4 @@
-# v1.0.6-TODO-50: the Rcpp robust-regression path of the KK robust-regression
+# v1.0.6-TODO-15: the Rcpp robust-regression path of the KK robust-regression
 # classes (use_rcpp = TRUE) must reproduce MASS::rlm (use_rcpp = FALSE) for
 # method = "M", across seeds rather than on one lucky seed.
 #

@@ -167,24 +167,10 @@ DesignFixedGreedy = define_design_class(
 		objective = NULL,
 		n_iter    = NULL,
 		draw_ws_raw = function(r = 100){
-			private$maybe_set_seed()
-			if (should_run_asserts()) {
-				assertCount(r, positive = TRUE)
-			}
-			if (should_run_asserts()) {
-				self$assert_all_subjects_arrived()
-			}
-			n = self$get_n()
-			private$ensure_model_matrix_current()
-			# Always-on validation (fix_design_hierarchy.md, TODO-33): the kernel
-			# draws exactly n_T treated, the same count DesignFixedGreedyDOptimal uses.
-			n_T = as.integer(round(n * private$prob_T))
-			if (n_T < 1L || n_T > n - 1L) {
-				stop(sprintf("prob_T = %g with n = %d yields a treated count of %d; need at least one treated and one control subject.", private$prob_T, n, n_T))
-			}
-			if (is.null(private$X) || ncol(private$X) == 0){
-				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
-			}
+			draw_setup = edi_greedy_draw_setup(self, private, r)
+			if (!is.null(draw_setup$draws)) return(draw_setup$draws)
+			n = draw_setup$n
+			n_T = draw_setup$n_T
 			X          = private$X[1:n, , drop = FALSE]
 			cpp_n_iter = if (is.infinite(private$n_iter)) -1L else as.integer(private$n_iter)
 			# Trusted unvalidated (fix_design_hierarchy.md, "AllocationMatrixValidation"):

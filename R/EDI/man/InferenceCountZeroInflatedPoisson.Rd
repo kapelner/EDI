@@ -66,8 +66,12 @@ mean), so the model-based standard error is too small. The score, gradient
 and likelihood-ratio tests then reject a true null about 16-17\% of the time
 at a nominal 5\% level, at n = 50, 200 and 1000 alike. This is model
 misspecification, so it does not go away with more data. The Wald test,
-which uses a sandwich covariance, stays calibrated in this setting: prefer
-it, adjust for the prognostic covariates, or use
+which uses a sandwich covariance, stays calibrated in this setting.
+\code{set_likelihood_test_variance("robust")} recalibrates the score,
+gradient and likelihood-ratio tests and their intervals by the sandwich
+variance at the null-restricted fit (Kent 1982; Boos 1992; v1.1.0-TODO-174;
+the default stays model-based). Otherwise adjust for the prognostic
+covariates, or use
 \code{\link[EDI:InferenceCountZeroInflatedNegBin]{InferenceCountZeroInflatedNegBin}},
 which models the overdispersion.
 
@@ -119,7 +123,7 @@ limit; and (iii) never warm-starts a randomization, bootstrap or
 parametric-bootstrap refit from a full-data fit whose zero part is on the
 ridge (a fitted zero-inflation logit of 10 or more in absolute value): such a
 refit could not move its zero part and stopped below the maximum, so it is
-cold-started like a fresh fit (v1.0.6-TODO-30, v1.0.6-TODO-152).
+cold-started like a fresh fit (v1.0.6-TODO-6, v1.0.6-TODO-103).
 
 \strong{Small samples with covariates in the zero-inflation formula.} At
 small \eqn{n} with continuous covariates in \code{model_formula_zero} (the
@@ -137,7 +141,7 @@ count-part treatment estimate is only weakly defined: different ridges give
 different limits. In this setting use a treatment-only zero-inflation
 formula, \code{model_formula_zero = ~ 1} (the zero part always includes the
 treatment, so this fits an intercept and the treatment), and keep the
-covariates in the count part (v1.0.6-TODO-232).
+covariates in the count part (v1.0.6-TODO-166).
 }
 \section{Small-sample behaviour}{
 
@@ -227,6 +231,12 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   1-14, \doi{10.2307/1269547}, for the zero-inflated count-model
   framework.
 
+  Kent, J. T. (1982). "Robust properties of likelihood ratio tests."
+  \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}, and Boos,
+  D. D. (1992). "On generalized score tests." \emph{The American
+  Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}, for
+  the robust tests of \code{set_likelihood_test_variance("robust")}.
+
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
 
 [LehmannRomano2005] Lehmann, E. L., and Romano, J. P. (2005). \emph{Testing Statistical Hypotheses} (3rd ed.). Springer.
@@ -309,6 +319,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_information_source_used()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_diagnostics()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_estimate_diagnostics()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_mod()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_ci_types()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_pval_types()</code></li>
@@ -322,6 +333,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_b_subsampling()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_m_out_of_n_bootstrap()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_information_preference()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_testing_type()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$supports_rand_pval_for_incidence()</code></li>
 </ul>
@@ -437,10 +449,10 @@ resampling paths.}
   score, gradient, likelihood-ratio and Bartlett-corrected
   likelihood-ratio give the same interval as the matching
   \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
-  returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+  returned Wald, v1.0.6-TODO-230); the default Wald interval is \code{NA},
   with the reason recorded and an \code{edi_wald_unavailable_warning}, when
   the model standard error is unavailable (no bootstrap is substituted,
-  v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
+  v1.0.6-TODO-225). Under a marginal estimand (Wald only), the
   delta-method interval computed by \code{compute_estimate()}. Calls
   \code{self$compute_estimate()} first (not \code{private$shared()}
   directly) so the estimand-aware cache is always current regardless

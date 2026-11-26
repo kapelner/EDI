@@ -19,7 +19,7 @@ ref_mahal = function(X, w) {
 	d = colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])
 	as.numeric(t(d) %*% solve(var(X)) %*% d)
 }
-# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-70).
+# abs_sum_diff is standardized by each covariate's SD on every path (v1.0.6-TODO-33).
 ref_abs = function(X, w) sum(abs(colMeans(X[w == 1, , drop = FALSE]) - colMeans(X[w == 0, , drop = FALSE])) / apply(X, 2, sd))
 
 test_that("batched fallback meets the cutoff for unbalanced prob_T and odd n", {

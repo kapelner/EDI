@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-179: every p-value path must default to the estimand's own no-effect value.
+# v1.0.6-TODO-125: every p-value path must default to the estimand's own no-effect value.
 # Audit (2026-11-19) of EDI_INFERENCE_ESTIMAND_TAGS: the only tag whose reported estimate has
 # a no-effect value other than 0 is "RR" (raw risk ratio, null 1), used by the two
 # g-computation risk-ratio classes, which resolve `delta = NULL` through
@@ -78,8 +78,8 @@ for (cl in nonzero_null_classes) {
 		skip_on_cran()
 		inf = rr_fixture(cl)
 		B = 49L
-		# v1.0.6-TODO-191: subsampling / m-out-of-n RR draws with an empty or all-event arm or a
-		# separated fit are unusable, and below the usable-draw cap (0.8 by default since v1.0.6-TODO-230)
+		# v1.0.6-TODO-137: subsampling / m-out-of-n RR draws with an empty or all-event arm or a
+		# separated fit are unusable, and below the usable-draw cap (0.8 by default since v1.0.6-TODO-164)
 		# the p-value is NA by design. On
 		# this n = 60 fixture over 5% of the size-17 draws are degenerate (7 of 49 for the non-KK
 		# class), so drop the cap here. This test is about the default null (delta = RR = 1), not the usable-draw rule, which

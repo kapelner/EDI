@@ -376,28 +376,25 @@ public:
 } // namespace
 
 #ifndef EDI_CORE_ONLY
-// [[Rcpp::export]]
-Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
+static LogisticGLMMData make_logistic_glmm_test_data(const Eigen::Map<Eigen::MatrixXd>& X_r,
+                                                     SEXP y_r,
+                                                     const Eigen::Map<Eigen::VectorXi>& group_id_r,
+                                                     Eigen::Index params_size, int n_gh) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
 	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
 		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
 		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
 	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
+	if (params_size != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params_size, X_r.cols() + 1);
 	}
-
-
-	
-
-	
-
-	
-
-	
 	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
+	return LogisticGLMMData(X_r, y_r_vec_coerced, gid_v, n_gh);
+}
 
-	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
+// [[Rcpp::export]]
+Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
+	const auto dat = make_logistic_glmm_test_data(X_r, y_r, group_id_r, params.size(), n_gh);
 	LogisticGLMMObjective obj(dat);
 
 	Eigen::VectorXd grad(params.size());
@@ -408,26 +405,7 @@ Eigen::VectorXd get_logistic_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X
 
 // [[Rcpp::export]]
 Eigen::MatrixXd get_logistic_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
-	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-
-
-	
-
-	
-
-	
-
-	
-	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
-
-	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
+	const auto dat = make_logistic_glmm_test_data(X_r, y_r, group_id_r, params.size(), n_gh);
 	LogisticGLMMObjective obj(dat);
 
 	Eigen::MatrixXd information = obj.hessian(params);
@@ -437,26 +415,7 @@ Eigen::MatrixXd get_logistic_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>&
 
 // [[Rcpp::export]]
 double get_logistic_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 20) {
-	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X has %d rows, y has %d elements, group_id has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-
-
-	
-
-	
-
-	
-
-	
-	std::vector<int> gid_v(group_id_r.data(), group_id_r.data() + group_id_r.size());
-
-	LogisticGLMMData dat(X_r, y_r_vec_coerced, gid_v, n_gh);
+	const auto dat = make_logistic_glmm_test_data(X_r, y_r, group_id_r, params.size(), n_gh);
 	LogisticGLMMObjective obj(dat);
 	return likelihood_value(obj, params) - log_sigma_penalty(params[X_r.cols()]);
 }
@@ -538,20 +497,9 @@ edi::ResultMap fast_logistic_glmm_internal(
 			}
 		}
 
-		LikelihoodFitResult best_fit;
-		bool have_finite_fit = false;
-		for (const auto& start_candidate : starts) {
-			LikelihoodFitResult fit = optimize_fixed_likelihood(
-				obj, start_candidate, fixed_spec, maxit, eps_g,
-				optimization_alg, "lbfgs", 0, info_start_ptr);
-			if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
-			if (!have_finite_fit || fit.value < best_fit.value) {
-				best_fit = fit;
-				have_finite_fit = true;
-			}
-		}
-		if (!have_finite_fit)
-			throw std::runtime_error("logistic GLMM produced no finite multistart fit");
+		LikelihoodFitResult best_fit = glmm::best_multistart_fit(
+		    obj, starts, fixed_spec, maxit, eps_g, optimization_alg, info_start_ptr,
+		    "logistic GLMM produced no finite multistart fit");
 		par = best_fit.params;
 		neg_ll = best_fit.value;
 		niter = best_fit.niter;

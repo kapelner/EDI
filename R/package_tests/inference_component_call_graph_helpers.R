@@ -362,7 +362,7 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		x <- strsplit(s, "|", fixed = TRUE)[[1L]]
 		paste(x[!startsWith(x, "load_resampling_draw_into_worker@")], collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
-	# v1.0.6-TODO-380 (2026-11-23) deleted the Wald paths' bootstrap-fallback
+	# v1.0.6-TODO-225 (2026-11-23) deleted the Wald paths' bootstrap-fallback
 	# helpers: CountLikelihoodPlumbing's count_bootstrap_fallback_ci()/_pval() and
 	# the KK hurdle-Poisson OneLik's (already uncalled) warn_bootstrap_fallback_once().
 	# A Wald request now gets Wald or NA. Reviewed removal delta: these names
@@ -530,7 +530,7 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		expect_false("get_procedure_validity@Inference" %in% x)
 		paste(sort(unique(c(x, "get_procedure_validity@Inference"))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
-	# v1.0.6-TODO-208 item (4) (2026-11-19) added root versions of set_estimand(),
+	# v1.0.6-TODO-149 item (4) (2026-11-19) added root versions of set_estimand(),
 	# get_estimand() and get_supported_estimands() on Inference (classed
 	# "edi_estimand_not_supported" error / "conditional"), which the MarginalEstimand
 	# component's copies override on the classes that compose it, plus the private
@@ -547,7 +547,7 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		expect_false("stop_estimand_not_supported@Inference" %in% x)
 		paste(sort(unique(c(x, "stop_estimand_not_supported@Inference"))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
-	# v1.0.6 (2026-11-16; release_v1_0_6.md TODO-30 records the change): rand
+	# v1.0.6 (2026-11-16; release_v1_0_6.md TODO-6 records the change): rand
 	# warm-start chaining is gated on the registry's likelihood_concave via the
 	# private helper rand_likelihood_is_nonconcave() on InferenceRand. Reviewed
 	# additive delta: every class with the randomization component gains it, on
@@ -560,8 +560,8 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		paste(sort(unique(c(x, paste0("rand_likelihood_is_nonconcave@", host)))), collapse = "|")
 	}, character(1L), USE.NAMES = FALSE)
 	# abd7e49d (2026-11-18, v1.0.6 fixes) added private helpers only, none removed
-	# or rehosted: warn_hardened_column_drop (v1.0.6-TODO-138) on Inference; the
-	# randomization / rand-bootstrap censoring-bound helpers (v1.0.6-TODO-143); the
+	# or rehosted: warn_hardened_column_drop (v1.0.6-TODO-92) on Inference; the
+	# randomization / rand-bootstrap censoring-bound helpers (v1.0.6-TODO-95); the
 	# bootstrap link-scale and jackknife separation guards; KM-difference jackknife
 	# and median warnings; RMST horizon helpers; GEE link helpers; the weighted
 	# g-computation SE. Reviewed additive delta: a class may gain exactly these
@@ -582,24 +582,24 @@ inference_component_expect_reviewed_registry_baseline <- function(actual, baseli
 		"resampling_centered_pivot_for_inference", "select_resampling_size_from_spec",
 		"compute_quantile_estimate_with_bootstrap_weights", "quantile_fit_response",
 		"use_within_block_jackknife_fallback",
-		# v1.0.6-TODO-205 (2026-11-19, addition only): the identity-binomial
+		# v1.0.6-TODO-146 (2026-11-19, addition only): the identity-binomial
 		# warm-then-cold refit used by generate_mod() and the weighted bootstrap refit.
 		"fit_identity_binomial_warm_then_cold",
-		# v1.0.6-TODO-4 (2026-11-19, addition only): the stratified jackknife units'
+		# v1.0.6-TODO-1 (2026-11-19, addition only): the stratified jackknife units'
 		# deletion layout and per-replicate strata on NonparametricBootstrap.
 		"jackknife_stratified_layout", "jackknife_replicate_strata",
-		# v1.0.6-TODO-217 (2026-11-19, addition only): KK IVWC classes' weighted
+		# v1.0.6-TODO-158 (2026-11-19, addition only): KK IVWC classes' weighted
 		# (Bayesian-bootstrap) refit of their own estimator, which the KK compound
 		# dispatcher calls instead of its removed mean-difference fallback.
 		"compute_weighted_estimate_ivwc",
-		# v1.0.6-TODO-286 (2026-11-20, addition only): InferenceRandCustom's flag that its
+		# v1.0.6-TODO-207 (2026-11-20, addition only): InferenceRandCustom's flag that its
 		# survival randomization CI shifts raw times (exp(delta) multiplier), read by the
 		# shared randomization-CI code in inference_all_abstract_rand_ci.R.
 		"randomization_ci_shifts_raw_survival_times",
-		# v1.0.6-TODO-274 (2026-11-20, addition only): the KK GEE mixin's exact
+		# v1.0.6-TODO-173 (2026-11-20, addition only): the KK GEE mixin's exact
 		# separation check that confirms the |eta| screen before the SE is blanked.
 		"gee_fit_data_separated",
-		# d06dbb6f (2026-11-24, v1.0.6-TODO-345, addition only): the Inference root's
+		# d06dbb6f (2026-11-24, v1.0.6-TODO-216, addition only): the Inference root's
 		# warm-start separation-boundary check (Poisson-family classes override it).
 		"warm_start_on_separation_boundary",
 		# 502a3c86 / cf4b5a29 (2026-11-24, addition only): the KK CLMM score-statistic

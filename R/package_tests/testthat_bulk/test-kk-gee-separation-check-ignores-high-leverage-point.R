@@ -1,5 +1,5 @@
-# v1.0.6-TODO-274: the logit-link KK GEE classes blank the SE (asymptotic p and CI NA)
-# under (quasi-)complete separation. The v1.0.6-TODO-118 rule fired whenever one fitted
+# v1.0.6-TODO-173: the logit-link KK GEE classes blank the SE (asymptotic p and CI NA)
+# under (quasi-)complete separation. The v1.0.6-TODO-72 rule fired whenever one fitted
 # |eta| reached qlogis(1 - 1e-8), which a single high-leverage subject reaches in a fit
 # whose solution exists. Now that screen is confirmed by the exact data check
 # EDI:::edi_binary_data_separated() before anything is blanked.

@@ -16,7 +16,7 @@
 #   ledger.csv    one row per finished shard (its shard.csv, plus id): response_type, design, n, effect, only (its
 #                 classes, ";"-joined), reps_done, cost
 #   planned.csv   every shard ever planned: id, response_type, design, n, effect, group (its classes), wave, run id, reps
-#                 (its replicate ranges; rows from before v1.0.6-TODO-409 have none)
+#                 (its replicate ranges; rows from before v1.0.6-TODO-227 have none)
 #   roster.csv    the campaign's class roster (--roster; frozen at the first wave)
 #   plan.csv      --plan-out: every screening unit in run order (analysis reads it: m_total, completed cells)
 # Missing replicates = all - union(reps_done) per unit (class). They are cut into shards of about --target-minutes on
@@ -29,7 +29,7 @@
 # A planned shard that left no shard.csv died or hit its job timeout. A unit that has lost a shard runs alone from then on,
 # its next shards carry half the replicates of its smallest dead shard (down to 1), and they get the longer job timeout
 # --dead-timeout-minutes (else --timeout-minutes; the matrix's timeout_minutes). The unit is abandoned after --max-dead
-# dead shards of a single replicate, so a replicate that hangs cannot loop forever (v1.0.6-TODO-409, owner 2026-11-22:
+# dead shards of a single replicate, so a replicate that hangs cannot loop forever (v1.0.6-TODO-227, owner 2026-11-22:
 # before, every death counted and the unit re-ran at the same size, so InferenceOrdinalKKCLMM at n = 1000, ~870 s per
 # replicate, was abandoned on three designs in campaign 2026-11-15-e36c7710).
 #
@@ -103,7 +103,7 @@ min_measured_reps <- as.integer(arg_value("--min-measured-reps", "20"))
 wave_size <- as.integer(arg_value("--wave-size", "64"))
 max_dead <- as.integer(arg_value("--max-dead", "3"))
 # Job timeout of each shard (the matrix's timeout_minutes, read by the workflow's shards job): --timeout-minutes normally,
-# --dead-timeout-minutes for a unit that has already lost a shard (v1.0.6-TODO-409; GitHub-hosted runners allow 360 at most).
+# --dead-timeout-minutes for a unit that has already lost a shard (v1.0.6-TODO-227; GitHub-hosted runners allow 360 at most).
 timeout_minutes <- as.integer(arg_value("--timeout-minutes", "75"))
 dead_timeout_minutes <- as.integer(arg_value("--dead-timeout-minutes", "180"))
 stopifnot(timeout_minutes >= 1L, dead_timeout_minutes >= 1L, max(timeout_minutes, dead_timeout_minutes) <= 360L)
@@ -215,7 +215,7 @@ if (!is.null(ledger)) {
 planned_path <- file.path(campaign_dir, "planned.csv")
 planned <- if (nzchar(campaign_dir) && file.exists(planned_path))
 	read_csv_fast(planned_path, stringsAsFactors = FALSE, colClasses = c(group = "character", reps = "character")) else NULL
-# Dead shards (v1.0.6-TODO-409, owner decision 2026-11-22): a planned shard with no ledger row died or hit the job timeout
+# Dead shards (v1.0.6-TODO-227, owner decision 2026-11-22): a planned shard with no ledger row died or hit the job timeout
 # (shards no longer yield to a nightly run, owner 2026-11-15; when they did, the workflow left yielded shards out of
 # planned.csv so they were never counted dead). Each unit (class key) keeps the replicate counts
 # of its dead shards: its next shards carry half the replicates of its smallest dead shard (at least 1), and only a dead

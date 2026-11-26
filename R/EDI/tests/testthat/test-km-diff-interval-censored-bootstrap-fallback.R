@@ -1,11 +1,11 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-90: InferenceSurvivalKMDiff returned NA with no warning on interval-censored data
+# v1.0.6-TODO-49: InferenceSurvivalKMDiff returned NA with no warning on interval-censored data
 # (asymptotic CI/p-value and the bootstrap CI), although the Turnbull path documents a bootstrap
 # fallback. The cause was the bootstrap outcome scale (all-NA private$y -> scale 1 -> any CI wider
-# than 5 time units discarded as "extreme"), fixed for general censoring under v1.0.6-TODO-91 /
-# v1.0.6-TODO-115. This file pins every KMDiff result on the visit-schedule repro as finite, or NA
+# than 5 time units discarded as "extreme"), fixed for general censoring under v1.0.6-TODO-50 /
+# v1.0.6-TODO-69. This file pins every KMDiff result on the visit-schedule repro as finite, or NA
 # with a warning / clear error; the Bayesian-bootstrap p-value (which cannot weight interval::icfit())
 # now stops up front instead of returning a silent NA.
 
@@ -89,7 +89,7 @@ test_that("KMDiff results without a usable interval-censored method warn or stop
 	# Bayesian bootstrap cannot weight interval::icfit(): stop up front (was a silent NA p-value).
 	inf = InferenceSurvivalKMDiff$new(des)
 	expect_error(inf$compute_bayesian_bootstrap_two_sided_pval(B = 21, show_progress = FALSE), "Bayesian bootstrap is not supported")
-	# The inherited CI also stops up front now (v1.0.6-TODO-141; was an NA with the misleading
+	# The inherited CI also stops up front now (v1.0.6-TODO-94; was an NA with the misleading
 	# "bayesian_bootstrap_too_few_finite_estimates" reason).
 	expect_error(
 		InferenceSurvivalKMDiff$new(des)$compute_bayesian_bootstrap_confidence_interval(B = 21, show_progress = FALSE),

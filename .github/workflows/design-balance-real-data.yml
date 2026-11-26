@@ -1,0 +1,383 @@
+name: design-balance-real-data
+
+# Design balance on real covariates (v1.0.7-TODO-103): a weekly benchmark that replays the
+# patients of the experimental catalog's redistributable CRAN trials through every EDI design
+# and reports how well each balances their covariates. Not a test: nothing fails on a worse
+# number. The runner is R/benchmark/design_balance_real_data.R (its header has the metrics,
+# the data and the settings each design uses; it also runs locally).
+#
+# Jobs:
+#   gate      runs only if Design code changed significantly (scripts/significant_changes.py:
+#             comment- and whitespace-only edits do not count) since the last successful run of
+#             this workflow: R/EDI/R/design_*.R, the design kernels listed below, and this job's
+#             own scripts. Fails open like nightly.yml's change-gate: no earlier run, a
+#             force-pushed base or an API error means run. `force` on dispatch always runs.
+#   kernels   .github/scripts/check_design_balance_kernels.py: every R/EDI/src/*.cpp that a
+#             design_*.R file calls into must be in the design-kernels list below.
+#   build     compiles EDI once (cached by commit and runner OS) and fetches the catalog's data
+#             at the pinned CRAN releases into an Actions cache (never committed or uploaded).
+#   shard     the trials, split round-robin over the matrix.
+#   report    merges the shards into the report (index.html, summary.csv, the per-draw CSV),
+#             keeps it as an artifact and, on main, publishes it on the benchmark-results
+#             branch under design-balance/ and at kapelner.github.io/EDI/benchmarks/design-balance/.
+#
+# Publishing. The Pages site is pkgdown's and every deploy replaces the whole site, so the
+# report rides along the way the nightly benchmark report does: it lives on the
+# benchmark-results branch, pkgdown.yaml copies benchmarks/design-balance/ from there, and
+# nightly.yml's bench-report / bench-pages keep the folder when they rewrite the branch and
+# the site. The pages job here takes the last pkgdown site artifact and swaps in only
+# benchmarks/design-balance/. Scheduled on Sunday afternoon, away from the nightly (02:07 UTC)
+# that force-pushes the branch.
+#
+# Runtime (Step 1, 2026-11-26, local, 2 draws; release_v1_0_7.md v1.0.7-TODO-103): the sequential
+# designs that refit or re-match per arrival (Atkinson, KK14, KK21, KK21stepwise, SPBR,
+# RandomBlockSize) dominate: ~50 s per draw on indo_rct (n = 602, 29 covariates), over 150 s per
+# draw on STAR even at n = 200; the other designs take under 1 s at n = 600 and ~25-30 s per draw
+# at n = 1000 (STAR). Hence 3 draws, a 120 s limit per (trial, n, design) and 16 shards of 2 cores
+# (16 of the 20 concurrent jobs, on a Sunday). Full-corpus estimate: ~30 CPU-hours, about an hour
+# of wall time; an extrapolation from four trials, not yet measured. Never a required check.
+
+on:
+  schedule:
+    - cron: '17 13 * * 0'    # Sundays 13:17 UTC
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Run even if no Design code changed since the last successful run'
+        type: boolean
+        default: false
+      draws:
+        description: 'Seeded draws per (trial, n, design)'
+        default: '3'
+
+concurrency:
+  group: design-balance-real-data
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  EDI_PORTABLE: 1
+  DRAWS: ${{ inputs.draws || '3' }}
+
+jobs:
+  gate:
+    name: design change gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force && 'true' || 'false' }}
+        run: |
+          set +e
+          if [ "$FORCE" = "true" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "force: running."; exit 0; fi
+          paths=(':(glob)R/EDI/R/design_*.R'
+            # design-kernels:begin
+            'R/EDI/src/atkinson_assign.cpp'
+            'R/EDI/src/binary_match_search.cpp'
+            'R/EDI/src/bootstrap_match_indices.cpp'
+            'R/EDI/src/compute_all_subject_data.cpp'
+            'R/EDI/src/compute_mahal_distances.cpp'
+            'R/EDI/src/compute_weighted_distances.cpp'
+            'R/EDI/src/design_fixed_greedy.cpp'
+            'R/EDI/src/fast_ols.cpp'
+            'R/EDI/src/fast_sample_int.cpp'
+            'R/EDI/src/generate_permutations.cpp'
+            'R/EDI/src/get_column_types.cpp'
+            'R/EDI/src/imputation_helpers.cpp'
+            'R/EDI/src/kk21_stepwise_survival.cpp'
+            'R/EDI/src/kk21_weights.cpp'
+            'R/EDI/src/kk_cluster_ids.cpp'
+            'R/EDI/src/optimal_blocks_distance.cpp'
+            'R/EDI/src/optimal_design_search.cpp'
+            'R/EDI/src/pocock_simon_assign.cpp'
+            'R/EDI/src/random_block_size_speedups.cpp'
+            'R/EDI/src/rerandomization_helpers.cpp'
+            'R/EDI/src/sample_bootstrap_distr_weighted_distances.cpp'
+            'R/EDI/src/spbr_speedups.cpp'
+            'R/EDI/src/user_compiled_fn_shims.cpp'
+            # design-kernels:end
+            'R/benchmark/design_balance_real_data.R'
+            'R/package_tests/real_data_catalog.R'
+            'R/package_tests/calibration/calibration_study_balance.R'
+            '.github/workflows/design-balance-real-data.yml')
+          base="$(gh run list -R "$GITHUB_REPOSITORY" --workflow design-balance-real-data.yml --status success \
+                    --limit 20 --json databaseId,headSha \
+                    --jq "[.[] | select(.databaseId != ${{ github.run_id }})][0].headSha" 2>/dev/null)"
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "No usable earlier successful run (${base:-none}): running." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0
+          fi
+          changed="$(python3 scripts/significant_changes.py --report-ignored "$base" HEAD -- "${paths[@]}")"; rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "::warning::Change detection failed; running."; exit 0
+          fi
+          if [ -n "$changed" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "Design code changed since ${base:0:12}:"; echo "$changed" | head -30
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No Design code change since the last successful run at ${base:0:12}: skipping." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+  kernels:
+    name: design kernel list is complete
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/scripts/check_design_balance_kernels.py
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    name: build EDI and fetch the trials
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::httr2, any::data.table
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=real-data-edi-${ImageOS:-unknown}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      - id: edic
+        uses: actions/cache@v6
+        with:
+          path: .edi-lib
+          key: ${{ steps.edikey.outputs.key }}
+      - name: Install EDI into an isolated library
+        if: steps.edic.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p .edi-lib
+          MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-lib" R/EDI
+      # The trials' data at the catalog's pinned CRAN releases (source tarballs, read from data/,
+      # no install), one .rds per trial. Keyed by the catalog and the loader: a pin change refetches.
+      - id: datac
+        uses: actions/cache@v6
+        with:
+          path: .real-data-cache
+          key: real-data-${{ hashFiles('R/package_metadata/experimental_datasets.csv', 'R/package_metadata/download_experimental_datasets.R') }}
+      - name: Fetch the trials
+        if: steps.datac.outputs.cache-hit != 'true'
+        env:
+          EDI_REAL_DATA_CACHE: ${{ github.workspace }}/.real-data-cache
+        run: |
+          Rscript -e 'source("R/package_tests/real_data_catalog.R"); c <- rdc_catalog();
+            for (i in seq_len(nrow(c))) tryCatch(rdc_fetch(c[i, ]), error = function(e) message("fetch failed: ", c$dataset[i], ": ", conditionMessage(e)))'
+          rm -rf .real-data-cache/work
+
+  shard:
+    needs: build
+    name: design balance shard ${{ matrix.shard }}/16
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::httr2, any::data.table
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=real-data-edi-${ImageOS:-unknown}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      # No restore-keys: an EDI built from another commit must never stand in for this one.
+      - uses: actions/cache/restore@v6
+        with:
+          path: .edi-lib
+          key: ${{ steps.edikey.outputs.key }}
+      - uses: actions/cache/restore@v6
+        with:
+          path: .real-data-cache
+          key: real-data-${{ hashFiles('R/package_metadata/experimental_datasets.csv', 'R/package_metadata/download_experimental_datasets.R') }}
+      - name: Use the pre-built EDI (compile it if this runner OS has no cached build)
+        run: |
+          if [ ! -d .edi-lib/EDI ]; then
+            echo "::warning::no cached EDI build for ${ImageOS:-this OS}; compiling it here."
+            mkdir -p .edi-lib; MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-lib" R/EDI
+          fi
+          echo "R_LIBS=$GITHUB_WORKSPACE/.edi-lib${R_LIBS:+:$R_LIBS}" >> "$GITHUB_ENV"
+      - name: Run shard ${{ matrix.shard }}
+        env:
+          EDI_REAL_DATA_CACHE: ${{ github.workspace }}/.real-data-cache
+        run: |
+          Rscript R/benchmark/design_balance_real_data.R --shard ${{ matrix.shard }}/16 --draws "$DRAWS" \
+            --timeout 120 --cores 2 --out "shard-${{ matrix.shard }}.csv"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: design-balance-shard-${{ matrix.shard }}
+          path: shard-${{ matrix.shard }}.csv
+          retention-days: 7
+
+  report:
+    needs: shard
+    if: ${{ !cancelled() && needs.shard.result != 'skipped' }}
+    name: design balance report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write   # push to the benchmark-results branch
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: R/EDI
+          extra-packages: any::httr2, any::data.table
+      - name: EDI cache key
+        id: edikey
+        run: echo "key=real-data-edi-${ImageOS:-unknown}-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+      # No restore-keys: an EDI built from another commit must never stand in for this one.
+      - uses: actions/cache/restore@v6
+        with:
+          path: .edi-lib
+          key: ${{ steps.edikey.outputs.key }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: design-balance-shard-*
+          path: shards
+          merge-multiple: true
+      - name: Build the report
+        run: |
+          if [ ! -d .edi-lib/EDI ]; then mkdir -p .edi-lib; MAKEFLAGS="-j$(nproc)" R CMD INSTALL --strip --library="$GITHUB_WORKSPACE/.edi-lib" R/EDI; fi
+          files="$(ls shards/shard-*.csv | paste -sd, -)"
+          R_LIBS="$GITHUB_WORKSPACE/.edi-lib" Rscript R/benchmark/design_balance_real_data.R --from-results "$files" --report design-balance
+          n=$(ls shards/shard-*.csv | wc -l)
+          { echo "## Design balance on real trials"; echo; echo "$n of 16 shards reported."; echo;
+            echo '| design | trials | draws | errors | timeouts | max abs SMD (median) | Mahalanobis/p (median) | s/draw (median) |'
+            echo '|---|---|---|---|---|---|---|---|'
+            Rscript -e 's <- read.csv("design-balance/summary.csv"); cat(sprintf("| %s | %d | %d | %d | %d | %.3f | %.3f | %.2f |\n", s$design, s$trials, s$draws, s$errors, s$timeouts, s$max_abs_smd_med, s$mahal_p_med, s$secs_med), sep = "")'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "complete=$([ "$n" -eq 16 ] && echo true || echo false)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: design-balance-report
+          path: design-balance
+          retention-days: 90
+      # Only main's report is public (the github-pages environment deploys only from main), and
+      # only a complete one. Clone-modify-push, retried: the nightly bench-report rewrites the
+      # branch too (it keeps design-balance/ when it does).
+      - name: Publish to the benchmark-results branch
+        id: publish
+        if: env.complete == 'true' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          for attempt in 1 2 3; do
+            rm -rf "$RUNNER_TEMP/br"
+            if git clone -q --depth 1 --branch benchmark-results "$url" "$RUNNER_TEMP/br" 2>/dev/null; then :; else
+              mkdir -p "$RUNNER_TEMP/br"; git -C "$RUNNER_TEMP/br" init -q -b benchmark-results; fi
+            rm -rf "$RUNNER_TEMP/br/design-balance"; cp -r design-balance "$RUNNER_TEMP/br/design-balance"
+            cd "$RUNNER_TEMP/br"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A design-balance
+            git commit -q -m "EDI design balance report: ${GITHUB_SHA:0:12}" || { echo "No change."; break; }
+            if git push -q "$url" HEAD:benchmark-results; then break; fi
+            cd "$GITHUB_WORKSPACE"; sleep 20
+          done
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+  pages:
+    needs: report
+    if: ${{ !cancelled() && needs.report.outputs.published == 'true' }}
+    name: design balance report to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Same group as pkgdown.yaml and nightly.yml's bench-pages, so they never deploy at once.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Find the last pkgdown site build
+        id: site
+        run: |
+          id=$(gh run list -R "$GITHUB_REPOSITORY" --workflow pkgdown.yaml --branch "${{ github.event.repository.default_branch }}" \
+                 --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty') || id=""
+          has=false
+          if [ -n "$id" ] && gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" \
+               --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id' | grep -q .; then
+            has=true
+          fi
+          echo "run=$id" >> "$GITHUB_OUTPUT"; echo "has=$has" >> "$GITHUB_OUTPUT"
+      - name: No site build to add to, so rebuild the site (pkgdown adds the report itself)
+        if: steps.site.outputs.has != 'true'
+        run: |
+          gh workflow run pkgdown.yaml -R "$GITHUB_REPOSITORY" --ref "${{ github.event.repository.default_branch }}"
+          echo "No unexpired pkgdown site artifact: dispatched pkgdown.yaml, which publishes the report from the benchmark-results branch." | tee -a "$GITHUB_STEP_SUMMARY"
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: github-pages
+          run-id: ${{ steps.site.outputs.run }}
+          github-token: ${{ github.token }}
+          path: site-tar
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: design-balance-report
+          path: report
+      - name: Swap the report into the site
+        if: steps.site.outputs.has == 'true'
+        run: |
+          set -euo pipefail
+          mkdir site
+          tar -xf site-tar/artifact.tar -C site
+          rm -rf site/benchmarks/design-balance
+          mkdir -p site/benchmarks
+          cp -r report site/benchmarks/design-balance
+      - if: steps.site.outputs.has == 'true'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - name: Wait for the Pages artifact to be listed
+        if: steps.site.outputs.has == 'true'
+        run: |
+          for i in $(seq 1 24); do
+            if gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" \
+                 --jq '.artifacts[].name' | grep -qx github-pages; then exit 0; fi
+            sleep 5
+          done
+          echo "::warning::github-pages artifact still not listed after 120 s; trying the deploy anyway"
+      - id: deployment
+        if: steps.site.outputs.has == 'true'
+        uses: actions/deploy-pages@v5

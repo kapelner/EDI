@@ -56,7 +56,7 @@ test_that("jackknife RR: a null value <= 0 is unavailable, an unusable original 
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", k$p)
 	k$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") c(1.2, NA, -1)   # one usable positive value
 	expect_true(is.na(k$p$compute_rr_jackknife_log_se("auto")))
-	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_too_few_deletion_units")   # TODO-116: procedure failure, Wald intact; v1.0.6-TODO-137: shared < 5 units guard
+	expect_false(k$inf$is_nonestimable("any")); expect_identical(k$inf$.__enclos_env__$private$cached_values$procedure_failure_reason[["jackknife"]], "jackknife_too_few_deletion_units")   # TODO-116: procedure failure, Wald intact; v1.0.6-TODO-91: shared < 5 units guard
 	l <- rr_fx()
 	unlockBinding("approximate_jackknife_distribution_beta_hat_T_private", l$p)
 	l$p$approximate_jackknife_distribution_beta_hat_T_private <- function(unit = "auto") rep(1.3, 10)     # zero spread
@@ -82,7 +82,7 @@ test_that("m-out-of-n RR interval and p-value equal the centred-pivot formulas o
 	expect_equal(names(ci), c("5%", "95%"))
 	expect_lt(ci[[1]], est); expect_gt(ci[[2]], est)
 	t_obs <- sqrt(f$n) * (log(est) - log(1.3))
-	# v1.0.6-TODO-230: symmetric centered p-value for the ratio pivot.
+	# v1.0.6-TODO-164: symmetric centered p-value for the ratio pivot.
 	ref_p <- min(1, max(1 / length(cs), mean(abs(cs) >= abs(t_obs))))
 	expect_equal(f$p$compute_rr_m_out_of_n_bootstrap_two_sided_pval(1.3, B = 400L, m = m, show_progress = FALSE), ref_p, tolerance = 1e-10)
 })

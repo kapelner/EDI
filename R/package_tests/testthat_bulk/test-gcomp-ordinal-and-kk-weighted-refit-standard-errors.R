@@ -1,4 +1,4 @@
-# v1.0.6-TODO-149: the Bayesian-bootstrap studentized interval/p-value was NA for
+# v1.0.6-TODO-100: the Bayesian-bootstrap studentized interval/p-value was NA for
 # InferenceOrdinalGCompMeanDiff (its weighted refit had no SE, and its own cache restore hid any
 # SE from run_isolated_weighted_refit) and for InferenceIncidKKGCompRiskDiff/RiskRatio (the
 # weighted refit set s_beta_hat_T = NA and a full fit never set it). The weighted refits now

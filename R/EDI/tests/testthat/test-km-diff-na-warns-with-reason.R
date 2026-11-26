@@ -1,4 +1,4 @@
-# v1.0.6-TODO-112: InferenceSurvivalKMDiff returned NA with no warning when an arm's
+# v1.0.6-TODO-66: InferenceSurvivalKMDiff returned NA with no warning when an arm's
 # Kaplan-Meier curve never reaches 0.5 (median not reached), and its jackknife-Wald
 # interval was NA with no warning on plain uncensored data. A median that is not reached
 # is a legitimate NA, so these tests check that the NA now comes with a warning naming
@@ -33,8 +33,9 @@ test_that("KMDiff warns, naming the treated arm, when its median is not reached"
 	inf = InferenceSurvivalKMDiff$new(des)
 	expect_warning(est <- inf$compute_estimate(), class = "edi_km_median_not_reached_warning")
 	expect_true(is.na(est))
-	# once per object: the other methods on the same object do not repeat it
-	expect_no_warning(inf$compute_asymp_two_sided_pval(), class = "edi_km_median_not_reached_warning")
+	# v1.0.7-TODO-182: every later call that returns NA explains it again (was once per object,
+	# which left the second call's NA silent)
+	expect_warning(inf$compute_asymp_two_sided_pval(), class = "edi_km_median_not_reached_warning")
 
 	w = tryCatch(InferenceSurvivalKMDiff$new(des)$compute_estimate(), warning = function(w) w)
 	expect_match(conditionMessage(w), "treated (w = 1)", fixed = TRUE)
@@ -57,7 +58,7 @@ test_that("KMDiff warns on a fresh object for every inference method when a medi
 	for (nm in names(calls)) {
 		inf = InferenceSurvivalKMDiff$new(des)
 		w = NULL
-		# the shared per-procedure NA warnings (v1.0.6-TODO-113) may follow; muffle them too
+		# the shared per-procedure NA warnings (v1.0.6-TODO-67) may follow; muffle them too
 		out = withCallingHandlers(calls[[nm]](inf), edi_procedure_na_warning = function(cnd) {
 			if (inherits(cnd, "edi_km_median_not_reached_warning")) w <<- cnd
 			invokeRestart("muffleWarning")

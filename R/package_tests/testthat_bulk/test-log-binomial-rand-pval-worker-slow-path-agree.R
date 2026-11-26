@@ -1,9 +1,9 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-209 (1): InferenceIncidLogBinomial's randomization statistic used to be its own
+# v1.0.6-TODO-150 (1): InferenceIncidLogBinomial's randomization statistic used to be its own
 # warm-started refit, which also overwrote the stored warm start, while the reusable worker uses
-# compute_estimate(). It now returns compute_estimate(estimate_only = TRUE), as v1.0.6-TODO-205 did for
+# compute_estimate(). It now returns compute_estimate(estimate_only = TRUE), as v1.0.6-TODO-146 did for
 # InferenceIncidBinomialIdentityRiskDiff. Checked: two seeded rand p-values on one object are identical,
 # the observed estimate is unchanged by a rand call, and the worker and slow paths agree.
 

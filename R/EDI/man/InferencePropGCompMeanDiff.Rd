@@ -416,7 +416,8 @@ An empty vector always returns \code{NA} variance.}
   min_group_n = 5L,
   show_progress = TRUE,
   min_number_usable_samples = 5L,
-  min_fraction_usable_samples = 0.95
+  min_fraction_usable_samples = 0.95,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -438,6 +439,10 @@ once-per-object warning of class \code{edi_bootstrap_nonfinite_na_warning}.}
       \item{\code{min_fraction_usable_samples}}{Minimum fraction of the \code{B} replicates that must be
 finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. See
 \code{InferenceNonParamBootstrap$compute_bootstrap_two_sided_pval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples. Only
+\code{FALSE} (default, the design's original imputation in every resample) is available:
+this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -467,7 +472,8 @@ finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. Se
   max_boundary_mass = 0.95,
   sep_tol = 0.02,
   min_group_n = 5L,
-  min_number_usable_samples = 5L
+  min_number_usable_samples = 5L,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -484,6 +490,10 @@ finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. Se
       \item{\code{sep_tol}}{Separation tolerance used to reject nearly perfectly separated resamples.}
       \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples required.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples. Only
+\code{FALSE} (default, the design's original imputation in every resample) is available:
+this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -508,7 +518,8 @@ finite (and pass the screening above) when \code{na.rm = TRUE}. Default 0.95. Se
   max_boundary_mass = 0.95,
   sep_tol = 0.02,
   min_group_n = 5L,
-  debug = FALSE
+  debug = FALSE,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -526,6 +537,10 @@ at construction time.}
       \item{\code{min_group_n}}{Minimum number of observations required in each treatment arm.}
       \item{\code{debug}}{If TRUE, return per-replicate diagnostics (values, errors,
 warnings) instead of just the bootstrap values.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples. Only
+\code{FALSE} (default, the design's original imputation in every resample) is available:
+this class's screened resampler cannot re-impute, so \code{TRUE} is refused when covariates
+are missing. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }

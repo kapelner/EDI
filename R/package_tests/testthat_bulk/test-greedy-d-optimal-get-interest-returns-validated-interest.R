@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-70 (GitHub issue #28): DesignFixedGreedyDOptimal$get_interest() was documented as
+# v1.0.6-TODO-33 (GitHub issue #28): DesignFixedGreedyDOptimal$get_interest() was documented as
 # returning "treatment" or "all", but `interest` also accepts a one-sided formula, a formula
 # string (promoted to a formula) and a character vector of column names, and get_interest()
 # returns the validated value unchanged.

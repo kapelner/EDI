@@ -232,7 +232,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 			if (isTRUE(private$condition_on_ws_for_rand_tests)) {
 				return(super$draw_ws_raw(r))
 			}
-			# v1.0.6-TODO-129: a reusable bootstrap worker clears private$X (and marks it
+			# v1.0.6-TODO-83: a reusable bootstrap worker clears private$X (and marks it
 			# stale) on a rank-deficient resample. assign_wt() reads private$X directly
 			# (too_early_to_match(), KK21's is.null(X) check), so without this rebuild the
 			# whole replay saw "no covariates" and randomized every subject. A no-op on a
@@ -301,7 +301,7 @@ DesignSeqOneByOneKK21stepwise = R6::R6Class("DesignSeqOneByOneKK21stepwise",
 			}
 			if (private$response_type == "proportion" && private$proportion_use_speedup){
 				# 0/1 responses: compress all responses to (y(n - 1) + 0.5) / n before the
-				# logit (Smithson and Verkuilen 2006; v1.0.6-TODO-60), not an eps clamp.
+				# logit (Smithson and Verkuilen 2006; v1.0.6-TODO-24), not an eps clamp.
 				return(na0(kk21_stepwise_continuous_weights_cpp(xs, kk21_speedup_proportion_logit(ys), ws)))
 			}
 			if (private$response_type == "survival"){

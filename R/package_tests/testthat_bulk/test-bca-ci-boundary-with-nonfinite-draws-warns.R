@@ -1,4 +1,4 @@
-# v1.0.6-TODO-162: a plain-bootstrap BCa interval that is NA because the adjusted tail is on
+# v1.0.6-TODO-111: a plain-bootstrap BCa interval that is NA because the adjusted tail is on
 # the boundary must warn even when some bootstrap draws were not finite. Cause: ci_bca()'s
 # failure handler warned only when every draw was finite (ctx$all_finite), and
 # missing_bootstrap_ci() then saw the already-recorded reason (keep-first) and skipped its own

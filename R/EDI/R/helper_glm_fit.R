@@ -1052,7 +1052,7 @@ fast_weibull_regression = function(y, dead, X, use_rcpp = TRUE, estimate_only = 
 
 	# Fit under safe, unique names: an empty or duplicated column name (e.g. cbind(w, d$age))
 	# made survreg stop with "attempt to use zero-length variable name", which was reported as
-	# "failed to converge" (v1.0.6-TODO-307). The coefficients keep the original names.
+	# "failed to converge" (v1.0.6-TODO-192). The coefficients keep the original names.
 	fit_colnames = ifelse(is.na(original_colnames) | !nzchar(original_colnames),
 		paste0("X", seq_along(original_colnames)), original_colnames)
 	fit_colnames = make.unique(fit_colnames, sep = "_")
@@ -2486,9 +2486,22 @@ NULL
 NULL
 
 # Rename fitted-column names that collide with the response columns of the survreg data frame
-# (v1.0.6-TODO-307): "y" -> "y_1", etc., keeping them unique.
+# (v1.0.6-TODO-192): "y" -> "y_1", etc., keeping them unique.
 setdiff_safe_names = function(nms, reserved) {
 	clash = nms %in% reserved
 	if (any(clash)) nms = make.unique(c(reserved, nms), sep = "_")[-seq_along(reserved)]
 	nms
+}
+
+# Validate the fitted treatment coefficient and convergence before checking
+# the model-specific mean or linear predictor constraints.
+edi_reasonable_glm_coefficients = function(mod, j_treat, max_abs_coef) {
+	if (is.null(mod) || is.null(mod$b)) return(NULL)
+	j_treat = as.integer(j_treat %||% mod$j_treat %||% 2L)
+	if (length(j_treat) != 1L || !is.finite(j_treat) || j_treat < 1L) return(NULL)
+	b = as.numeric(mod$b)
+	if (length(b) < j_treat || any(!is.finite(b))) return(NULL)
+	if (any(abs(b) > max_abs_coef)) return(NULL)
+	if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(NULL)
+	b
 }

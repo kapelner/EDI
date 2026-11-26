@@ -1,9 +1,9 @@
-# v1.0.6-TODO-182: the nightly silent-NA gate (silent_na_output, run 44358510753 on 4ce2b712) saw
+# v1.0.6-TODO-128: the nightly silent-NA gate (silent_na_output, run 44358510753 on 4ce2b712) saw
 # InferenceAllSimpleAverageDiff$compute_bootstrap_confidence_interval() return the BCa-boundary NA
 # with a warning in some calls and with none in others, on the 8-subject smoke fixtures. Cause:
 # at 4ce2b712, ci_bca()'s failure handler warned only when every bootstrap draw was finite; with
 # n = 8 a resample often has no treated or no control subject, so the draw is not finite and the
-# NA was silent (fixed as v1.0.6-TODO-162). Repeat calls on one object follow the warn-once policy
+# NA was silent (fixed as v1.0.6-TODO-111). Repeat calls on one object follow the warn-once policy
 # of edi_warn_bca_boundary_once() (v1.0.5 TODO-101): the all-finite boundary warning is raised once
 # per object, and later NAs keep the recorded procedure_failure_reason. The non-finite-draw NA
 # warns on every call. Either way, every NA is explained.

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-215 item (1) (owner decision 2026-11-19, option b): Wald standard
+# v1.0.6-TODO-156 item (1) (owner decision 2026-11-19, option b): Wald standard
 # errors, p-values and CIs always use the observed information, whatever
 # set_information_preference() says; the preference ("fisher" by default where
 # the class supports it) applies to score tests and score CIs only. Covers the

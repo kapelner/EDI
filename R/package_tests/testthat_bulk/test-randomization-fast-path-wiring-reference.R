@@ -123,7 +123,7 @@ cases <- list(
 	KKMeanDiffIVWC = list(InferenceAllKKMeanDiffIVWC, make_kk()),
 	KKWilcoxIVWC = list(InferenceAllKKWilcoxIVWC, make_kk()),
 	SimpleWilcox = list(InferenceAllSimpleWilcox, make_fixed()),
-	# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+	# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 	# T^2 = 1/2 d'S^-1 d (it was twice as strict), so at lambda = 0.1 this seed
 	# formed 6 pairs and the matched OLS fit left the n <= p fallback the
 	# reference below relies on. With two covariates the F(2, .) cutoff near 0

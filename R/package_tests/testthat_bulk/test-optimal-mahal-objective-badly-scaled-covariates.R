@@ -8,7 +8,7 @@
 # Where: R/EDI/R/helper_optimal_milp_solvers.R:106 (kind: other_numerical).
 # On commit 4fc58cd063bc this test failed with: Expected `prep$kind` to be identical to "quadratic".
 # Differences: 1/1 mismatches x[1]: "l1" y[1]: "quadratic"
-# Tracked by v1.0.6-TODO-54 (fixed: singularity is now tested on the correlation matrix).
+# Tracked by v1.0.6-TODO-18 (fixed: singularity is now tested on the correlation matrix).
 
 test_that("mahal_dist objective is not dropped for a full-rank but badly scaled covariate matrix", {
 		set.seed(1)

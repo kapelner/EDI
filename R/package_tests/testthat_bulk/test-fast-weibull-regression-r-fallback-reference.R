@@ -74,7 +74,7 @@ test_that("use_rcpp = FALSE ignores estimate_only -- unlike the Rcpp path, vcov 
 	expect_equal(r_estimate_only$vcov, r_full$vcov)
 })
 
-# v1.0.6-TODO-307 (docs-scenarios survival-censoring F2): an empty column name (X = cbind(w, d$age))
+# v1.0.6-TODO-192 (docs-scenarios survival-censoring F2): an empty column name (X = cbind(w, d$age))
 # made the survreg path stop with "failed to converge: attempt to use zero-length variable name".
 test_that("the survreg path fits columns with empty or reserved names and matches the Rcpp path", {
 	skip_if_not_installed("survival")

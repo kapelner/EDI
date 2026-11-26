@@ -53,7 +53,7 @@ positive matched count equals 1, the treatment coefficient has no finite
 maximum likelihood estimate, giving \code{NA} (reason
 \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
 \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
-refits apply the same rules to their own data (v1.0.6-TODO-195). For this class the guards apply to the matched-pair component: when it fails
+refits apply the same rules to their own data (v1.0.6-TODO-140). For this class the guards apply to the matched-pair component: when it fails
 them the estimate is the reservoir component's alone, as for any failed
 component, and \code{NA} only when there is no usable reservoir.
 }

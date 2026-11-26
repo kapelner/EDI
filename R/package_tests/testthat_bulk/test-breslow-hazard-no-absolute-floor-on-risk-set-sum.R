@@ -1,4 +1,4 @@
-# v1.0.6-TODO-51: .breslow_hazard() used to floor each rescaled risk-set sum at an absolute 1e-10,
+# v1.0.6-TODO-16: .breslow_hazard() used to floor each rescaled risk-set sum at an absolute 1e-10,
 # so a late risk set whose linear predictors all sit more than ~23 below the global maximum got a
 # hazard increment orders of magnitude too small, and Cox simulations inverting it drew wrong times.
 

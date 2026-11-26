@@ -163,13 +163,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 		gee_family        = function() stats::binomial(link = "logit"),
 		# Ordinal response requires ordLORgee, not geeglm.
 		fit_ordinal_gee_mod = function(bstart = NULL, predictors_df = NULL){
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			reservoir_idx = which(group_id == 0L)
-			if (length(reservoir_idx) > 0L)
-				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			group_id = kk_glmm_group_ids(private$m, private$n)
 			pred_df = predictors_df %||% private$gee_predictors_df()
 			dat = data.frame(y = factor(private$y, ordered = TRUE), pred_df, group_id = group_id)
 			dat = dat[order(dat$group_id), ]
@@ -249,7 +243,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			n_beta = ncol(private$gee_predictors_df()) + length(unique(private$y)) - 1L
 			bstart = private$get_fit_warm_start_for_length("beta", n_beta)
 			mod = private$fit_ordinal_gee_mod_with_fallback(bstart = bstart)
-			# v1.0.6-TODO-122: a warm start taken from a diverged (separated)
+			# v1.0.6-TODO-76: a warm start taken from a diverged (separated)
 			# earlier fit can make ordLORgee fail outright, which used to turn
 			# compute_estimate(estimate_only = TRUE) followed by any SE-based call
 			# into a silent NA fit. Retry from a cold start before giving up.
@@ -274,7 +268,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			}
 			private$cached_values$df = Inf
 			private$cached_values$summary_table = summary(mod)$coefficients
-			# v1.0.6-TODO-122: the ordinal analogue of the v1.0.6-TODO-118 check in
+			# v1.0.6-TODO-76: the ordinal analogue of the v1.0.6-TODO-72 check in
 			# shared_gee_default(). Under (quasi-)complete separation (e.g. every
 			# treated subject in the top category) the cumulative-logit GEE has no
 			# finite solution: ordLORgee stops at a huge beta_hat_T with a sandwich
@@ -300,7 +294,7 @@ InferenceOrdinalKKGEE = define_inference_class(
 			}
 			invisible(NULL)
 		},
-		# v1.0.6-TODO-122: per subject, the largest |cumulative logit| of an
+		# v1.0.6-TODO-76: per subject, the largest |cumulative logit| of an
 		# ordLORgee fit (its linear.predictors, one column per cutpoint). A value
 		# beyond qlogis(1 - eps) means some fitted cumulative probability, hence
 		# some category probability, is numerically 0 or 1. NULL if unavailable.
@@ -564,25 +558,11 @@ InferenceOrdinalKKGLMM = define_inference_class("InferenceOrdinalKKGLMM",
 			isTRUE(private$use_rcpp)
 		},
 		shared = function(estimate_only = FALSE){
-			if (private$use_rcpp) {
-				private$shared_rcpp(estimate_only)
-			} else {
-				private$shared_glmm_tmb(estimate_only)
-			}
+			fit_kk_glmm(private, estimate_only)
 		},
 		shared_rcpp = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			private$clear_nonestimable_state()
-			private$cached_mod = NULL
-			private$cached_values$likelihood_test_context = NULL
-			m_vec = private$m
-			if (is.null(m_vec)) m_vec = rep(NA_integer_, private$n)
-			m_vec[is.na(m_vec)] = 0L
-			group_id = m_vec
-			reservoir_idx = which(group_id == 0L)
-			if (length(reservoir_idx) > 0L)
-				group_id[reservoir_idx] = max(group_id) + seq_along(reservoir_idx)
+			if (!prepare_kk_glmm_fit(private, estimate_only)) return(invisible(NULL))
+			group_id = kk_glmm_group_ids(private$m, private$n)
 			# X WITHOUT intercept (cutpoints serve as intercepts)
 			if (ncol(as.matrix(private$get_X())) > 0){
 				X_fit = as.matrix(private$glmm_predictors_df())  # [w, cov1, ...]

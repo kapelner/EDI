@@ -26,7 +26,7 @@ ref_rlm <- function(method, delta = 0, X = Xc) vapply(seq_len(B), function(b) {
 
 test_that("method = 'M' agrees with MASS::rlm Huber, 'MM' with rlm MM; any other method name is rejected", {
 	# Kernel M re-estimates the MAD scale every IRLS iteration and stops on rlm's relative-residual-change test, like
-	# MASS::rlm(psi.huber) (v1.0.6-TODO-50; it used to hold the initial OLS-residual MAD fixed and agreed only to ~0.15). The two
+	# MASS::rlm(psi.huber) (v1.0.6-TODO-15; it used to hold the initial OLS-residual MAD fixed and agreed only to ~0.15). The two
 	# stop at different tolerances here (kernel 1e-7, rlm acc 1e-4), so they agree to about rlm's acc, not to roundoff.
 	oneM <- vapply(seq_len(B), function(b) { i <- i_mat[, b]; w <- w_mat[, b]
 		unname(fast1(cbind(1, w, Xc[i, ]), y0[i], method = "M")$coefficients[2]) }, numeric(1))
@@ -99,7 +99,7 @@ test_that("investigation: kernel M is Huber IRLS with the MAD scale re-estimated
 	kMM <- fast1(X, y, method = "MM", tol = 1e-12, maxit = 1000L)
 	expect_equal(kMM$scale, s0, tolerance = 1e-12)
 	expect_equal(as.numeric(kMM$coefficients), irls(function(u) ifelse(u <= 4.685, (1 - (u / 4.685)^2)^2, 0)), tolerance = 1e-6)
-	# Re-estimated-scale Huber IRLS reference; it reproduces rlm, and kernel M reproduces it (v1.0.6-TODO-50).
+	# Re-estimated-scale Huber IRLS reference; it reproduces rlm, and kernel M reproduces it (v1.0.6-TODO-15).
 	b <- b_ols; for (k in 1:1000) { r <- as.numeric(y - X %*% b); sc <- median(abs(r)) / 0.6745; u <- abs(r) / sc; wt <- ifelse(u <= 1.345, 1, 1.345 / u)
 		b <- solve(crossprod(X, X * wt), crossprod(X, y * wt)) }
 	kM <- fast1(X, y, method = "M", tol = 1e-12, maxit = 1000L)

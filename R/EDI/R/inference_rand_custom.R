@@ -145,7 +145,7 @@ InferenceRandCustom = define_inference_class(
 		fit = function(estimate_only = FALSE){
 			dat = self$get_analysis_data()
 			est = private$evaluate_stat(dat$y, dat$w, dat$dead)
-			# v1.0.6-TODO-111: a statistic that is NA/NaN/Inf on the observed data
+			# v1.0.6-TODO-65: a statistic that is NA/NaN/Inf on the observed data
 			# used to give an NA estimate, p-value and CI with no warning (only the
 			# nonestimable reason "custom_estimate_unavailable" was recorded).
 			if (!is.finite(est)) {
@@ -181,7 +181,7 @@ InferenceRandCustom = define_inference_class(
 			se = sqrt(sum(c(v1, v0), na.rm = TRUE))
 			list(est = est, se = se)
 		},
-		# v1.0.6-TODO-286: the survival randomization CI inverts this class's own
+		# v1.0.6-TODO-207: the survival randomization CI inverts this class's own
 		# compute_rand_two_sided_pval(delta) (the statistic sees raw times; delta
 		# multiplies the treated times by exp(delta)) instead of evaluating the
 		# user's statistic on log times under an additive shift.
@@ -240,7 +240,7 @@ InferenceRandCustom = define_inference_class(
 			} else {
 				private$custom_randomization_statistic_function(y, w, dead)
 			}
-			# v1.0.6-TODO-83: a statistic returning several values used to be cut to its
+			# v1.0.6-TODO-44: a statistic returning several values used to be cut to its
 			# first element with no error. Checked on every call, so the observed-data
 			# call in fit() (made before any draw) is the one the user sees.
 			if (length(val) != 1L) {
@@ -276,7 +276,7 @@ InferenceRandCustom = define_inference_class(
 			# shifts()); each permuted assignment must re-impose delta on its own
 			# treated units on that same scale. Ignoring delta made the null
 			# distribution identical for every delta. Re-adding it additively
-			# whatever the transform (as this did until v1.0.6-TODO-286) mixed a
+			# whatever the transform (as this did until v1.0.6-TODO-207) mixed a
 			# log/logit removal with an additive re-add on survival, count and
 			# proportion responses (and on "log"/"logit" continuous), so no sharp
 			# null was tested. shift_randomization_responses() is the helper every

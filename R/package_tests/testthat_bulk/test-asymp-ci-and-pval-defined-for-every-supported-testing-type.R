@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-327: InferenceContinKKOLSOneLik, InferenceCountPoisson,
+# v1.0.6-TODO-208: InferenceContinKKOLSOneLik, InferenceCountPoisson,
 # InferenceCountKKCondPoissonOneLik and InferenceCountKKHurdlePoissonOneLik
 # list the Bartlett likelihood-ratio types in get_supported_testing_types(),
 # but their compute_asymp_confidence_interval() / compute_asymp_two_sided_pval()
@@ -16,7 +16,7 @@ library(EDI)
 # Runtime: the parametric-bootstrap Bartlett factor (B = 99 refits per null
 # value, and the CI inversion visits many) costs minutes per class on the
 # GLMM / hurdle / stereotype classes, so for "lik_ratio_bartlett_approx" (and
-# v1.0.6-TODO-380's "lik_ratio_bartlett_approx_design_conservative") the
+# v1.0.6-TODO-225's "lik_ratio_bartlett_approx_design_conservative") the
 # instance's private get_bartlett_factor_approx() is replaced by a constant 1.
 # That keeps the dispatch and CI-inversion path under test (what TODO-327 is
 # about) without the bootstrap; the factor itself is covered by

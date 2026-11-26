@@ -6,7 +6,7 @@ inference_uses_model_scale_randomization_transform = function(inf_obj) {
 	inference_model_scale_randomization_transform_for(class(inf_obj), capabilities)
 }
 
-# Detail for a randomization CI that is NA (v1.0.6-TODO-136).
+# Detail for a randomization CI that is NA (v1.0.6-TODO-90).
 rand_ci_na_detail = function() {
 	paste0("The search for the interval's bounds could not find deltas whose randomization p-values ",
 		"cross alpha (typically too few finite null-distribution draws at the deltas tried, or ",
@@ -99,7 +99,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
 			# message("In InferenceRandCI$compute_rand_two_sided_pval")
 			# message("Class: ", class(self)[1])
-			# v1.0.6-TODO-81/110: same incidence delta guard for every statistic form.
+			# v1.0.6-TODO-42 / v1.0.6-TODO-64: same incidence delta guard for every statistic form.
 			if (isTRUE(delta != 0) &&
 					private$des_obj_priv_int$response_type == "incidence") {
 				stop("randomization tests with delta nonzero not supported for incidence", call. = FALSE)
@@ -108,7 +108,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				private$assert_design_supports_randomization_draw("Randomization inference")
 				assertFlag(na.rm)
 			}
-			# v1.0.6-TODO-405: the `type` dispatch and these two refusals are behaviour, not
+			# v1.0.6-TODO-202: the `type` dispatch and these two refusals are behaviour, not
 			# assertions, so they run whatever the assertion setting. They used to sit inside
 			# `if (should_run_asserts())`, so with assertions off `type = "Zhang"` was ignored and
 			# the randomization-draw p-value came back instead, with no message.
@@ -288,7 +288,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 		#'   \code{ci_search_control} for details.
 		compute_rand_confidence_interval = function(alpha = 0.05, r = 501, pval_epsilon = 0.005, show_progress = TRUE, type = NULL, args_for_type = NULL, ci_search_control = NULL){
 			# Under general censoring the nonzero-delta nulls the inversion needs shift
-			# y_L / y_R along with y (v1.0.6-TODO-143 follow-up, owner decision
+			# y_L / y_R along with y (v1.0.6-TODO-95 follow-up, owner decision
 			# 2026-11-18), so the CI is no longer refused there.
 			if (inference_is_ordinal_model_coefficient_class(class(self)[1L])) {
 				stop(
@@ -309,7 +309,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					call. = FALSE
 				)
 			}
-			# v1.0.6-TODO-184: a marginal estimand is not on the shift scale.
+			# v1.0.6-TODO-130: a marginal estimand is not on the shift scale.
 			inference_stop_rand_ci_non_conditional_estimand(self, "Randomization confidence intervals")
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
@@ -367,23 +367,30 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 					call. = FALSE
 				)
 			}
-			# v1.0.6-TODO-405: always enforced (an ignored `type` is a silent wrong answer).
+			# v1.0.6-TODO-202: always enforced (an ignored `type` is a silent wrong answer).
 			private$assert_no_incidence_only_randomization_args(resp_type, type, args_for_type)
 			is_glm = inference_uses_model_scale_randomization_transform(self)
 			# TODO-119: refuse when the shift scale is not the estimand's scale.
 			scale_mismatch = inference_randomization_ci_scale_mismatch(class(self), resp_type, is_glm)
 			if (!is.null(scale_mismatch)) {
-				# v1.0.6-TODO-84: name only what this class can still run. A class with no
+				# v1.0.6-TODO-45: name only what this class can still run. A class with no
 				# randomization bootstrap (e.g. InferenceRandCustom) keeps only the p-value.
 				still_available = if (is.function(self$compute_rand_bootstrap_confidence_interval)) {
 					"The randomization p-value and the randomization-bootstrap CI remain available."
 				} else {
 					"The randomization p-value at delta = 0 (compute_rand_two_sided_pval()) remains available."
 				}
+				built_in_help = ""
+				if (inherits(self, "InferenceRandCustom")) {
+					built_in_help = switch(resp_type,
+						count = " For a built-in count model, see ?InferenceCountPoisson.",
+						proportion = " For a built-in proportion model, see ?InferencePropFractionalLogit.",
+						""
+					)
+				}
 				stop(
 					"Randomization confidence intervals are not supported for ", class(self)[1L],
-					" with ", resp_type, " responses: ", scale_mismatch, ". ", still_available, " See TODO-119 in ",
-					"R/package_metadata/future_release_plans/release_v1_0_5.md.",
+					" with ", resp_type, " responses: ", scale_mismatch, ". ", still_available, built_in_help,
 					call. = FALSE
 				)
 			}
@@ -393,7 +400,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			temp_inf = if (resp_type %in% c("count", "proportion", "survival")) self$duplicate() else self
 			transform_arg = "none"
-			# v1.0.6-TODO-286: a class whose statistic is defined on raw survival times
+			# v1.0.6-TODO-207: a class whose statistic is defined on raw survival times
 			# (InferenceRandCustom) inverts its own p-value -- "log" shift of the raw
 			# times -- rather than seeing log times under an additive shift. Only the
 			# transform choice changes here; the TODO-119 scale check above still uses
@@ -448,7 +455,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				}
 				if (identical(fallback_mode, "na") || length(fallback_ci) < 2L || !all(is.finite(fallback_ci[1:2]))) {
 					edi_record_procedure_failure(self, private, "rand_ci_search_bounds_failed", "se")
-					# v1.0.6-TODO-136: the per-delta p-value warnings are muffled during the search, so the CI warns once.
+					# v1.0.6-TODO-90: the per-delta p-value warnings are muffled during the search, so the CI warns once.
 					edi_warn_procedure_na(self, private, procedure = "randomization confidence interval",
 						reason = "rand_ci_search_bounds_failed", detail = rand_ci_na_detail())
 					ci = c(NA_real_, NA_real_)
@@ -498,7 +505,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			}
 			invisible(FALSE)
 		},
-		# v1.0.6-TODO-405: not gated on should_run_asserts(); a `type` this response cannot
+		# v1.0.6-TODO-202: not gated on should_run_asserts(); a `type` this response cannot
 		# use would otherwise be silently ignored.
 		assert_no_incidence_only_randomization_args = function(resp_type, type, args_for_type){
 			if (!is.null(type)) {
@@ -523,7 +530,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 			old_mc_control = obj_private$randomization_mc_control
 			obj_private$randomization_mc_control = ci_search_control
 			on.exit({ obj_private$randomization_mc_control = old_mc_control }, add = TRUE)
-			# v1.0.6-TODO-136: one p-value per delta, so its NA warning is muffled here;
+			# v1.0.6-TODO-90: one p-value per delta, so its NA warning is muffled here;
 			# compute_rand_confidence_interval() warns once if the CI itself ends NA.
 			pval = tryCatch(
 				edi_muffle_rand_pval_na_warnings(as.numeric(inf_obj$compute_rand_two_sided_pval(
@@ -623,14 +630,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
-			switch(type,
-				Zhang = zhang_ci_exact_combined(
-					self,
-					alpha = alpha,
-					pval_epsilon = args_for_type[[type]]$pval_epsilon,
-					combination_method = args_for_type[[type]]$combination_method
-				)
-			)
+			zhang_exact_ci_by_type(self, type, alpha, args_for_type)
 		},
 		compute_exact_two_sided_pval_rand = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
@@ -638,13 +638,7 @@ InferenceRandCI = R6::R6Class("InferenceRandCI",
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
-			switch(type,
-				Zhang = zhang_pval_exact_combined(
-					self,
-					delta_0 = delta,
-					combination_method = args_for_type[[type]]$combination_method
-				)
-			)
+			zhang_exact_pval_by_type(self, type, delta, args_for_type)
 		},
 		build_randomization_ci_search_bounds = function(inf_obj, r, alpha, transform_arg, permutations, ci_search_control, ci_pval_cache){
 			normalize_ci = function(ci){

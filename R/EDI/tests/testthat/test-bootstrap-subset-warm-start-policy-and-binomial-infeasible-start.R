@@ -1,4 +1,4 @@
-# v1.0.6-TODO-142: two parts.
+# v1.0.7-TODO-47: two parts.
 # (1) bootstrap_subset_inference() copies made outside an active resampling operation
 #     (e.g. ci_calibrated_bootstrap()'s outer loop, after the inner bootstrap's on.exit
 #     cleared the operation) kept the parent's warm start whatever the warm-start dispatch
@@ -76,7 +76,7 @@ test_that("ci_calibrated_bootstrap() restores the caller's resampling operation"
 
 constrained_binomial_kernel_has_start_repair = function(){
 	# Probe: identity link, OLS start with mu outside [0, 1]. Kernels without the
-	# v1.0.6-TODO-142 repair return converged = FALSE after one iteration.
+	# v1.0.7-TODO-47 repair return converged = FALSE after one iteration.
 	x = seq(-1, 1, length.out = 40)
 	X = cbind(1, x)
 	y = as.numeric(x > -0.6)
@@ -115,7 +115,7 @@ constrained_binomial_reference = function(X, y, link){
 
 test_that("constrained binomial cold fits leave an infeasible OLS start and reach the MLE", {
 	skip_if_not(constrained_binomial_kernel_has_start_repair(),
-		"fast_log_binomial_regression.cpp predates v1.0.6-TODO-142; needs the owner's targeted compile")
+		"fast_log_binomial_regression.cpp predates v1.0.7-TODO-47; needs the owner's targeted compile")
 	n_checked = c(identity = 0L, log = 0L)
 	for (s in 1:40) {
 		set.seed(s)
@@ -148,7 +148,7 @@ test_that("constrained binomial cold fits leave an infeasible OLS start and reac
 
 test_that("a cold InferenceIncidBinomialIdentityRiskDiff fit keeps every covariate when the OLS start is infeasible", {
 	skip_if_not(constrained_binomial_kernel_has_start_repair(),
-		"fast_log_binomial_regression.cpp predates v1.0.6-TODO-142; needs the owner's targeted compile")
+		"fast_log_binomial_regression.cpp predates v1.0.7-TODO-47; needs the owner's targeted compile")
 	n = 40L
 	set.seed(3)
 	X = data.frame(x1 = seq(-1, 1, length.out = n), x2 = rnorm(n))

@@ -307,7 +307,8 @@ Monte Carlo randomization p-value (v1.2.0-TODO-207; see \code{[PhipsonSmyth2010]
   debug = FALSE,
   bootstrap_type = NULL,
   rand_bootstrap_draws = NULL,
-  zero_one_logit_clamp = .Machine$double.eps
+  zero_one_logit_clamp = .Machine$double.eps,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -333,6 +334,16 @@ calls with different \code{delta} values (used by the CI inversion). Default \co
 \code{"logit"} response transform: responses are clamped to
 \code{[zero_one_logit_clamp, 1 - zero_one_logit_clamp]} before taking the logit,
 so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the draws.
+\code{FALSE} (default): every draw analyses its rows of the design's original
+imputation. \code{TRUE}: each draw's resampled rows are imputed again
+(\code{missingness_method}) once, when the draw is made, and that imputation is
+reused for every \code{delta} the draw is evaluated at (also the fresh assignment is
+drawn on those rows), at the cost of one imputation per draw. Without missing
+covariates the two are identical. Not available when the inference's covariate
+matrix differs from the design's (a \code{model_formula}, or covariates dropped as
+perfect predictors); a class-specific batch kernel is bypassed when it is
+\code{TRUE}. See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -365,7 +376,8 @@ so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
   rand_bootstrap_draws = NULL,
   zero_one_logit_clamp = .Machine$double.eps,
   type = "percentile",
-  min_fraction_usable_samples = 0.95
+  min_fraction_usable_samples = 0.95,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -417,7 +429,7 @@ so exact 0 and 1 values stay finite. Default \code{.Machine$double.eps}.}
   Both SE-based types require the class to expose \code{s_beta_hat_T}; fall back to
   \code{"percentile"} if the SE is unavailable.
   \code{"smoothed"} is refused (with an error) for left- or interval-censored survival
-  responses: censored subjects have no exact time to smooth (v1.0.6-TODO-146); use
+  responses: censored subjects have no exact time to smooth (v1.0.6-TODO-98); use
   \code{"percentile"} there.
   \code{"smoothed"} adds kernel noise \eqn{\varepsilon_b \sim N(0, \hat{\sigma}/\sqrt{n})}
   to each resampled draw before imposing the null shift, reducing discreteness in the
@@ -504,10 +516,20 @@ than \code{max(10, 10\%)} finite draws keep the existing reason
 \code{1} requires every draw. The sequential Monte Carlo early-stopping path
 (\code{brt_mc_control}) does not stop on a prefix of the draws with too few valid
 draws: it draws the next batch, and applies the check to all \code{B} draws when it
-gets there (v1.0.6-TODO-219). A prefix that clears the check can still stop early,
+gets there (v1.0.6-TODO-160). A prefix that clears the check can still stop early,
 so a run that stops early never sees the later draws. Not applied inside
 \code{compute_rand_bootstrap_confidence_interval()}, which inverts these p-values
 and has its own failure reasons.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the draws.
+\code{FALSE} (default): every draw analyses its rows of the design's original
+imputation. \code{TRUE}: each draw's resampled rows are imputed again
+(\code{missingness_method}) once, when the draw is made, and that imputation is
+reused for every \code{delta} the draw is evaluated at (also the fresh assignment is
+drawn on those rows), at the cost of one imputation per draw. Without missing
+covariates the two are identical. Not available when the inference's covariate
+matrix differs from the design's (a \code{model_formula}, or covariates dropped as
+perfect predictors); a class-specific batch kernel is bypassed when it is
+\code{TRUE}. See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }

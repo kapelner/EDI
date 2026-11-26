@@ -1,4 +1,4 @@
-# v1.0.6-TODO-161: on unscaled covariates (survival::colon: age in years, node
+# v1.0.6-TODO-110: on unscaled covariates (survival::colon: age in years, node
 # counts, times in days) the Weibull AFT lbfgs fit stopped at its iteration cap
 # short of the optimum, so InferenceSurvivalWeibullRegr judged the full fit
 # unusable and dropped real covariates (edi_covariate_dropped_warning). A failed
@@ -59,7 +59,7 @@ test_that("standardized retry maps the solution back to the original columns", {
 	expect_identical(weibull_fit_standardized_retry(function(X_try, ws) NULL, X, failed_res = failed), failed)
 })
 
-# v1.0.6-TODO-163 (docs-scenarios survival-censoring F1): on installed 1.0.4 the default L-BFGS fit
+# v1.0.6-TODO-112 (docs-scenarios survival-censoring F1): on installed 1.0.4 the default L-BFGS fit
 # stopped short of the MLE (0.4776586 vs survreg 0.4771847); fixed by the internal column scaling.
 test_that("default Weibull AFT fit matches survreg on the survival-censoring F1 repro", {
 	skip_if_not_installed("survival")

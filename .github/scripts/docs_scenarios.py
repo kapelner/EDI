@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Driver for the weekly docs-only scenario job (.github/workflows/audit-docs-scenarios.yml).
 
-v1.0.6-TODO-98 (owner decision 2026-11-18). Runbook:
+v1.0.6-TODO-56 (owner decision 2026-11-18). Runbook:
 R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md (section 7 describes this job).
 
     docs_scenarios.py plan    --repo R --notes N --work W [--requested changed|all|id,id]
@@ -238,7 +238,7 @@ def choose(cfg, state, due, requested):
 # ---------------------------------------------------------------- finding status from the repo
 
 def release_citations(repo):
-    """{finding id: (status, 'v1.0.6-TODO-30')} from the release files' TODO entries."""
+    """{finding id: (status, 'v1.0.6-TODO-6')} from the release files' TODO entries."""
     out = {}
     for f in sorted(Path(repo).glob(RELEASE_GLOB)):
         m = re.match(r"release_v(\d+)_(\d+)_(\d+)\.md$", f.name)
@@ -545,7 +545,7 @@ def cmd_report(a):
     head = plan["head"]
     lines = [f"# Docs-only scenario findings {date} (run {a.run_id})", "",
              f"Commit `{head[:8]}`" + (f", [run]({run_url})" if run_url else "") + ". Workflow "
-             "`.github/workflows/audit-docs-scenarios.yml` (v1.0.6-TODO-98); procedure in "
+             "`.github/workflows/audit-docs-scenarios.yml` (v1.0.6-TODO-56); procedure in "
              f"`{RUNBOOK}` section 6.", "",
              "Each finding is an unverified report by a docs-only agent. Verify it against the source, then file it "
              "as a release-prefixed TODO that cites its id (that marks it `filed` for later runs), or list the id in "

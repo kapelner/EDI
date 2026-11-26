@@ -4,7 +4,7 @@ library(EDI)
 # inference_ordinal_gcomp.R's delta-method sandwich path (private$shared()'s
 # finite-difference gradient of the proportional-odds standardization through
 # fast_ordinal_regression_with_var_cpp's fitted vcov) and its unavailable-SE
-# branch (private$has_finite_md_se(); a bootstrap fallback before v1.0.6-TODO-380,
+# branch (private$has_finite_md_se(); a bootstrap fallback before v1.0.6-TODO-225,
 # NA since) were previously only smoke-tested
 # (test-ordinal-gcomp-and-conditional-setup-contracts.R checks compute_estimate/
 # compute_asymp_confidence_interval/compute_asymp_two_sided_pval return finite,
@@ -75,7 +75,7 @@ test_that("delta-method estimate/SE match an independent MASS::polr fit and fini
 })
 
 test_that("a non-finite delta-method SE gives NA with a recorded reason and one warning, never the bootstrap", {
-	# v1.0.6-TODO-380: this used to fall back to the bootstrap CI / p-value.
+	# v1.0.6-TODO-225: this used to fall back to the bootstrap CI / p-value.
 	f <- ordinal_gcomp_asymp_fixture(42)
 	f$inf$compute_estimate()
 	priv <- f$inf$.__enclos_env__$private

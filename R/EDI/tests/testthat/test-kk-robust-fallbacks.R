@@ -22,7 +22,7 @@ test_that("KK robust regression muffles MM non-convergence and falls back intern
 	# The Rcpp kernel's MM (OLS start) cannot converge in maxit = 1 at
 	# acc = 1e-12. An unconverged robust fit is nonestimable (NULL), the rule
 	# the MASS::rlm path already applied; the Rcpp path used to return the
-	# unconverged iterate as if it were the estimate (v1.0.6-TODO-50). No
+	# unconverged iterate as if it were the estimate (v1.0.6-TODO-15). No
 	# warning escapes.
 	expect_null(fit_one)
 	expect_null(fit_ivwc)
@@ -36,7 +36,7 @@ test_that("KK robust regression muffles MM non-convergence and falls back intern
 })
 
 test_that("KK hurdle-Poisson combined-likelihood Wald gives NA, never a bootstrap result, when the SE is unavailable", {
-	# v1.0.6-TODO-380: the Wald CI / p-value used to fall back to the bootstrap here.
+	# v1.0.6-TODO-225: the Wald CI / p-value used to fall back to the bootstrap here.
 	skip_if_not_installed("nbpMatching")
 
 	des = DesignFixedBinaryMatch$new(response_type = "count", n = 4, verbose = FALSE)

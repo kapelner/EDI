@@ -47,7 +47,7 @@ test_that("information-matrix mixin selects the requested source and derives sta
 
 	priv$information_preference = "fisher"
 	expect_equal(priv$compute_variance_from_information_matrix(fisher, 2L), 0.25)
-	# v1.0.6-TODO-215: the (Wald) SE helper always uses the observed information,
+	# v1.0.6-TODO-156: the (Wald) SE helper always uses the observed information,
 	# whatever the preference; the preference drives the score test only.
 	expect_equal(priv$compute_standard_error_from_information_matrix(spec = spec), 1 / 3)
 	expect_equal(priv$compute_standard_error_from_information_matrix(spec = list(full_fit = list(fisher_information = fisher), j = 2L)), 0.5)

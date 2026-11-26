@@ -43,7 +43,7 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 #
 # Each entry cites the release_v1_0_6.md TODO that fixes it.
 #
-# (1) release_v1_0_6.md TODO-34. Memory-alignment-dependent sums, InferenceBaiAdjustedTKK14/KK21 (every
+# (1) release_v1_0_7.md TODO-27. Memory-alignment-dependent sums, InferenceBaiAdjustedTKK14/KK21 (every
 #     non-resampling output; seen in 3 of 3 runs, on varying comparisons).
 #     The estimate is d_bar = mean_cpp(y_matched_diffs), and mean_cpp
 #     (_helper_functions.cpp) is Eigen::Map<VectorXd>::mean(). Eigen's
@@ -52,13 +52,13 @@ SAME_BINARY_RESPONSE_TYPES = c("continuous", "incidence", "count", "proportion",
 #     vector: the same 17 numbers gave two different means (last bit) across
 #     300 fresh copies. Any Eigen::Map reduction (sum, mean, dot, squaredNorm)
 #     on R-allocated memory has this property; Bai is where this sweep sees it.
-# (2) Fixed 2026-11-19 (release_v1_0_6.md TODO-35, by TODO-61): the worker-count-
+# (2) Fixed 2026-11-19 (release_v1_0_6.md TODO-7, by TODO-61): the worker-count-
 #     dependent randomization p-values of InferenceIncidBinomialIdentityRiskDiff,
 #     InferenceIncidKKCondLogitGLMMOneLik and InferenceOrdinalGCompMeanDiff came
 #     from warm starts chained between replicates within each worker's chunk.
 #     Replicates no longer chain, and the three pass (3 local runs).
 SAME_BINARY_KNOWN_FAILURES = c(
-	as.vector(outer(   # v1.0.6 TODO-34
+	as.vector(outer(   # v1.0.7 TODO-27
 		c("InferenceBaiAdjustedTKK14|continuous", "InferenceBaiAdjustedTKK21|continuous"),
 		as.vector(outer(c("estimate", "summary", "asymp_ci", "asymp_pval"), c("rerun", "cores"), paste, sep = "|")),
 		paste, sep = "|"))

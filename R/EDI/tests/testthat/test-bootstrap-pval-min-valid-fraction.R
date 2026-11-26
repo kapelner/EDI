@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-12 (owner decision 2026-11-19): a bootstrap-family p-value computed with
+# v1.0.6-TODO-2 (owner decision 2026-11-19): a bootstrap-family p-value computed with
 # na.rm = TRUE needs at least min_fraction_usable_samples (default 0.95) of its replicates to
 # be finite. Below it the p-value is NA, the classed reason is recorded in
 # procedure_failure_reason, and one edi_procedure_na_warning is raised (silent inside an outer

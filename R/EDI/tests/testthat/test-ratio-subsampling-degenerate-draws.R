@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-230: the degenerate-draw rule of v1.0.6-TODO-191 extended to the other ratio
+# v1.0.6-TODO-164: the degenerate-draw rule of v1.0.6-TODO-137 extended to the other ratio
 # estimands' subsampling and m-out-of-n paths (InferenceIncidLogRegr, InferenceIncidKKGEE,
 # InferenceIncidModifiedPoisson, InferenceIncidLogBinomial, InferenceCountPoisson). A draw in
 # which a treatment arm has no events (logit scale: or only events; count: a zero total) or,
@@ -126,7 +126,7 @@ test_that("the ordinary bootstrap and additive estimands keep every draw", {
 	expect_false(any(is.nan(inf_md$approximate_subsampling_distribution_beta_hat_T(B = 40, show_progress = FALSE))))
 })
 
-# v1.0.6-TODO-230 (owner decision 2026-11-20): ratio subsampling / m-out-of-n p-values are
+# v1.0.6-TODO-164 (owner decision 2026-11-20): ratio subsampling / m-out-of-n p-values are
 # symmetric, mean(|pivot| >= |t_obs|); additive estimands keep the equal-tailed 2 * min(.).
 test_that("symmetric centered p-value: formula, floor, and which classes use it", {
 	inf = InferenceIncidLogRegr$new(make_ratio_design(1005, 80), verbose = FALSE)

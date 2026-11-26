@@ -3,7 +3,7 @@
 
 Stdlib only, no network, no jscpd: jscpd is replaced by a small exact-window detector over the
 fixture files (`fake_jscpd`), which reports runs the way jscpd does (identical stretches, broken
-wherever the copies differ). The main fixture is the shape of v1.0.6-TODO-117/-121: two copies of
+wherever the copies differ). The main fixture is the shape of v1.0.6-TODO-71 / v1.0.6-TODO-75: two copies of
 compute_shared_icen() where InferenceSurvivalLogRank got the ictest() arm-sign fix and
 InferenceSurvivalGehanWilcox did not.
 
@@ -28,7 +28,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 def icen(name, scores, prefix, fixed):
     """A compute_shared_icen() like the 2026-11 ones; `fixed` adds the arm-sign lines."""
-    sign = ("\t\t\t# ictest() orders arms by first appearance (v1.0.6-TODO-117).\n"
+    sign = ("\t\t\t# ictest() orders arms by first appearance (v1.0.6-TODO-71).\n"
             "\t\t\tarm_sign = ictest_treatment_minus_control_sign(fit)\n"
             "\t\t\tbeta_hat = arm_sign * as.numeric(fit$estimate)\n") if fixed else \
         "\t\t\tbeta_hat = as.numeric(fit$estimate)\n"

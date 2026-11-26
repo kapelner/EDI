@@ -57,76 +57,64 @@ OrdinalOrderedProbitLikelihoodSource = list(
 				hessian_fn = get_ordinal_probit_regression_hessian_cpp, link = "probit")
 		},
 		generate_mod = function(estimate_only = FALSE){
-			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
-				X_full = X_full,
-				required_cols = 1L,
-				fit_fun = function(X_fit){
-					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					ws_args = private$get_backend_warm_start_args(n_params)
-					if (estimate_only) {
-						ws_fisher = ws_args$warm_start_fisher_info
-						res = ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
-							X_fit, private$y,
-							warm_start_params = ws_args$start_params,
-							warm_start_fisher_info = ws_fisher,
-							smart_cold_start = private$smart_cold_start_default,
-							estimate_only = TRUE
-						)
-						if (is.null(res) || length(res) == 0) return(NULL)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
-					} else {
-						res = ordinal_fit_scaled(fast_ordinal_probit_regression_with_var_cpp,
-							X_fit, private$y,
-							warm_start_params = ws_args$start_params,
-							warm_start_fisher_info = ws_args$warm_start_fisher_info,
-							smart_cold_start = private$smart_cold_start_default
-						)
-						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
-					}
-				},
-				fit_ok = function(mod, X_fit, keep){
-					# treatment is b[1] (X's first column); see the comment on
-					# compute_treatment_estimate_during_randomization_inference()
-					# above -- this used to gate on b[length(mod$b)], the last
-					# covariate's coefficient, not treatment's.
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
-					if (estimate_only) return(TRUE)
-					ssq = mod$ssq_b_j
-					!is.null(ssq) && is.finite(ssq) && ssq > 0
-				}
-			)
-			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
-				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
-				if (!estimate_only) {
-					n_alpha = length(attempt$fit$params) - ncol(attempt$X)
-					private$cached_values$likelihood_test_context = list(
-						X = attempt$X,
-						j_treat = as.integer(n_alpha + 1L),
-						full_params = attempt$fit$params,
-						full_neg_loglik = attempt$fit$neg_loglik
+			ordinal_cumlink_generate_mod(private, estimate_only, function(X_fit){
+				n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
+				ws_args = private$get_backend_warm_start_args(n_params)
+				if (estimate_only) {
+					ws_fisher = ws_args$warm_start_fisher_info
+					res = ordinal_fit_scaled(fast_ordinal_probit_regression_cpp,
+						X_fit, private$y,
+						warm_start_params = ws_args$start_params,
+						warm_start_fisher_info = ws_fisher,
+						smart_cold_start = private$smart_cold_start_default,
+						estimate_only = TRUE
 					)
+					if (is.null(res) || length(res) == 0) return(NULL)
+					list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
+				} else {
+					res = ordinal_fit_scaled(fast_ordinal_probit_regression_with_var_cpp,
+						X_fit, private$y,
+						warm_start_params = ws_args$start_params,
+						warm_start_fisher_info = ws_args$warm_start_fisher_info,
+						smart_cold_start = private$smart_cold_start_default
+					)
+					if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
+					list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 				}
-				list(b = c(0, attempt$fit$b[1]), ssq_b_2 = attempt$fit$ssq_b_j)
-			} else {
-				private$cached_values$likelihood_test_context = NULL
-				NULL
-			}
+			})
 		},
 		build_design_matrix = function(){
-			X_cov = private$get_X()
-			if (is.null(X_cov) || ncol(X_cov) == 0) {
-				X = matrix(private$w, ncol = 1L)
-				colnames(X) = "treatment"
-			} else {
-				X = cbind(treatment = private$w, X_cov)
-			}
-			X
+			ordinal_cumlink_design_matrix(private)
 		}
 	)
 )
+
+ordinal_likelihood_leaf_overrides = function(extra_before = character(), extra_after) {
+	list(
+		public = c(
+			"compute_estimate", "compute_rand_two_sided_pval",
+			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
+		),
+		private = c(
+			extra_before,
+			"compute_treatment_estimate_during_randomization_inference",
+			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+			"generate_mod", "get_likelihood_test_spec",
+			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+			"mark_jackknife_nonestimable_if_block_unsupported",
+			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+			"get_complexity_tier", extra_after
+		)
+	)
+}
+
 
 #' Ordered Probit Regression Inference for Ordinal Responses
 #'
@@ -214,28 +202,7 @@ InferenceOrdinalOrderedProbitRegr = define_inference_class(
 		"OrdinalOrderedProbitLikelihood"
 	),
 	metadata = list(likelihood_tier = "full", response_types = "ordinal"),
-	overrides = list(
-		public = c(
-			"compute_estimate", "compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
-		),
-		private = c(
-			"compute_treatment_estimate_during_randomization_inference",
-			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
-			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
-			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
-			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "supports_fisher_information"
-		)
-	),
+	overrides = ordinal_likelihood_leaf_overrides(extra_after = "supports_fisher_information"),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	)
@@ -254,7 +221,7 @@ NULL
 #' @template rand-compute-rand-two-sided-pval-params
 NULL
 
-# Shared cumulative-link ordinal helpers (v1.0.6-TODO-193; code-duplication
+# Shared cumulative-link ordinal helpers (v1.0.7-TODO-54; code-duplication
 # audit dup-4ca7ca9c9237 and dup-86f70c0a1fbe). The ordered-probit,
 # proportional-odds and cauchit classes repeated these bodies, differing only in
 # the C++ fitter / score / Hessian, the link CDF and (cauchit) how the warm start
@@ -278,17 +245,24 @@ ordinal_cumlink_initialize = function(super, private, des_obj, model_formula, ve
 # No standard error is computed.
 #' @keywords internal
 #' @noRd
-ordinal_surrogate_estimate_with_bootstrap_weights = function(private, subject_or_block_weights, method) {
+ordinal_surrogate_estimate_with_bootstrap_weights = function(private, subject_or_block_weights, method,
+                                                               colnames_field = "best_X_colnames",
+                                                               fit_is_usable = is.finite, failure_reason = NULL) {
 	row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
 	X_fit = private$build_design_matrix()
-	if (!is.null(private$best_X_colnames)) {
-		keep = c("treatment", intersect(private$best_X_colnames, colnames(X_fit)))
+	kept_columns = private[[colnames_field]]
+	if (!is.null(kept_columns)) {
+		keep = c("treatment", intersect(kept_columns, colnames(X_fit)))
 		X_fit = X_fit[, keep, drop = FALSE]
 	}
 	fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = method)
-	if (is.null(fit) || !is.finite(fit$beta_hat)) {
-		private$cached_values$beta_hat_T = NA_real_
-		private$cached_values$s_beta_hat_T = NA_real_
+	if (is.null(fit) || !fit_is_usable(fit$beta_hat)) {
+		if (is.null(failure_reason)) {
+			private$cached_values$beta_hat_T = NA_real_
+			private$cached_values$s_beta_hat_T = NA_real_
+		} else {
+			private$cache_nonestimable_estimate(failure_reason)
+		}
 		private$cached_values$df = NA_real_
 		return(NA_real_)
 	}
@@ -297,6 +271,7 @@ ordinal_surrogate_estimate_with_bootstrap_weights = function(private, subject_or
 	private$cached_values$df = NA_real_
 	private$cached_values$full_coefficients = fit$coefficients
 	private$cached_values$summary_table = NULL
+	if (!is.null(failure_reason)) private$clear_nonestimable_state()
 	private$cached_values$beta_hat_T
 }
 
@@ -420,7 +395,7 @@ ordinal_cumlink_link_cdf_pdf = function(link) {
 # its level set (the K categories), and it is the y-expectation of the
 # observed information -hessian_fn(X, y, params). Verified against the exact
 # expectation of the C++ score outer product and of the C++ negative Hessian
-# (relative error < 1e-14) for all four links, v1.0.6-TODO-201; see
+# (relative error < 1e-14) for all four links, v1.0.6-TODO-142; see
 # R/package_metadata/audits/research_findings/2026-11-19-ordinal-cumulative-link-expected-information.md.
 # Category probabilities are floored at 1e-12, as in the C++ likelihood.
 # Returns NULL when params are not a valid (finite, increasing-threshold) point.
@@ -463,12 +438,12 @@ ordinal_cumlink_expected_information = function(X, y, params, link, eta_sign = -
 # get_likelihood_test_spec(): the score / gradient / LR spec on the columns the
 # full fit kept, from the class's fitter, score and Hessian. `link` names the
 # cumulative link for the expected (Fisher) information, which is computed in R
-# (v1.0.6-TODO-201); the C++ fits return only the observed information
+# (v1.0.6-TODO-142); the C++ fits return only the observed information
 # (`observed_information` / `information`, information_type "observed";
-# v1.0.6-TODO-215).
+# v1.0.6-TODO-156).
 #' @keywords internal
 #' @noRd
-ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn, link) {
+ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessian_fn, link, direct_warm_start = FALSE) {
 	private$shared(estimate_only = FALSE)
 	ctx = private$cached_values$likelihood_test_context
 	if (is.null(ctx)) return(NULL)
@@ -480,12 +455,17 @@ ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessi
 		X = X_fit, y = y, j = j_treat,
 		full_fit = full_fit,
 		fit_null = function(delta, start = NULL){
-			ws_args = private$get_backend_warm_start_args(length(ctx$full_params))
+			n_params = length(ctx$full_params)
+			if (!direct_warm_start) ws_args = private$get_backend_warm_start_args(n_params)
 			res = tryCatch(
 				ordinal_fit_scaled(fit_fn,
 					X_fit, y,
-					warm_start_params = start %||% ws_args$start_params,
-					warm_start_fisher_info = ws_args$warm_start_fisher_info,
+					warm_start_params = start %||% if (direct_warm_start) {
+						private$get_fit_warm_start_for_length("params", n_params)
+					} else ws_args$start_params,
+					warm_start_fisher_info = if (direct_warm_start) {
+						private$get_fit_warm_start_fisher(n_params)
+					} else ws_args$warm_start_fisher_info,
 					fixed_idx = j_treat, fixed_values = delta,
 					smart_cold_start = private$smart_cold_start_default
 				),
@@ -511,4 +491,50 @@ ordinal_cumlink_likelihood_test_spec = function(private, fit_fn, score_fn, hessi
 		},
 		neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
 	)
+}
+
+ordinal_cumlink_generate_mod = function(private, estimate_only, fit_fun, negate = FALSE,
+		require_convergence = FALSE, cast_context = FALSE) {
+	X_full = private$build_design_matrix()
+	attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE,
+		X_full = X_full,
+		required_cols = 1L,
+		fit_fun = fit_fun,
+		fit_ok = function(mod, X_fit, keep){
+			if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
+			if (require_convergence && !is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
+			if (estimate_only) return(TRUE)
+			ssq = mod$ssq_b_j
+			!is.null(ssq) && is.finite(ssq) && ssq > 0
+		}
+	)
+	if (!is.null(attempt$fit)){
+		private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
+		private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
+		if (!estimate_only) {
+			n_alpha = length(attempt$fit$params) - ncol(attempt$X)
+			private$cached_values$likelihood_test_context = list(
+				X = attempt$X,
+				j_treat = as.integer(n_alpha + 1L),
+				full_params = if (cast_context) as.numeric(attempt$fit$params) else attempt$fit$params,
+				full_neg_loglik = if (cast_context) as.numeric(attempt$fit$neg_loglik) else attempt$fit$neg_loglik
+			)
+		}
+		treatment = if (negate) -attempt$fit$b[1] else attempt$fit$b[1]
+		list(b = c(0, treatment), ssq_b_2 = attempt$fit$ssq_b_j)
+	} else {
+		private$cached_values$likelihood_test_context = NULL
+		NULL
+	}
+}
+
+ordinal_cumlink_design_matrix = function(private) {
+	X_cov = private$get_X()
+	if (is.null(X_cov) || ncol(X_cov) == 0) {
+		X = matrix(private$w, ncol = 1L)
+		colnames(X) = "treatment"
+	} else {
+		X = cbind(treatment = private$w, X_cov)
+	}
+	X
 }

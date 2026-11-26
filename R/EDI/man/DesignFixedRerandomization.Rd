@@ -147,13 +147,13 @@ Morgan, K. L., and Rubin, D. B. (2012). "Rerandomization to improve
 }
 \if{html}{\out{<details><summary>+ inherited public methods from DesignFixed</summary>
 <ul>
-  <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subject_responses'><code>DesignFixed$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-add_all_subjects_to_experiment'><code>DesignFixed$add_all_subjects_to_experiment()</code></a></li>
   <li><a href='../../EDI/html/DesignFixed.html#method-DesignFixed-assign_w_to_all_subjects'><code>DesignFixed$assign_w_to_all_subjects()</code></a></li>
 </ul>
 </details>
 <details><summary>+ inherited public methods from Design</summary>
 <ul>
+  <li><a href='../../EDI/html/Design.html#method-Design-add_all_subject_responses'><code>Design$add_all_subject_responses()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-add_one_subject_response'><code>Design$add_one_subject_response()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-any_censoring'><code>Design$any_censoring()</code></a></li>
   <li><a href='../../EDI/html/Design.html#method-Design-applicable_inference_class_names'><code>Design$applicable_inference_class_names()</code></a></li>

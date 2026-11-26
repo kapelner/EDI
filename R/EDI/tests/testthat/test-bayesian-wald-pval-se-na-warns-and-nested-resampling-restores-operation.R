@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-185 (follow-up of v1.0.6-TODO-165):
+# v1.0.6-TODO-131 (follow-up of v1.0.6-TODO-113):
 # (1) The Bayesian-bootstrap p-value's normal-approximation branch (type = "wald") returned a silent
 #     NA when the draws have no spread (bayesian_bootstrap_standard_error_unavailable). It now warns
 #     once with an edi_procedure_na_warning, and stays silent while a resampling operation is active.
@@ -97,7 +97,7 @@ test_that("resampling entry points restore the caller's active_resampling_operat
 test_that("an outer operation stays silent after nested null draws", {
 	# The rand-bootstrap p-value warns from compute_two_sided_randomization_pval_from_t0s() after
 	# computing its null draws. With an outer operation active, that warning must stay silent; before
-	# v1.0.6-TODO-185 the null draws cleared the flag and the warning fired.
+	# v1.0.6-TODO-131 the null draws cleared the flag and the warning fired.
 	inf = InferenceAllSimpleAverageDiff$new(make_cont_design())
 	priv = inf$.__enclos_env__$private
 	stub_method(priv, "compute_two_sided_randomization_pval_from_t0s", function(t0s, t, ...){

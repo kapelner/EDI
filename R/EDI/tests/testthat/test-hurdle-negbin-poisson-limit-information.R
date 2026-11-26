@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-425: on Poisson-like positive counts the zero-truncated negative-binomial count
+# v1.0.6-TODO-232: on Poisson-like positive counts the zero-truncated negative-binomial count
 # part of InferenceCountHurdleNegBin can stop at an enormous theta (1e7 to 1e15, depending on
 # the platform's floating point) with converged = TRUE but no Poisson-boundary flag. There the
 # C++ observed information is numerically meaningless (entries ~1e26, negative definite), the

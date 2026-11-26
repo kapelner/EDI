@@ -85,25 +85,7 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 		# @param estimate_only Accepted for interface compatibility; standard errors
 		#   are never computed for a single bootstrap replicate regardless of this flag.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
-			X_fit = private$build_design_matrix()
-			if (!is.null(private$best_X_colnames)) {
-				keep = c("treatment", intersect(private$best_X_colnames, colnames(X_fit)))
-				X_fit = X_fit[, keep, drop = FALSE]
-			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "cloglog")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
-			private$cached_values$summary_table = NULL
-			private$cached_values$beta_hat_T
+			ordinal_surrogate_estimate_with_bootstrap_weights(private, subject_or_block_weights, method = "cloglog")
 		}
 	),
 	private = list(
@@ -275,8 +257,8 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 					-get_ordinal_cloglog_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
 				},
 				# Expected information in the solver's native orientation
-				# (eta_sign = +1, as the Hessian above; v1.0.6-TODO-201). The
-				# C++ fit returns only the observed information (v1.0.6-TODO-215).
+				# (eta_sign = +1, as the Hessian above; v1.0.6-TODO-142). The
+				# C++ fit returns only the observed information (v1.0.6-TODO-156).
 				fisher_information = function(fit){
 					ordinal_cumlink_expected_information(X_fit, y, fit$params, "cloglog", eta_sign = 1)
 				},
@@ -287,75 +269,36 @@ InferenceOrdinalCloglogRegr = R6::R6Class("InferenceOrdinalCloglogRegr",
 			)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
-				X_full = X_full,
-				required_cols = 1L,
-				fit_fun = function(X_fit){
-					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
-					warm_fisher = private$get_fit_warm_start_fisher(n_params)
-					if (estimate_only) {
-						res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
-							X_fit, private$y,
-							warm_start_params = warm_start_params,
-							warm_start_fisher_info = warm_fisher,
-							smart_cold_start = private$smart_cold_start_default,
-							estimate_only = TRUE
-						)
-						if (is.null(res) || length(res) == 0) return(NULL)
-						res = .cloglog_full_data_multistart(X_fit, private$y, res, TRUE)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = warm_fisher)
-					} else {
-						res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_with_var_cpp, linpred_sign = 1,
-							X_fit, private$y,
-							warm_start_params = warm_start_params,
-							warm_start_fisher_info = warm_fisher,
-							smart_cold_start = private$smart_cold_start_default
-						)
-						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
-						res = .cloglog_full_data_multistart(X_fit, private$y, res, FALSE)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
-					}
-				},
-				fit_ok = function(mod, X_fit, keep){
-					# treatment is b[1] (X's first column); see the comment on
-					# compute_treatment_estimate_during_randomization_inference()
-					# above -- this used to gate on b[length(mod$b)], the last
-					# covariate's coefficient, not treatment's.
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
-					if (estimate_only) return(TRUE)
-					ssq = mod$ssq_b_j
-					!is.null(ssq) && is.finite(ssq) && ssq > 0
-				}
-			)
-			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
-				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
-				if (!estimate_only) {
-					n_alpha = length(attempt$fit$params) - ncol(attempt$X)
-					private$cached_values$likelihood_test_context = list(
-						X = attempt$X,
-						j_treat = as.integer(n_alpha + 1L),
-						full_params = attempt$fit$params,
-						full_neg_loglik = attempt$fit$neg_loglik
+			ordinal_cumlink_generate_mod(private, estimate_only, function(X_fit){
+				n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
+				warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
+				warm_fisher = private$get_fit_warm_start_fisher(n_params)
+				if (estimate_only) {
+					res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_cpp, linpred_sign = 1,
+						X_fit, private$y,
+						warm_start_params = warm_start_params,
+						warm_start_fisher_info = warm_fisher,
+						smart_cold_start = private$smart_cold_start_default,
+						estimate_only = TRUE
 					)
+					if (is.null(res) || length(res) == 0) return(NULL)
+					res = .cloglog_full_data_multistart(X_fit, private$y, res, TRUE)
+					list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = warm_fisher)
+				} else {
+					res = ordinal_fit_scaled(fast_ordinal_cloglog_regression_with_var_cpp, linpred_sign = 1,
+						X_fit, private$y,
+						warm_start_params = warm_start_params,
+						warm_start_fisher_info = warm_fisher,
+						smart_cold_start = private$smart_cold_start_default
+					)
+					if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
+					res = .cloglog_full_data_multistart(X_fit, private$y, res, FALSE)
+					list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 				}
-				list(b = c(0, -attempt$fit$b[1]), ssq_b_2 = attempt$fit$ssq_b_j)
-			} else {
-				private$cached_values$likelihood_test_context = NULL
-				NULL
-			}
+			}, negate = TRUE)
 		},
 		build_design_matrix = function(){
-			X_cov = private$get_X()
-			if (is.null(X_cov) || ncol(X_cov) == 0) {
-				X = matrix(private$w, ncol = 1L)
-				colnames(X) = "treatment"
-			} else {
-				X = cbind(treatment = private$w, X_cov)
-			}
-			X
+			ordinal_cumlink_design_matrix(private)
 		}
 	)
 )

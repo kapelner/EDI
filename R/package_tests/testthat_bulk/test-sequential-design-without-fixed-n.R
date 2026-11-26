@@ -1,4 +1,4 @@
-# v1.0.6-TODO-76, v1.0.6-TODO-77, v1.0.6-TODO-78: a sequential design built with n = NULL (no
+# v1.0.6-TODO-38, v1.0.6-TODO-39, v1.0.6-TODO-40: a sequential design built with n = NULL (no
 # planned sample size) must run end to end.
 #  - TODO-76: KK14 / KK21 / KK21stepwise crashed ("missing value where TRUE/FALSE needed") once the
 #    model matrix existed, because the t_0_pct burn-in compared t with t_0_pct * NULL. With n = NULL

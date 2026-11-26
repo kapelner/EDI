@@ -11,7 +11,7 @@ library(EDI)
 # warm-started fit is non-finite / unconverged / below the floor.
 
 # kk14_lambda is the KK14 match-test level for the kk14 = TRUE fixture.
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1 this
 # seed then formed 19 pairs of 20 instead of 16, and both the full and the null
 # fit went to the no-frailty boundary (log theta -17.8), so the null refit took

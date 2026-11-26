@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-295 (docs-scenarios fixed-designs F3): DesignFixedGreedy (mahal_dist) and
+# v1.0.6-TODO-182 (docs-scenarios fixed-designs F3): DesignFixedGreedy (mahal_dist) and
 # DesignFixedGreedyDOptimal (objective "D") rank allocations the same way, so at the defaults they give
 # the same draws for the same seed. The two C++ searches compute the criterion differently in floating
 # point, so with tied covariates (several swaps improving it by the same amount) they can break ties

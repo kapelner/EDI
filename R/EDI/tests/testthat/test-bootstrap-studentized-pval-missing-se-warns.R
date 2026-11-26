@@ -1,12 +1,12 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-140: the studentized (bootstrap-t) bootstrap p-value returned a silent NA when standard
+# v1.0.6-TODO-93: the studentized (bootstrap-t) bootstrap p-value returned a silent NA when standard
 # errors were missing, while the studentized bootstrap CI warned (edi_procedure_na_warning). Seen on
 # KMDiff and RestrictedMeanDiff with interval censoring, whose fits supply no SE. The p-value now warns
 # with the reason it records; the value (NA) is unchanged. The Bayesian-bootstrap studentized p-value
 # had the same gap and gets the same warning (tested on a forced missing SE, since the interval-censored
-# survival classes refuse the Bayesian bootstrap up front, v1.0.6-TODO-141).
+# survival classes refuse the Bayesian bootstrap up front, v1.0.6-TODO-94).
 
 make_visit_schedule_design = function(){
 	set.seed(7); n = 120

@@ -211,7 +211,7 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 					# The parameter vector is (coefficients, log sigma), one-based, so log
 					# sigma is p_r + 1. It used to be p_r, which pinned the last coefficient
 					# (the treatment coefficient when there are no covariates) to the value
-					# of log sigma (v1.0.6-TODO-217).
+					# of log sigma (v1.0.6-TODO-158).
 					fit_fast_r = tryCatch(
 						fast_weibull_regression_cpp(
 							y = private$y[i_reservoir], dead = private$dead[i_reservoir],
@@ -243,8 +243,8 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 					}
 				}
 			}
-			# Pooling (v1.0.6-TODO-217): the inverse-variance weights come from this
-			# draw's own fits, as in shared() (v1.0.6-TODO-132 rule), and a half
+			# Pooling (v1.0.6-TODO-158): the inverse-variance weights come from this
+			# draw's own fits, as in shared() (v1.0.6-TODO-86 rule), and a half
 			# without a usable variance is dropped, as shared() drops it. The
 			# statistic used to pool with the observed data's variances read from
 			# cached_values, or 50/50 when that cache was empty (a duplicate or a
@@ -344,54 +344,13 @@ SurvivalGLMMWeibullFrailtyNormalIVWCSource = list(
 			}
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (!is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			# v1.0.6-TODO-132 (owner decision 2026-11-19): estimate_only = TRUE used to
-			# fit the halves without variances and pool them 50/50 (or accept a half
-			# with no finite variance), a different estimator from the reported
-			# inverse-variance-weighted one, and an estimate_only call left no SE
-			# behind for a later full call (the early return on a cached beta_hat_T
-			# below). Resampling replicates (jackknife, reusable worker, slow subset
-			# refit) all use estimate_only = TRUE, so they were not of the reported
-			# quantity. The IVW weights need both halves' variances, so every call
-			# now runs the full fit; estimate_only only selects the cache check.
-			if (is.null(private$cached_values$KKstats)){
-				private$compute_basic_match_data()
-			}
-			KKstats = private$cached_values$KKstats
+			if (kk_ivwc_cache_is_current(private, estimate_only, full_fit_cached = TRUE)) return(invisible(NULL))
+			KKstats = kk_ivwc_match_stats(private)
 			if (is.null(KKstats)) return(invisible(NULL))
-			m = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			if (m > 0){
-				private$frailty_for_matched_pairs(estimate_only = FALSE)
-			}
-			beta_m = private$cached_values$beta_T_matched
-			ssq_m = private$cached_values$ssq_beta_T_matched
-			m_ok = !is.null(beta_m) && is.finite(beta_m) &&
-			       !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
-			if (nRT > 0 && nRC > 0){
-				private$weibull_for_reservoir(estimate_only = FALSE)
-			}
-			beta_r = private$cached_values$beta_T_reservoir
-			ssq_r = private$cached_values$ssq_beta_T_reservoir
-			r_ok = !is.null(beta_r) && is.finite(beta_r) &&
-			       !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0
-			if (m_ok && r_ok){
-				w_star = ssq_r / (ssq_r + ssq_m)
-				private$cached_values$beta_hat_T = w_star * beta_m + (1 - w_star) * beta_r
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
-			} else if (m_ok){
-				private$cached_values$beta_hat_T = beta_m
-				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
-			} else if (r_ok){
-				private$cached_values$beta_hat_T = beta_r
-				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
-			} else {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
+			fit_and_pool_kk_ivwc_halves(private, KKstats,
+				private$frailty_for_matched_pairs(estimate_only = FALSE),
+				private$weibull_for_reservoir(estimate_only = FALSE),
+				cache_se = TRUE)
 		}
 	)
 )
@@ -807,7 +766,7 @@ InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
-		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# v1.0.6-TODO-158: no Bayesian bootstrap. Without a weighted refit of this
 		# estimator the replicate fell through to the KK compound's generic
 		# mean-difference fallback, a different estimator from compute_estimate();
 		# the Weibull frailty fitter takes no case weights.

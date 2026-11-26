@@ -42,5 +42,5 @@ test_that("DesignFixedFactorial rejects a factors argument implying more than 2 
 })
 
 test_that("DesignFixedFactorial accepts a single two-level factor (implies exactly 2 combinations)", {
-	expect_silent(DesignFixedFactorial$new(n = 12L, factors = list(A = 2), response_type = "continuous", verbose = FALSE))  # named: v1.0.6-TODO-305
+	expect_silent(DesignFixedFactorial$new(n = 12L, factors = list(A = 2), response_type = "continuous", verbose = FALSE))  # named: v1.0.6-TODO-190
 })

@@ -96,7 +96,7 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 			TRUE
 		},
 		# Expected (Fisher) information from ordinal_cumlink_expected_information(),
-		# as in the probit / cauchit / cloglog siblings (v1.0.6-TODO-201).
+		# as in the probit / cauchit / cloglog siblings (v1.0.6-TODO-142).
 		supports_fisher_information = function(){
 			TRUE
 		},
@@ -109,83 +109,43 @@ InferenceOrdinalPropOddsRegr = R6::R6Class("InferenceOrdinalPropOddsRegr",
 				hessian_fn = get_ordinal_regression_hessian_cpp, link = "logit")
 		},
 		generate_mod = function(estimate_only = FALSE){
-			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
-				X_full = X_full,
-				required_cols = 1L,
-				fit_fun = function(X_fit){
-					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					ws_args = private$get_backend_warm_start_args(n_params)
-					if (estimate_only) {
-						ws_fisher = ws_args$warm_start_fisher_info
-						res = tryCatch(
-							ordinal_fit_scaled(fast_ordinal_regression_cpp,
-								X_fit, private$y,
-								warm_start_params = ws_args$start_params,
-								warm_start_fisher_info = ws_fisher,
-								smart_cold_start = private$smart_cold_start_default,
-								estimate_only = TRUE
-							),
-							error = function(e) NULL
-						)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
-					} else {
-						res = tryCatch(
-							ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp,
-								X_fit, private$y,
-								warm_start_params = ws_args$start_params,
-								warm_start_fisher_info = ws_args$warm_start_fisher_info,
-								smart_cold_start = private$smart_cold_start_default
-							),
-							error = function(e) NULL
-						)
-						# TODO-107: an explicitly unconverged fit is not reported as the
-						# MLE; retry cold on centered/scaled covariates (maps back exactly).
-						if (!is.null(res) && !is.null(res$converged) && !isTRUE(res$converged)) {
-							res = ordinal_po_refit_centered_scaled(X_fit, private$y, private$smart_cold_start_default)
-						}
-						list(converged = res$converged, b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
-					}
-				},
-				fit_ok = function(mod, X_fit, keep){
-					# treatment is b[1] (X's first column is treatment; see
-					# compute_treatment_estimate_during_randomization_inference()'s
-					# comment above) -- this used to gate on b[length(mod$b)],
-					# the last covariate's coefficient instead of treatment's,
-					# whenever design_formula included covariates.
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
-					if (!is.null(mod$converged) && !isTRUE(mod$converged)) return(FALSE)
-					if (estimate_only) return(TRUE)
-					is.finite(mod$ssq_b_j) && mod$ssq_b_j > 0
-				}
-			)
-			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
-				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
-				if (!estimate_only) {
-					n_alpha = length(attempt$fit$params) - ncol(attempt$X)
-					private$cached_values$likelihood_test_context = list(
-						X = attempt$X,
-						j_treat = as.integer(n_alpha + 1L),
-						full_params = as.numeric(attempt$fit$params),
-						full_neg_loglik = as.numeric(attempt$fit$neg_loglik)
+			ordinal_cumlink_generate_mod(private, estimate_only, function(X_fit){
+				n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
+				ws_args = private$get_backend_warm_start_args(n_params)
+				if (estimate_only) {
+					ws_fisher = ws_args$warm_start_fisher_info
+					res = tryCatch(
+						ordinal_fit_scaled(fast_ordinal_regression_cpp,
+							X_fit, private$y,
+							warm_start_params = ws_args$start_params,
+							warm_start_fisher_info = ws_fisher,
+							smart_cold_start = private$smart_cold_start_default,
+							estimate_only = TRUE
+						),
+						error = function(e) NULL
 					)
+					list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = ws_fisher)
+				} else {
+					res = tryCatch(
+						ordinal_fit_scaled(fast_ordinal_regression_with_var_cpp,
+							X_fit, private$y,
+							warm_start_params = ws_args$start_params,
+							warm_start_fisher_info = ws_args$warm_start_fisher_info,
+							smart_cold_start = private$smart_cold_start_default
+						),
+						error = function(e) NULL
+					)
+					# TODO-107: an explicitly unconverged fit is not reported as the
+					# MLE; retry cold on centered/scaled covariates (maps back exactly).
+					if (!is.null(res) && !is.null(res$converged) && !isTRUE(res$converged)) {
+						res = ordinal_po_refit_centered_scaled(X_fit, private$y, private$smart_cold_start_default)
+					}
+					list(converged = res$converged, b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 				}
-				list(b = c(0, attempt$fit$b[1]), ssq_b_2 = attempt$fit$ssq_b_j)
-			} else {
-				private$cached_values$likelihood_test_context = NULL
-				NULL
-			}
+			}, require_convergence = TRUE, cast_context = TRUE)
 		},
 		build_design_matrix = function(){
-			X_cov = private$get_X()
-			if (is.null(X_cov) || ncol(X_cov) == 0) {
-				X = matrix(private$w, ncol = 1L)
-				colnames(X) = "treatment"
-			} else {
-				X = cbind(treatment = private$w, X_cov)
-			}
-			X
+			ordinal_cumlink_design_matrix(private)
 		}
 	)
 )
@@ -246,61 +206,8 @@ OrdinalProportionalOddsLikelihoodSource = inference_component_source_parts(Infer
 #' \code{harden = TRUE} always applies, and the seed for the resampling methods is
 #' set after construction with \code{$set_seed()}.
 #' @export
-InferenceOrdinalPropOddsRegr = define_inference_class(
-	classname = "InferenceOrdinalPropOddsRegr",
-	inherit = Inference,
-	components = c(
-		"RandomizationCI",
-		"RandomizationBootstrapCI",
-		"BayesianBootstrap",
-		"Jackknife",
-		"ParametricLikelihoodBootstrap",
-		"OrdinalProportionalOddsLikelihood"
-	),
-	public = list(
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
-	),
-	metadata = list(
-		response_types = "ordinal",
-		likelihood_tier = "full"
-	),
-	overrides = list(
-		public = c(
-			"compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"get_supported_testing_types", "set_testing_type"
-		),
-		private = c(
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"get_supported_testing_types_impl",
-			"supports_bartlett_likelihood_ratio_approx",
-			"get_bartlett_factor_approx",
-			"compute_treatment_estimate_during_randomization_inference",
-			"get_standard_error",
-			"get_degrees_of_freedom",
-			"make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval",
-			"compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl",
-			"compute_lik_ratio_two_sided_pval_impl",
-			"get_likelihood_test_spec",
-			"supports_likelihood_tests",
-			"supports_fisher_information",
-			"get_complexity_tier",
-			"supports_lik_ratio_param_bootstrap",
-			"simulate_under_lik_null",
-			"generate_mod"
-		)
-	)
+InferenceOrdinalPropOddsRegr = define_ordinal_cumulative_likelihood_class(
+	"InferenceOrdinalPropOddsRegr", "OrdinalProportionalOddsLikelihood", "get_complexity_tier"
 )
 
 

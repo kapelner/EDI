@@ -55,7 +55,7 @@ cluster_case = constraint_context_result(
 )
 expect_true(identical(cluster_case$status, "valid"), paste("Blocked-cluster metadata failed constraints:", cluster_case$reason))
 
-# Data-shape fixtures (v1.0.6-TODO-97) are built from their ids, on demand.
+# Data-shape fixtures (v1.0.7-TODO-41) are built from their ids, on demand.
 shape_cell = list(design = "fixed_blocking", response_type = "survival", sample_size = "fixed", group_sizes = "unequal",
 	censoring = "interval", missing_covariate = "yes", effect = "strong")
 shape_id = data_shape_fixture_id(shape_cell)

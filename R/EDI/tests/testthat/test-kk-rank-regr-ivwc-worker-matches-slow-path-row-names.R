@@ -1,4 +1,4 @@
-# v1.0.6-TODO-217 (2): InferenceSurvivalKKRankRegrIVWC seeds each aftsrr ISMB multiplier
+# v1.0.6-TODO-158 (2): InferenceSurvivalKKRankRegrIVWC seeds each aftsrr ISMB multiplier
 # bootstrap from a hash of the data it fits. cbind() with a covariate matrix carries that
 # matrix's row names into the data frame, and a bootstrap draw whose model matrix is rebuilt
 # (a rare covariate dropped) had character row names in the slow subset refit and automatic

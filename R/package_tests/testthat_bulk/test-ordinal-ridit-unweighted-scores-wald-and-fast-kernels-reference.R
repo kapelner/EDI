@@ -176,7 +176,7 @@ test_that("max_resample_attempts must be a positive integer and bounds the per-r
 	# (14 of 40 here) as max_resample_attempts = 1.
 	set.seed(1)
 	b50 <- many$approximate_bootstrap_distribution_beta_hat_T(B = 40, show_progress = FALSE)
-	skip("v1.0.6-TODO-258: public bootstrap ignores max_resample_attempts (no redraws; 14/40 NA with 50 attempts)")
+	skip("v1.0.7-TODO-112: public bootstrap ignores max_resample_attempts (no redraws; 14/40 NA with 50 attempts)")
 	expect_identical(sum(is.na(b50)), 0L)
 })
 

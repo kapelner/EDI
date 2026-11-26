@@ -1,5 +1,5 @@
 # Private methods shared by InferenceContinQuantileRegr and
-# InferencePropQuantileRegr (v1.0.6-TODO-193, code-duplication audit
+# InferencePropQuantileRegr (v1.0.7-TODO-54, code-duplication audit
 # dup-a82df7b209aa). The classes differ only in the response scale
 # (quantile_logit_response: the proportion class fits logit(y)) and the quantreg
 # solvers (quantile_estimate_method for the estimate-only rq.fit() call,
@@ -36,10 +36,12 @@ QuantileRegrSharedPrivate = list(
 	compute_fast_randomization_distr = function(y, permutations, delta, transform_responses, zero_one_logit_clamp = .Machine$double.eps){
 		private$compute_fast_randomization_distr_via_reused_worker(y, permutations, delta, transform_responses, zero_one_logit_clamp = zero_one_logit_clamp)
 	},
-	set_failed_fit_cache = function(){
+	set_failed_fit_cache = function(reason = "quantile_fit_failed"){
 		private$cached_values$beta_hat_T = NA_real_
 		private$cached_values$s_beta_hat_T = NA_real_
 		private$cached_values$df = NA_real_
+		# v1.0.7-TODO-181: kept so the public methods can say why they return NA.
+		private$cached_values$quantile_failure_reason = reason
 	},
 	get_ci_fit_controls = function(){
 		ctrl = private$randomization_mc_control
@@ -102,7 +104,7 @@ QuantileRegrSharedPrivate = list(
 		X_fit = reduced$X
 		j_treat = reduced$j_treat
 		if (is.null(X_fit) || !is.finite(j_treat) || nrow(X_fit) <= ncol(X_fit)){
-			private$set_failed_fit_cache()
+			private$set_failed_fit_cache(if (!is.null(X_fit) && is.finite(j_treat)) "quantile_design_no_residual_degrees_of_freedom" else "quantile_design_unusable")
 			return(invisible(NULL))
 		}
 		if (is.null(colnames(X_fit)) || length(colnames(X_fit)) != ncol(X_fit)) {
@@ -134,6 +136,7 @@ QuantileRegrSharedPrivate = list(
 		se = .extract_se_from_rq_fit(fit, "treatment")
 		private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
 		private$cached_values$df = nrow(X_fit) - ncol(X_fit)
+		if (!is.finite(private$cached_values$s_beta_hat_T)) private$cached_values$quantile_failure_reason = "quantile_sandwich_standard_error_unavailable"
 	},
 	quantile_fit_response = function(){
 		if (isTRUE(private$quantile_logit_response)) logit(private$y) else private$y
@@ -279,8 +282,7 @@ InferenceContinQuantileRegr = define_inference_class(
 		#'   residual degrees of freedom.
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			quantile_regr_estimate(private, estimate_only, self = self)
 		},
 		#' @description Recomputes the quantile-regression treatment estimate under
 		#'   subject/block bootstrap weights (\code{quantreg::rq(..., weights =
@@ -305,11 +307,7 @@ InferenceContinQuantileRegr = define_inference_class(
 		#' @param alpha The confidence level in the computed confidence
 		#'   interval is 1 - \code{alpha}. The default is 0.05.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			private$shared()
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			quantile_regr_wald_ci(private, alpha, self = self)
 		},
 		#' @description Computes a two-sided Wald p-value testing \eqn{H_0:
 		#'   \beta_{T,\tau} = \code{delta}}, from the same \pkg{quantreg} sandwich
@@ -319,15 +317,11 @@ InferenceContinQuantileRegr = define_inference_class(
 		#'   asymptotic two-sided p-value contract this delegates to.
 		#' @param delta The null difference to test against. Default is zero.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			private$shared()
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			quantile_regr_wald_pval(private, delta, self = self)
 		}
 	),
 	# Shared with the other quantile class (QuantileRegrSharedPrivate,
-	# v1.0.6-TODO-193); only the response scale and the quantreg solvers differ.
+	# v1.0.7-TODO-54); only the response scale and the quantreg solvers differ.
 	private = c(QuantileRegrSharedPrivate, list(
 		quantile_logit_response = FALSE,
 		quantile_estimate_method = "br",
@@ -350,3 +344,54 @@ InferenceContinQuantileRegr = define_inference_class(
 	),
 	metadata = list(likelihood_tier = "none")
 )
+
+# `self` (v1.0.7-TODO-181): when given, an NA result warns with the recorded reason
+# (every call, silent inside resampling) instead of being silent. Only
+# InferenceContinQuantileRegr passes it so far.
+quantile_regr_estimate = function(private, estimate_only, self = NULL) {
+	private$shared(estimate_only = estimate_only)
+	est = private$cached_values$beta_hat_T
+	if (!is.null(self) && !isTRUE(estimate_only) && length(est) == 1L && !is.finite(est)) {
+		return(quantile_regr_estimate_unavailable_na(self, private))
+	}
+	est
+}
+
+quantile_regr_wald_ci = function(private, alpha, self = NULL) {
+	if (should_run_asserts()) {
+		assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
+	}
+	private$shared()
+	ci = private$compute_z_or_t_ci_from_s_and_df(alpha)
+	if (!is.null(self) && any(!is.finite(ci))) {
+		return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = quantile_regr_na_reason(private), once = FALSE))
+	}
+	ci
+}
+
+quantile_regr_wald_pval = function(private, delta, self = NULL) {
+	if (should_run_asserts()) {
+		assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
+	}
+	private$shared()
+	pval = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+	if (!is.null(self) && !is.finite(pval)) {
+		return(edi_wald_unavailable_na(self, private, reason = quantile_regr_na_reason(private), once = FALSE))
+	}
+	pval
+}
+
+quantile_regr_na_reason = function(private) {
+	private$cached_values$quantile_failure_reason %||% edi_wald_se_na_reason(private)
+}
+
+quantile_regr_estimate_unavailable_na = function(self, private) {
+	reason = quantile_regr_na_reason(private)
+	detail = switch(reason,
+		quantile_design_no_residual_degrees_of_freedom = paste0(
+			"After collinear columns are dropped the quantile regression has at least as many columns as there are ",
+			"subjects (n = ", length(private$y), "), so it is not fit. Use fewer covariates (model_formula)."),
+		quantile_fit_failed = "quantreg::rq() did not return a fit for these data.",
+		NULL)
+	edi_estimate_unavailable_na(self, private, reason = reason, detail = detail)
+}

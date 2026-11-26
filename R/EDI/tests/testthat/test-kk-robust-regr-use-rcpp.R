@@ -13,7 +13,7 @@ make_kk_robust_design <- function(n_pairs = 40L, n_single = 20L, seed = 20260729
 	# above ignores the assignments, so put each pair's second member in the
 	# opposite arm; a same-arm pair has no within-pair difference (NA), which
 	# made the OneLik fit nonestimable and the IVWC fit reservoir-only, so both
-	# use_rcpp comparisons tested less than they claimed (v1.0.6-TODO-50).
+	# use_rcpp comparisons tested less than they claimed (v1.0.6-TODO-15).
 	priv$w[seq(2L, 2L * n_pairs, 2L)] <- 1 - priv$w[seq(1L, 2L * n_pairs, 2L)]
 	w <- priv$w
 	X <- as.data.frame(priv$X)

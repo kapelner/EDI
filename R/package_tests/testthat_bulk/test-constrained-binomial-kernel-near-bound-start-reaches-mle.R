@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-221: the constrained binomial kernels (fast_log_binomial_regression.cpp) score with the expected
+# v1.0.6-TODO-162: the constrained binomial kernels (fast_log_binomial_regression.cpp) score with the expected
 # information, whose working weight is ~1 / (distance to the mean bound). From a start with a row within ~1e-6 of a
 # bound that the MLE does not hold there, every Fisher-scoring increment was tiny, so the relative-change test passed
 # and the kernel reported converged = TRUE short of the MLE (the identity-link fixture below: treatment 0.0906 vs
@@ -16,7 +16,7 @@ near_bound_loglik = function(b, X, y, link, wts = rep(1, length(y))) {
 }
 
 test_that("identity-binomial kernel does not stop short of the MLE from a warm start next to mu = 0", {
-	# Randomization draw 17 of the v1.0.6-TODO-205 fixture (Bernoulli design, n = 20, seed 1; draws seed 5),
+	# Randomization draw 17 of the v1.0.6-TODO-146 fixture (Bernoulli design, n = 20, seed 1; draws seed 5),
 	# warm-started from the fit on the previous draw (a start with one row next to mu = 0).
 	set.seed(1L)
 	x1 = rnorm(20L)

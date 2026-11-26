@@ -257,12 +257,11 @@ assumption for those covariates specifically.}
   \code{$compute_estimate(estimate_only = TRUE)}. Otherwise refits with
   weights via the same backend cascade as the unweighted fit
   (\code{VGAM}/\code{ordinal}/\code{MASS::polr}, each weighted), and if
-  \strong{all} of those fail, falls back further to a plain weighted
-  binary-logistic surrogate fit
-  (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
-  "logistic")}) that does not model the ordinal structure at all. Never
-  computes a standard error on any weighted path (\code{s_beta_hat_T} is
-  always \code{NA}), regardless of \code{estimate_only}.
+  \strong{all} of those fail, tries a weighted proportional-odds
+  surrogate (\code{MASS::polr} with a logistic link). If that fails,
+  it fits weighted least squares on the numeric category codes
+  (\code{stats::lm.wfit}). All weighted paths return \code{NA} for
+  the standard error (\code{s_beta_hat_T}), regardless of \code{estimate_only}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceOrdinalPartialProportionalOddsRegr$compute_estimate_with_bootstrap_weights(

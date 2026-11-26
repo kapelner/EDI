@@ -30,7 +30,7 @@ weibull_fit_failed = function(res) {
 	is.null(res) || !isTRUE(res$converged) || !all(is.finite(if (is.null(res$b)) res$params else res$b))
 }
 
-# v1.0.6-TODO-161: on unscaled covariates (age in years, node counts, times in
+# v1.0.6-TODO-110: on unscaled covariates (age in years, node counts, times in
 # days) the Weibull likelihood is badly conditioned and lbfgs can stop at its
 # iteration cap (maxit = 100) short of the optimum, e.g. on survival::colon,
 # where survreg() converges in 5 iterations. The failed full fit then made
@@ -253,7 +253,7 @@ SurvivalWeibullLikelihoodSource = list(
 			private$rand_compute_rand_two_sided_pval(
 				r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
 				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp,
-				alternative = alternative # v1.0.6-TODO-328
+				alternative = alternative # v1.0.6-TODO-209
 			)
 		}
 	),

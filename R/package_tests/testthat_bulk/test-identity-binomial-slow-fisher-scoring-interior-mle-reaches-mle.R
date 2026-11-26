@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-267: on randomization draw 27 of the v1.0.6-TODO-205 fixture (Bernoulli design, n = 20, seed 1;
+# v1.0.6-TODO-203: on randomization draw 27 of the v1.0.6-TODO-146 fixture (Bernoulli design, n = 20, seed 1;
 # draws seed 5) InferenceIncidBinomialIdentityRiskDiff returned 0.0833, half the MLE 0.1666. The MLE is interior,
 # but one y = 1 row sits at mu = 0.9996, where the expected information (working weight ~2300) overstates the
 # observed curvature (~1) by three orders of magnitude. Fisher scoring then crawls (2817 iterations at tol 1e-12),

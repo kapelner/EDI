@@ -140,12 +140,17 @@ poisson_family_marginal_functional = function(beta, X, estimand) {
 #' @keywords internal
 #' @noRd
 poisson_family_marginal_estimand_estimate = function(private_env, mod, estimand, estimate_only = FALSE, reason_prefix = "poisson") {
+	cache_delta_method_marginal_estimate(private_env, mod,
+		function(beta, X) poisson_family_marginal_functional(beta, X, estimand), estimate_only, reason_prefix)
+}
+
+cache_delta_method_marginal_estimate = function(private_env, mod, model_functional, estimate_only, reason_prefix) {
 	reason = function(suffix) paste0(reason_prefix, "_marginal_", suffix)
 	if (is.null(mod) || is.null(mod$b) || is.null(mod$X)) {
 		private_env$cache_nonestimable_estimate(reason("fit_unavailable"))
 		return(NA_real_)
 	}
-	functional = function(theta) poisson_family_marginal_functional(theta, mod$X, estimand)
+	functional = function(theta) model_functional(theta, mod$X)
 	point = tryCatch(functional(mod$b), error = function(e) NA_real_)
 	if (!is.finite(point)) {
 		private_env$cache_nonestimable_estimate(reason("point_unavailable"))
@@ -170,7 +175,7 @@ poisson_family_marginal_estimand_estimate = function(private_env, mod, estimand,
 
 #' Randomization statistic on a marginal estimand's scale
 #'
-#' @description v1.0.6-TODO-189: a class whose
+#' @description v1.0.6-TODO-135: a class whose
 #' \code{compute_treatment_estimate_during_randomization_inference()} refits the
 #' model on a permuted (or bootstrap-randomization) assignment must return the
 #' statistic on the scale of \code{compute_estimate()}, which under a marginal
@@ -188,4 +193,51 @@ poisson_family_marginal_estimand_estimate = function(private_env, mod, estimand,
 edi_rand_statistic_marginal_point = function(point_fn) {
 	point = tryCatch(as.numeric(point_fn())[1L], error = function(e) NA_real_)
 	if (length(point) == 1L && is.finite(point)) point else NA_real_
+}
+
+compute_cached_mean_difference_estimate = function(self, private, estimate_only, treatment_col, treatment_variance) {
+	private$shared(estimate_only = estimate_only)
+	if (identical(self$get_estimand(), "marginal_mean_diff")) {
+		return(private$compute_marginal_estimand_estimate("marginal_mean_diff", estimate_only = estimate_only))
+	}
+	# Rebuild conditional results from the model after a change of estimand.
+	mod = private$cached_mod
+	if (!is.null(mod)) {
+		j_treat = treatment_col(mod)
+		private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$b[j_treat])[1L]
+		if (!estimate_only) {
+			ssq = treatment_variance(mod)
+			ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
+			private$cached_values$df = mod$df %||% Inf
+			if (is.finite(ssq) && ssq > 0) {
+				private$cached_values$s_beta_hat_T = sqrt(ssq)
+				private$clear_nonestimable_state()
+			} else {
+				private$cache_nonestimable_se("model_standard_error_unavailable")
+			}
+		}
+	}
+	private$cached_values$beta_hat_T
+}
+
+compute_mean_difference_estimand_ci = function(self, private, alpha,
+		lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha)) {
+	self$compute_estimate(estimate_only = FALSE)
+	if (private$testing_type == "wald") {
+		if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+			return(private$compute_z_or_t_ci_from_s_and_df(alpha))
+		}
+	}
+	edi_likelihood_asymp_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha),
+		unsupported = NULL, lik_ratio = lik_ratio)
+}
+
+compute_mean_difference_estimand_pval = function(self, private, delta) {
+	self$compute_estimate(estimate_only = FALSE)
+	if (private$testing_type == "wald") {
+		if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
+			return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
+		}
+	}
+	edi_likelihood_asymp_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta), unsupported = NULL)
 }

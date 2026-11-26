@@ -487,30 +487,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			point
 		},
 		build_component_matrix = function(model_formula, selected_colnames = NULL, treatment_name = "treatment"){
-			if (is.null(selected_colnames)) {
-				if (identical(model_formula, ~ .)) {
-					X_cov = private$get_X()
-				} else {
-					X_imp = private$des_obj$get_X_imp()
-					X_cov = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
-				}
-			} else {
-				if (identical(model_formula, ~ .)) {
-					X_cov_all = private$get_X()
-				} else {
-					X_imp = private$des_obj$get_X_imp()
-					X_cov_all = if (is.null(X_imp)) matrix(NA_real_, nrow = private$n, ncol = 0) else edi_drop_perfect_predictor_cols(private, create_model_matrix_from_features(model_formula, X_imp))  # v1.0.6-TODO-158
-				}
-				X_cov = if (is.null(X_cov_all) || !length(selected_colnames)) matrix(NA_real_, nrow = private$n, ncol = 0) else as.matrix(X_cov_all[, intersect(selected_colnames, colnames(X_cov_all)), drop = FALSE])
-			}
-			if (is.null(X_cov) || ncol(as.matrix(X_cov)) == 0L) {
-				X_fit = cbind(`(Intercept)` = 1, treatment = private$w)
-				colnames(X_fit)[2] = treatment_name
-				return(X_fit)
-			}
-			X_fit = cbind(`(Intercept)` = 1, treatment = private$w, as.matrix(X_cov))
-			colnames(X_fit)[2] = treatment_name
-			X_fit
+			edi_build_component_matrix(private, model_formula, selected_colnames, treatment_name)
 		},
 		compute_treatment_estimate_during_randomization_inference = function(estimate_only = TRUE){
 			if (is.null(private$best_X_colnames)){
@@ -525,7 +502,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			start_len = ncol(X) + 1L + 2L * ncol(X_zero_one)
 			vc_start = ncol(X) + 1L
 			n_vc = 1L + 2L * ncol(X_zero_one)
-			# v1.0.6-TODO-184: under estimand = "marginal_mean_diff" the statistic is
+			# v1.0.6-TODO-130: under estimand = "marginal_mean_diff" the statistic is
 			# the g-computation mean difference, which depends on the zero/one
 			# coefficients (including their treatment coefficients). Holding those at
 			# the observed fit would freeze the inflation part of the statistic across
@@ -548,7 +525,7 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			if (is.null(res) || length(res$b) < 2 || !is.finite(res$b[2])) return(NA_real_)
 			private$set_fit_warm_start(as.numeric(res$params), "params", fisher = res$fisher_information)
 			if (!is_marginal) return(as.numeric(res$b[2]))
-			# v1.0.6-TODO-184: return the statistic on the estimand's own scale (the
+			# v1.0.6-TODO-130: return the statistic on the estimand's own scale (the
 			# randomization test, the BRT slow path and the BRT worker all compare
 			# against compute_estimate(), which is the marginal mean difference here).
 			p = ncol(X)
@@ -645,8 +622,8 @@ InferencePropZeroOneInflatedBetaRegr = define_inference_class(
 			# fresh design draw (and y with the sharp-null responses) after the row
 			# snapshot was taken. Fitting the snapshot's observed w against the null
 			# y made every BRT "null" draw an ordinary bootstrap replicate centred at
-			# the estimate (rand p 0.01 vs BRT p 0.85; v1.0.6-TODO-167, same bug as
-			# v1.0.6-TODO-150). On the plain bootstrap path w equals the snapshot
+			# the estimate (rand p 0.01 vs BRT p 0.85; v1.0.6-TODO-115, same bug as
+			# v1.0.6-TODO-101). On the plain bootstrap path w equals the snapshot
 			# column, so results there are unchanged.
 			w = as.numeric(worker_state$worker_priv$w)
 			if (length(w) != nrow(X) || length(y) != nrow(X)) return(fallback())

@@ -18,7 +18,7 @@ library(EDI)
 # The guards are driven by mocking the three log-binomial kernels to return a non-converged fit,
 # which is_log_binomial_fit_reasonable() rejects. Until 2026-11-18 an all-ones response did this
 # for real (the cold start sat outside the mean support and the fit never moved); since
-# v1.0.6-TODO-142 pulls such a start into the support, that fit converges to the correct boundary
+# v1.0.7-TODO-47 pulls such a start into the support, that fit converges to the correct boundary
 # MLE (log RR = 0, with the boundary warning), checked by the last test below.
 mock_unconverged_log_binomial <- function() {
 	bad <- function(X, ...) list(b = rep(0, NCOL(X)), converged = FALSE, ssq_b_j = NA_real_)
@@ -73,7 +73,7 @@ test_that("compute_estimate_with_bootstrap_weights()'s own guard fires with 'log
 	expect_true(is.na(p$cached_values$beta_hat_T))
 })
 
-test_that("an all-ones response now fits: log RR = 0 at the boundary, with the boundary warning (v1.0.6-TODO-142)", {
+test_that("an all-ones response now fits: log RR = 0 at the boundary, with the boundary warning (v1.0.7-TODO-47)", {
 	set.seed(1); n <- 30L
 	X <- data.frame(x1 = rnorm(n))
 	des <- DesignFixedBernoulli$new(response_type = "incidence", n = n, seed = 1L, verbose = FALSE)

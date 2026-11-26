@@ -254,7 +254,7 @@ KKLWACoxIVWCPartialLikelihoodSource = list(
 		# The pre-migration shim-only KKLWACoxIVWCPartialLikelihoodSource
 		# carried these delegating wrappers; preserved verbatim now that the
 		# real machinery lives in this same source.
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate. It used to fall through to
 		# the KK compound's generic fallback, a weighted raw mean difference of the
 		# survival times (wrong scale and sign: replicates centred near +2.6 for an
 		# estimate of -0.61). Now it is the same estimator as shared(): a weighted

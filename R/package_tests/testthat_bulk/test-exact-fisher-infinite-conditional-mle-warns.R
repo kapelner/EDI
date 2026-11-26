@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-306 (docs-scenarios factorial F7, also ds-incidence-44883784401-f4): when an arm has no
+# v1.0.6-TODO-191 (docs-scenarios factorial F7, also ds-incidence-44883784401-f4): when an arm has no
 # events the exact-Fisher conditional MLE is infinite; compute_estimate() returned a bare NA with no
 # warning. It now warns once (edi_procedure_na_warning, reason exact_fisher_conditional_mle_infinite),
 # naming the empty arm; the exact CI and p-value are unchanged.

@@ -381,7 +381,7 @@ InferenceCountNegBin = define_inference_class(
 				y = y,
 				j = j_treat,
 				full_fit = private$cached_mod,
-				# v1.0.6-TODO-345: every null fit starts from the same fixed point, the
+				# v1.0.6-TODO-216: every null fit starts from the same fixed point, the
 				# full-data MLE, never from the mutable backend warm start or a start
 				# chained from another delta (no `start` formal, so the memoized
 				# wrapper does not chain). The score-CI search moved that warm start,

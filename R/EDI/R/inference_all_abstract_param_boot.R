@@ -1,9 +1,9 @@
-# Procedure names for the parametric-bootstrap NA warnings (v1.0.6-TODO-207).
+# Procedure names for the parametric-bootstrap NA warnings (v1.0.6-TODO-148).
 EDI_PARAM_BOOT_LR_PVAL_PROCEDURE = "parametric-bootstrap likelihood-ratio p-value"
 EDI_PARAM_BOOT_LR_CI_PROCEDURE = "parametric-bootstrap likelihood-ratio confidence interval"
 
 # Record a parametric-bootstrap procedure failure and warn that the public method
-# returns NA for it, instead of a silent NA (v1.0.6-TODO-207, the v1.0.6-TODO-113
+# returns NA for it, instead of a silent NA (v1.0.6-TODO-148, the v1.0.6-TODO-67
 # rule). The warning is silent inside a resampling operation (edi_warn_procedure_na()).
 #' @keywords internal
 #' @noRd
@@ -14,7 +14,7 @@ edi_param_boot_record_and_warn_na = function(self, private, procedure, reason, s
 }
 
 # Smallest B for which the parametric-bootstrap LR confidence interval at level alpha can
-# reject anything (v1.0.6-TODO-210). compute_lik_ratio_bootstrap_two_sided_pval() returns
+# reject anything (v1.0.6-TODO-151). compute_lik_ratio_bootstrap_two_sided_pval() returns
 # min(1, max(2 / (n + 1), (1 + n_exceed) / (n + 1))) with n <= B usable replicates, so its
 # smallest attainable value is 2 / (B + 1); the interval search needs a p-value <= alpha, so
 # B + 1 >= 2 / alpha, i.e. B >= 2 / alpha - 1 (39 for alpha = 0.05, 199 for alpha = 0.01). The
@@ -26,7 +26,7 @@ edi_lik_ratio_bootstrap_ci_min_B = function(alpha){
 	as.integer(max(1, ceiling(2 / as.numeric(alpha) - 1 - 1e-8)))
 }
 
-# Error up front when B is too small for the LR-bootstrap CI at alpha (v1.0.6-TODO-210).
+# Error up front when B is too small for the LR-bootstrap CI at alpha (v1.0.6-TODO-151).
 #' @keywords internal
 #' @noRd
 edi_assert_lik_ratio_bootstrap_ci_B = function(B, alpha){
@@ -298,7 +298,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			est = self$compute_estimate()
 			if (!is.finite(est)) return(c(NA_real_, NA_real_))
 
-			# The p-value warns when it is NA (v1.0.6-TODO-207); the search calls it many
+			# The p-value warns when it is NA (v1.0.6-TODO-148); the search calls it many
 			# times, so its warnings are muffled here and the interval reports its own NA.
 			pval_na_reason = NULL
 			pval_fn = function(d) withCallingHandlers(
@@ -317,7 +317,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 				}
 			)
 			# Recorded in procedure_failure_reason[["lik_ratio_bootstrap_ci"]] and warned once
-			# (v1.0.6-TODO-210).
+			# (v1.0.6-TODO-151).
 			warn_ci_na = function(reason, detail) edi_param_boot_record_and_warn_na(self, private,
 				EDI_PARAM_BOOT_LR_CI_PROCEDURE, reason, "se", detail = detail)
 
@@ -436,7 +436,7 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 			)
 			names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 			if (!all(is.finite(ci))) {
-				# B too small for alpha errors up front (v1.0.6-TODO-210), so this is a search failure.
+				# B too small for alpha errors up front (v1.0.6-TODO-151), so this is a search failure.
 				warn_ci_na("lik_ratio_bootstrap_ci_bound_not_found", paste0(
 					"No value within the search radius had a bootstrap p-value below alpha = ", alpha,
 					", or the p-values there were NA",
@@ -687,8 +687,8 @@ InferenceParamBootstrap = R6::R6Class("InferenceParamBootstrap",
 		#'
 		#' Sets private$active_resampling_operation = "param_boot" for the
 		#' replicate loop only and restores the caller's value on exit
-		#' (v1.0.6-TODO-185), so the callers' own top-level code stays outside
-		#' the flag and its procedure-NA warnings can fire (v1.0.6-TODO-207).
+		#' (v1.0.6-TODO-131), so the callers' own top-level code stays outside
+		#' the flag and its procedure-NA warnings can fire (v1.0.6-TODO-148).
 		run_param_bootstrap_replicates = function(spec, delta, null_fit, B, max_attempts_per_replicate, show_progress = FALSE, allow_worker_reuse = TRUE){
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "param_boot"

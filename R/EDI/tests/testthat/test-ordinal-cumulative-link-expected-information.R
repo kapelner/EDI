@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-201: the cumulative-link ordinal classes (logit / probit /
+# v1.0.6-TODO-142: the cumulative-link ordinal classes (logit / probit /
 # cauchit / cloglog) expose Fisher information. It must be the EXPECTED
 # information sum_i sum_k (d pi_ik)(d pi_ik)' / pi_ik, not the observed Hessian
 # (which is what the C++ fits' own `fisher_information` field holds). These
@@ -97,7 +97,7 @@ test_that("cumulative-link classes use expected information as their Fisher sour
 		# expected and observed information agree to O(n^-1/2), but are not identical
 		expect_false(isTRUE(all.equal(expected, observed, tolerance = 1e-8)), info = link)
 		expect_lt(max(abs(expected - observed)) / max(abs(observed)), 0.25)
-		# v1.0.6-TODO-215: the score-test information follows the "fisher" default,
+		# v1.0.6-TODO-156: the score-test information follows the "fisher" default,
 		# but the Wald SE (get_standard_error()) always uses the observed information.
 		expect_equal(priv$get_score_test_information_matrix(spec, spec$full_fit), expected, tolerance = 1e-12, info = link)
 		expect_identical(inf$get_information_source_used(), "fisher", info = link)

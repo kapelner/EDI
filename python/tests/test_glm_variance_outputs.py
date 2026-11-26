@@ -1,4 +1,4 @@
-"""Variance outputs of the OLS / logistic / probit / Poisson / NB kernels (v1.0.6-TODO-87).
+"""Variance outputs of the OLS / logistic / probit / Poisson / NB kernels (v1.0.6-TODO-48).
 
 Python had none of R's *_with_var_cpp twins: fast_ols(estimate_only=False)
 returned only b and XtWX, and fast_logistic_regression / fast_probit_regression

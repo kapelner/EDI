@@ -161,10 +161,10 @@ construct_r6_receiver = function(case_row, fixture) {
 	obj
 }
 
-# Data-shape cases (v1.0.6-TODO-97) build their receiver with the constructor arguments in
+# Data-shape cases (v1.0.7-TODO-41) build their receiver with the constructor arguments in
 # receiver_args (e.g. InferenceRandCustom's statistic). Unlike construct_r6_receiver(), a refusal
 # here is the case's own outcome, not "unsupported": a design that cannot be analyzed at all (n =
-# NULL, v1.0.6-TODO-77) fails in Inference*$new(). A class the design says does not apply to it
+# NULL, v1.0.6-TODO-39) fails in Inference*$new(). A class the design says does not apply to it
 # (Design$applicable_inference_class_names()) is "unsupported".
 construct_data_shape_receiver = function(case_row, fixture) {
 	applicable = tryCatch(fixture$design$applicable_inference_class_names(), error = function(e) NULL)
@@ -253,7 +253,7 @@ result_row = function(case_row, status, duration_time_sec = 0, warning_message =
 	)
 }
 
-# What the call produced, as one token, so a gate can count each kind (v1.0.6-TODO-95/-97):
+# What the call produced, as one token, so a gate can count each kind (v1.0.6-TODO-54 / v1.0.7-TODO-41):
 #   finite         numeric output, every value finite
 #   warned_na      all-NA output with a warning from this call
 #   recorded_na    all-NA output with no warning, but a reason the receiver recorded
@@ -382,7 +382,7 @@ run_public_argument_combinations = function(tier = "smoke", class_filter = NULL,
 	fixtures = if (length(fixture_ids)) build_public_argument_fixtures(tier = tier, fixture_ids = fixture_ids) else list()
 	new_results = lapply(seq_len(nrow(to_run)), function(i) run_case(to_run[i, , drop = FALSE], fixtures, timeout_sec))
 	new_results = if (length(new_results)) do.call(rbind, new_results) else NULL
-	# Results written before output_outcome existed (v1.0.6-TODO-97) get it blank on resume, and
+	# Results written before output_outcome existed (v1.0.7-TODO-41) get it blank on resume, and
 	# columns a caller appended (the data-shape matrix's known_todo) are kept, blank on new rows.
 	if (!is.null(existing) && !is.null(new_results)) {
 		for (col in setdiff(names(new_results), names(existing))) existing[[col]] = ""

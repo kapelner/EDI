@@ -243,6 +243,33 @@ Eigen::MatrixXd get_continuation_ratio_regression_hessian_cpp(const Eigen::Map<E
 	return -weighted_crossprod(X_aug, w);
 }
 
+static List continuation_ratio_fit_list(ContinuationRatioFit& cr, int p, bool include_weights) {
+    edi::ResultMap out;
+    if (cr.n_alpha == 0) {
+        out.set("b", VectorXd::Zero(p)).set("alpha", VectorXd::Zero(0));
+        if (include_weights) out.set("weights_aug", cr.weights_aug);
+        return edi::to_rcpp_list(out);
+    }
+
+    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
+    const LikelihoodFitResult& fit = cr.fit;
+    out.set("b", fit.params.tail(p))
+        .set("alpha", fit.params.head(cr.n_alpha))
+        .set("beta_full", fit.params)
+        .set("params", fit.params)
+        .set("neg_loglik", fit.value)
+        .set("X_aug", cr.X_aug)
+        .set("z", cr.z);
+    if (include_weights) out.set("weights_aug", cr.weights_aug);
+    out.set("converged", fit.converged)
+        .set("num_iter", fit.niter)
+        .set("hit_iteration_cap", fit.hit_iteration_cap)
+        .set("gradient_norm", fit.gradient_norm)
+        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
+        .set("fisher_information", fun.hessian(fit.params));
+    return edi::to_rcpp_list(out);
+}
+
 //' Fast Continuation-Ratio Regression, Direct MLE via Row Augmentation (C++ Backend)
 //'
 //' Fits the (forward) continuation-ratio logit ordinal regression model: for cut
@@ -344,29 +371,7 @@ List fast_continuation_ratio_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X
         nullable_to_optional<Eigen::VectorXd>(fixed_values),
         optimization_alg,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-    if (cr.n_alpha == 0) {
-        return edi::to_rcpp_list(edi::ResultMap()
-            .set("b", VectorXd::Zero(p))
-            .set("alpha", VectorXd::Zero(0)));
-    }
-
-    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
-    LikelihoodFitResult& fit = cr.fit;
-
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", fit.params.tail(p))
-        .set("alpha", fit.params.head(cr.n_alpha))
-        .set("beta_full", fit.params)
-        .set("params", fit.params)
-        .set("neg_loglik", fit.value)
-        .set("X_aug", cr.X_aug)
-        .set("z", cr.z)
-        .set("converged", fit.converged)
-        .set("num_iter", fit.niter)
-        .set("hit_iteration_cap", fit.hit_iteration_cap)
-        .set("gradient_norm", fit.gradient_norm)
-        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-        .set("fisher_information", fun.hessian(fit.params)));
+    return continuation_ratio_fit_list(cr, p, false);
 }
 
 //' Fast Weighted Continuation-Ratio Regression, Direct MLE (C++ Backend)
@@ -412,31 +417,7 @@ List fast_continuation_ratio_regression_weighted_cpp(
         optimization_alg,
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
         VectorXd(weights));
-    if (cr.n_alpha == 0) {
-        return edi::to_rcpp_list(edi::ResultMap()
-            .set("b", VectorXd::Zero(p))
-            .set("alpha", VectorXd::Zero(0))
-            .set("weights_aug", cr.weights_aug));
-    }
-
-    ContinuationRatioObjective fun(cr.X_aug, cr.z, cr.weights_aug);
-    LikelihoodFitResult& fit = cr.fit;
-
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", fit.params.tail(p))
-        .set("alpha", fit.params.head(cr.n_alpha))
-        .set("beta_full", fit.params)
-        .set("params", fit.params)
-        .set("neg_loglik", fit.value)
-        .set("X_aug", cr.X_aug)
-        .set("z", cr.z)
-        .set("weights_aug", cr.weights_aug)
-        .set("converged", fit.converged)
-        .set("num_iter", fit.niter)
-        .set("hit_iteration_cap", fit.hit_iteration_cap)
-        .set("gradient_norm", fit.gradient_norm)
-        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-        .set("fisher_information", fun.hessian(fit.params)));
+    return continuation_ratio_fit_list(cr, p, true);
 }
 
 //' Fast Continuation-Ratio Regression with Variance, Direct MLE (C++ Backend)

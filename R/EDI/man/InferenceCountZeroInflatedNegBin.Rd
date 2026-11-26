@@ -110,8 +110,8 @@ probability above 5\%), otherwise a warning of class
 kept. It never warm-starts a randomization, bootstrap or parametric-bootstrap
 refit from a full-data fit whose zero part is on the ridge (a fitted
 zero-inflation logit of 10 or more in absolute value): such a refit could not
-move its zero part, so it is cold-started like a fresh fit (v1.0.6-TODO-30,
-v1.0.6-TODO-152).
+move its zero part, so it is cold-started like a fresh fit (v1.0.6-TODO-6,
+v1.0.6-TODO-103).
 }
 \section{Small-sample behaviour}{
 
@@ -282,6 +282,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_information_source_used()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_diagnostics()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_estimate_diagnostics()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_mod()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_ci_types()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_pval_types()</code></li>
@@ -295,6 +296,7 @@ Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_b_subsampling()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_m_out_of_n_bootstrap()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_information_preference()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_testing_type()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$supports_rand_pval_for_incidence()</code></li>
 </ul>

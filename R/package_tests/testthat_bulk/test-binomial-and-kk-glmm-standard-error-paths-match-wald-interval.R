@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-220 (2): in InferenceIncidBinomialIdentityRiskDiff, InferenceIncidLogBinomial, InferenceContinKKGLMM and
+# v1.0.6-TODO-161 (2): in InferenceIncidBinomialIdentityRiskDiff, InferenceIncidLogBinomial, InferenceContinKKGLMM and
 # InferenceCountKKGLMM, private$get_standard_error() (used by compute_wald_*(), the Wald fallback, CI-inversion seeds
 # and InferenceSuite's se column) came from the likelihood-test spec's information, while compute_asymp_*() used the
 # fit's own Wald SE: identity 0.0825 vs 0.0935, log-binomial 0.305 vs 0.339, Contin KK GLMM 0.2170 vs 0.2077 (sigma_b

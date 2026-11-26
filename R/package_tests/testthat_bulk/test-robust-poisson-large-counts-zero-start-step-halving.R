@@ -7,7 +7,7 @@
 # Where: R/EDI/R/inference_count_robust_poisson.R:243 (kind: converged_unchecked).
 # On commit 48765322fe90 this test failed with: Expected `est` to equal
 # `unname(stats::coef(ref)["w"])`. Differences: 1/1 mismatches [1] 0 - 0.694 == -0.694
-# Tracked as v1.0.6-TODO-396; skip removed 2026-11-23 (kernel zero-start retry + fit_ok converged check).
+# Tracked as v1.0.6-TODO-201; skip removed 2026-11-23 (kernel zero-start retry + fit_ok converged check).
 
 test_that("robust Poisson estimate matches glm for large counts under the default zero cold start", {
 		set.seed(1)

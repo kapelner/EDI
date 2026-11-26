@@ -84,7 +84,7 @@ test_that("KK14 burn-in records reservoir membership and matching capabilities",
 test_that("fixed design preserves the trusted precomputed-assignment contract", {
   des <- DesignFixedBernoulli$new("continuous", n = 4)
   des$add_all_subjects_to_experiment(data.frame(x = 1:4))
-  # v1.0.6-TODO-300: w_precomputed must have length n; a short vector is no
+  # v1.0.6-TODO-187: w_precomputed must have length n; a short vector is no
   # longer recycled.
   expect_error(des$assign_w_to_all_subjects(c(0, 1)), "must have length n = 4")
   des$assign_w_to_all_subjects(c(0, 1, 0, 1))

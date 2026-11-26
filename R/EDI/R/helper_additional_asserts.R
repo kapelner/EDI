@@ -25,7 +25,7 @@ assertBootstrapArgs = function(B, min_number_usable_samples = NULL, type = NULL,
 	invisible(NULL)
 }
 
-# v1.0.6-TODO-347 (2026-11-24): no inference class honours an offset() term in
+# v1.0.6-TODO-217 (2026-11-24): no inference class honours an offset() term in
 # a model formula; create_model_matrix_from_features() silently dropped it, so a
 # fit "with" an offset equalled the fit without it. Refuse it, whatever the
 # assertion setting (offset support is v1.1.0-TODO-17a).

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-208 item (4): classes without the MarginalEstimand component used to fail
+# v1.0.6-TODO-149 item (4): classes without the MarginalEstimand component used to fail
 # set_estimand() with "attempt to apply non-function". The Inference root now provides
 # set_estimand() / get_supported_estimands() that stop with a classed
 # "edi_estimand_not_supported" error, and get_estimand() that returns "conditional";

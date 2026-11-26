@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-100: checkmate's assertNumeric() defaults to any.missing = TRUE,
+# v1.0.6-TODO-58: checkmate's assertNumeric() defaults to any.missing = TRUE,
 # so alpha = NA, delta = NA, pval_epsilon = NA, tau = NA, ... used to pass the
 # argument checks and come back as an NA interval or p-value. Every
 # assertNumeric() on such a scalar now says any.missing = FALSE. This file
@@ -12,7 +12,7 @@ library(EDI)
 # all and still returns NA on an NA argument): the classes' own overrides of
 # compute_asymp_*/wald/score/gradient/lik_ratio p-values, the jackknife Wald
 # methods in some classes, and the few (class, method) pairs in
-# na_arg_unguarded below. They are tracked as v1.0.6-TODO-105 (sweep:
+# na_arg_unguarded below. They are tracked as v1.0.7-TODO-45 (sweep:
 # R/package_tests/sweep_na_argument_guards.R).
 
 na_arg_fixtures = local({
@@ -88,7 +88,7 @@ na_arg_shared_method_regex = paste0(
 	"asymp_log_rank_two_sided_pval_for_treatment_effect)(_generic)?$"
 )
 
-# Overrides with no argument check of their own (v1.0.6-TODO-105): the
+# Overrides with no argument check of their own (v1.0.7-TODO-45): the
 # G-computation risk-ratio subsampling / m-out-of-n paths (private
 # compute_rr_*() helpers) and the dependent-censoring randomization stubs, which
 # return NA as "unsupported" without reading their arguments.
@@ -111,7 +111,7 @@ test_that("shared resampling / exact / likelihood-ratio entry points reject NA a
 	skipped = character()
 	for (cn in na_arg_inference_classes()) {
 		inf = na_arg_build(cn)
-		# v1.0.6-TODO-181: a Suggests package the class needs is not installed
+		# v1.0.6-TODO-127: a Suggests package the class needs is not installed
 		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, na_arg_fixtures()))) {
 			skipped[cn] = paste(pk, collapse = ", ")
 			next

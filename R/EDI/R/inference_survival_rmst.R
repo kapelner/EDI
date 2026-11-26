@@ -24,7 +24,7 @@
 #' unavailable or non-finite, \code{$compute_asymp_confidence_interval()} and
 #' \code{$compute_asymp_two_sided_pval()} return \code{NA}, with the reason
 #' recorded and an \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they
-#' fell back to a nonparametric bootstrap (v1.0.6-TODO-380). On left- or
+#' fell back to a nonparametric bootstrap (v1.0.6-TODO-225). On left- or
 #' interval-censored data, which have no analytic standard error, they return
 #' the nonparametric bootstrap interval and p-value.
 #' Randomization confidence intervals are not supported (the RMST-difference
@@ -133,7 +133,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				if (!is.numeric(tau) || length(tau) != 1L || !is.finite(tau) || tau <= 0) {
 					stop("`tau` must be NULL or a single finite positive number.", call. = FALSE)
 				}
-				# v1.0.6-TODO-125: the same rule as the default horizon, so under general
+				# v1.0.6-TODO-79: the same rule as the default horizon, so under general
 				# censoring exact-event y values (folded in as [y, y]) count toward an
 				# arm's largest observed time.
 				arm_max = private$rmst_default_horizon()
@@ -146,7 +146,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				}
 				private$rmst_tau = as.numeric(tau)
 			}
-			# v1.0.6-TODO-115: with no user tau, fix the default horizon from the
+			# v1.0.6-TODO-69: with no user tau, fix the default horizon from the
 			# observed assignment now. Workers are clones of this object, so every
 			# randomization / bootstrap / jackknife draw integrates to this same tau
 			# instead of recomputing min(arm maxima) from the draw's arms (which made
@@ -227,7 +227,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#'   documentation). \code{NA} (reason recorded, with an
 		#'   \code{edi_wald_unavailable_warning}) if that standard error is
 		#'   unavailable or non-finite; no bootstrap is substituted
-		#'   (v1.0.6-TODO-380). On left- or interval-censored data, which have no
+		#'   (v1.0.6-TODO-225). On left- or interval-censored data, which have no
 		#'   analytic standard error, the nonparametric bootstrap interval.
 		#'
 		#' @param alpha The confidence level in the computed confidence
@@ -251,7 +251,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			}
 			if (!is.finite(private$cached_values$beta_hat_T) ||
 					is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -262,7 +262,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 		#'   estimate and its Greenwood-based standard error — see class
 		#'   documentation. \code{NA} (reason recorded, with an
 		#'   \code{edi_wald_unavailable_warning}) if that standard error is
-		#'   unavailable (v1.0.6-TODO-380); the nonparametric bootstrap p-value on
+		#'   unavailable (v1.0.6-TODO-225); the nonparametric bootstrap p-value on
 		#'   left- or interval-censored data.
 		#'
 		#' @param delta The null difference to test against. For any
@@ -285,7 +285,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				}
 				if (!is.finite(private$cached_values$beta_hat_T) ||
 						is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0) {
-					# v1.0.6-TODO-380: was a bootstrap fallback.
+					# v1.0.6-TODO-225: was a bootstrap fallback.
 					return(edi_wald_unavailable_na(self, private))
 				}
 				z_beta_hat_T = private$cached_values$beta_hat_T / private$cached_values$s_beta_hat_T
@@ -324,7 +324,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			# A user-set tau (TODO-108): the native kernel takes a trailing `rmst_tau`
 			# argument only once cpp patch 05 is built. An older installed binary has
 			# no such formal, so a user tau keeps the generic loop (NULL = no fast path).
-			# v1.0.6-TODO-115: the default horizon is also fixed (observed-data tau), so
+			# v1.0.6-TODO-69: the default horizon is also fixed (observed-data tau), so
 			# without the formal the kernel would recompute it per draw; use the loop.
 			kernel_has_tau = "rmst_tau" %in% names(formals(compute_survival_stat_diff_rand_bootstrap_parallel_cpp))
 			tau_fixed = private$rmst_horizon()
@@ -339,7 +339,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 			do.call(compute_survival_stat_diff_rand_bootstrap_parallel_cpp, args)
 		},
 		rmst_tau = NULL,
-		# v1.0.6-TODO-115: default horizon from the observed assignment, set once in
+		# v1.0.6-TODO-69: default horizon from the observed assignment, set once in
 		# initialize() when the user gave no tau; carried into every resampling worker
 		# (workers are clones), never recomputed per draw.
 		rmst_observed_tau = NULL,
@@ -474,7 +474,7 @@ InferenceSurvivalRestrictedMeanDiff = define_inference_class(
 				# is available from interval::icfit(), so s_beta_hat_T stays NA and
 				# compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
 				# return the nonparametric bootstrap on this path, the variance
-				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-380).
+				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-225).
 				private$cached_values$s_beta_hat_T = NA_real_
 				return(invisible(NULL))
 			}

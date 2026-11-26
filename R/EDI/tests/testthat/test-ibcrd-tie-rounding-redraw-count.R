@@ -1,9 +1,9 @@
-# v1.0.6-TODO-213: when n * prob_T ends in .5, DesignSeqOneByOneiBCRD's assign_wt() targets R's
+# v1.0.6-TODO-154: when n * prob_T ends in .5, DesignSeqOneByOneiBCRD's assign_wt() targets R's
 # round() (half to even) but the C++ redraw kernel used std::round (half away from zero), so n = 21,
 # prob_T = 0.5 realized 10 treated while every randomization redraw had 11. Owner decision
 # 2026-11-19, option (b): the redraw is handed the realized count, so realized allocations are
 # unchanged and only the redraws move. DesignFixediBCRD draws its realized allocation from the
-# same kernel as its redraws, so it always agreed; v1.0.6-TODO-234 (owner decision 2026-11-19)
+# same kernel as its redraws, so it always agreed; v1.0.6-TODO-168 (owner decision 2026-11-19)
 # aligned its count with R's round() too (it used to round ties up: n = 21 gave 11).
 
 library(testthat)

@@ -3,7 +3,7 @@ library(EDI)
 
 # InferenceCountZeroInflatedPoisson's asymptotic CI / p-value dispatch when the
 # standard error is available, unavailable (NA with an edi_wald_unavailable_warning;
-# before v1.0.6-TODO-380 a bootstrap fallback), unavailable on a design without
+# before v1.0.6-TODO-225 a bootstrap fallback), unavailable on a design without
 # nonparametric-bootstrap support (the same NA), or blocked by the count-likelihood guard, under both the
 # conditional and marginal estimands. Existing tests only run the happy path.
 # The state each branch keys on is forced with stubs on a real fitted object.
@@ -52,7 +52,7 @@ test_that("with an available SE the conditional CI and p-value are the z/t Wald 
 })
 
 test_that("an unavailable SE gives NA with a recorded reason and a classed warning, never the bootstrap", {
-	# v1.0.6-TODO-380: this used to fall back to the bootstrap interval / p-value.
+	# v1.0.6-TODO-225: this used to fall back to the bootstrap interval / p-value.
 	f <- zip_fixture()
 	est <- f$inf$compute_estimate()
 	stub_private(f$priv, "get_standard_error", function() NA_real_)

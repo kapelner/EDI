@@ -1,0 +1,2 @@
+statistic_method,coupled_method,delegate_helpers,source
+compute_treatment_estimate_during_randomization_inference,compute_bootstrap_worker_estimate,compute_bootstrap_worker_estimate_via_compute_treatment_estimate,KK Wilcox randomization-bootstrap scale mismatch 2026-10-12 (v1.1.0-TODO-272)

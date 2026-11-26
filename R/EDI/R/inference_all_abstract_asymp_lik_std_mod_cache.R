@@ -38,15 +38,7 @@ StandardModelCacheSource = list(
 			# implements (LikelihoodTests component, still transitively composed by
 			# every consumer of this component), called directly rather than via a
 			# broken inheritance link.
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			edi_likelihood_asymp_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha), unsupported = NULL)
 		},
 		#' @description Computes an asymptotic two-sided p-value using the configured test.
 		#'   Wald inference always uses the observed information; the
@@ -63,15 +55,7 @@ StandardModelCacheSource = list(
 			}
 			# See compute_asymp_confidence_interval()'s comment above -- same fix,
 			# same reason.
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			edi_likelihood_asymp_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta), unsupported = NULL)
 		}
 	),
 	private = list(
@@ -89,7 +73,7 @@ StandardModelCacheSource = list(
 		load_bootstrap_sample_into_worker = function(worker_state, indices){
 			private$load_bootstrap_sample_into_design_backed_worker(worker_state, indices)
 		},
-		# v1.0.6-TODO-230: a ratio estimand's degenerate subsampling / m-out-of-n draw is NaN
+		# v1.0.6-TODO-164: a ratio estimand's degenerate subsampling / m-out-of-n draw is NaN
 		# (unusable); a no-op for every other class and operation.
 		compute_bootstrap_worker_estimate = function(worker_state){
 			edi_mark_degenerate_resampling_worker_draw(self, private,
@@ -150,45 +134,7 @@ StandardModelCacheSource = list(
 			}
 		},
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
-			edi_warn_cluster_independence_once(self, private, "likelihood")
-			spec = private$get_likelihood_test_spec()
-			if (is.null(spec)) {
-				# A class that structurally never supports likelihood tests
-				# (supports_likelihood_tests() hard-FALSE) never has a spec by
-				# design -- that is a caller error (a testing_type the class
-				# never advertised), so it stays a hard stop. A class that DOES
-				# support likelihood tests but returns NULL here because THIS
-				# fit failed (model_fit_unavailable, extreme coefficients, a
-				# null-refit that errored, etc.) instead degrades the same way
-				# InferenceIncidKKCondLogitOneLik's compute_likelihood_test_two_
-				# sided_pval() already does: record non-estimable, return NA.
-				# See 2026-09-06 comprehensive-results investigation: on
-				# pte_example reps where InferenceSurvivalCoxPHRegr's / Infer
-				# enceSurvivalDepCensTransformRegr's own generate_mod() fit
-				# failed, every LR/score/gradient call on that object was
-				# erroring instead of recording the same non-estimable state
-				# compute_estimate() already has.
-				if (!isTRUE(private$supports_likelihood_tests())) {
-					stop(class(self)[1], " does not expose a likelihood-test specification.", call. = FALSE)
-				}
-				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
-				if (!isTRUE(self$is_nonestimable())) {
-					edi_record_procedure_failure(self, private, "likelihood_test_spec_unavailable", stage = "estimate", procedure = edi_lik_test_procedure(testing_type)) # TODO-116 (2026-10-22): spec missing with a valid Wald fit is a lik-test failure
-				}
-				return(NA_real_)
-			}
-			p_value = private$get_memoized_likelihood_test_pval(
-				delta = delta,
-				testing_type = testing_type,
-				spec = spec,
-				warm_cache_key = paste0("likelihood_test:", testing_type),
-				bartlett_B = bartlett_B
-			)
-			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
-			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
-				edi_record_procedure_failure(self, private, paste0(testing_type, "_test_unavailable"), stage = "se") # TODO-116 (2026-10-22): keeps the Wald state
-			}
-			p_value
+			standard_model_likelihood_test_pval(self, private, delta, testing_type, bartlett_B)
 		},
 		shared = function(estimate_only = FALSE){
 			standard_model_cache_shared(private, estimate_only)
@@ -235,7 +181,7 @@ InferenceAsympLikStdModCacheNoParamBootstrap = R6::R6Class("InferenceAsympLikStd
 
 # The shared() model-cache state machine of StandardModelCacheSource, also used
 # by InferenceIncidRiskDiff, which cannot compose the StandardModelCache
-# component (v1.0.6-TODO-193, code-duplication audit dup-fb4cd2ec3279). Fits
+# component (v1.0.7-TODO-54, code-duplication audit dup-fb4cd2ec3279). Fits
 # private$generate_mod() once, caches the estimate / SE / df and the warm start,
 # and records the non-estimable reason.
 #' @keywords internal
@@ -288,4 +234,31 @@ standard_model_cache_shared = function(private, estimate_only = FALSE){
 	} else {
 		private$cache_nonestimable_se("model_standard_error_unavailable")
 	}
+}
+
+standard_model_likelihood_test_pval = function(self, private, delta, testing_type, bartlett_B, check_support = TRUE) {
+	edi_warn_cluster_independence_once(self, private, "likelihood")
+	spec = private$get_likelihood_test_spec()
+	if (is.null(spec)) {
+		if (check_support && !isTRUE(private$supports_likelihood_tests())) {
+			stop(class(self)[1], " does not expose a likelihood-test specification.", call. = FALSE)
+		}
+		edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
+		if (!isTRUE(self$is_nonestimable())) {
+			edi_record_procedure_failure(self, private, "likelihood_test_spec_unavailable", stage = "estimate", procedure = edi_lik_test_procedure(testing_type)) # TODO-116 (2026-10-22): spec missing with a valid Wald fit is a lik-test failure
+		}
+		return(NA_real_)
+	}
+	p_value = private$get_memoized_likelihood_test_pval(
+		delta = delta,
+		testing_type = testing_type,
+		spec = spec,
+		warm_cache_key = paste0("likelihood_test:", testing_type),
+		bartlett_B = bartlett_B
+	)
+	if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
+	if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
+		edi_record_procedure_failure(self, private, paste0(testing_type, "_test_unavailable"), stage = "se") # TODO-116 (2026-10-22): keeps the Wald state
+	}
+	p_value
 }

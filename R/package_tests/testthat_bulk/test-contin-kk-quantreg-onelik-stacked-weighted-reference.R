@@ -83,7 +83,7 @@ test_that("unit weights reproduce compute_estimate() via the effectively-constan
 	expect_equal(as.numeric(weighted_unit), unweighted, tolerance = 1e-8)
 })
 
-# v1.0.6-TODO-45 (KK14's match test was twice as strict as published; fixed 2026-11-17): this test used design
+# v1.0.6-TODO-10 (KK14's match test was twice as strict as published; fixed 2026-11-17): this test used design
 # seed 4 / weight seed 5. After the fix that seed's allocation has 27 pairs + 6 reservoir subjects and the
 # weighted estimate moved by only 1.1e-6. That is the data, not the code: a median regression's solution is a
 # vertex of the LP (p = 3 interpolated rows), so it is piecewise constant in the weights. Here the weights swap

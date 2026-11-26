@@ -95,7 +95,7 @@ DESIGN_BLOCKING_STRUCTURE_PUBLIC = list(
 			}
 			# A sequential design pre-allocates y to the full n but holds match ids only for the
 			# t subjects enrolled so far, so mid-trial the ids are sized to t, not n
-			# (v1.0.6-TODO-46: get_block_ids() errored "improperly sized" until the trial was full).
+			# (v1.0.6-TODO-11: get_block_ids() errored "improperly sized" until the trial was full).
 			if (!is.null(private$m) && !is.null(private$t) && length(private$m) == private$t) {
 				return(private$m)
 			}
@@ -202,7 +202,7 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 		# FALSE unless the class's constructor takes equal_block_sizes and the user asks for it
 		# (DesignFixedBlocking defaults it to TRUE). Classes without the argument, notably
 		# DesignFixedBlockedCluster, whose randomization unit is the cluster, accept unequal
-		# strata (v1.0.6-TODO-73: the old TRUE default rejected real cluster trials and told
+		# strata (v1.0.6-TODO-36: the old TRUE default rejected real cluster trials and told
 		# the user to set an argument the class does not have).
 		equal_block_sizes = FALSE,
 		blocking_capable = FALSE,
@@ -291,7 +291,7 @@ DESIGN_BLOCKING_STRUCTURE_PRIVATE = list(
 			if (isTRUE(private$equal_block_sizes)) {
 				block_counts = as.integer(table(keys))
 				if (length(block_counts) > 1L && any(block_counts != block_counts[1L])) {
-					# Name only the arguments this class's constructor takes (v1.0.6-TODO-73).
+					# Name only the arguments this class's constructor takes (v1.0.6-TODO-36).
 					ctor_args = names(formals(self$initialize))
 					# The advice depends on whether B_target was given and on whether any stratum is
 					# binned (continuous): B_target cannot equalise the categories of a categorical

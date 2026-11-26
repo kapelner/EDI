@@ -60,7 +60,7 @@ test_that("subsampling p-value: symmetric empirical tail of the centred pivot at
 	cs <- sqrt(50) * grid
 	for (delta in c(1, 1.2, 0.9)) {
 		t_obs <- sqrt(n) * (log(f$est) - log(delta))
-		# v1.0.6-TODO-230: symmetric, mean(|pivot| >= |t_obs|), floored at 1/B.
+		# v1.0.6-TODO-164: symmetric, mean(|pivot| >= |t_obs|), floored at 1/B.
 		ref <- min(1, max(1 / 101, mean(abs(cs) >= abs(t_obs))))
 		expect_equal(f$p$compute_rr_subsampling_two_sided_pval(delta, B = 101, b = 50L), ref, tolerance = 1e-12, info = delta)
 	}

@@ -148,7 +148,8 @@ seq_des_inf$compute_rand_bootstrap_confidence_interval(alpha = 0.05, B = 101)
   max_expansions = 7L,
   bootstrap_type = NULL,
   zero_one_logit_clamp = .Machine$double.eps,
-  type = "percentile"
+  type = "percentile",
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -195,6 +196,17 @@ fixed, unexposed, with no zero-noise escape hatch) is a pragmatic ad hoc choice 
 than one derived from or validated against those sources, and measured performance (this
 CI, unlike a standalone smoothed p-value, is accelerated by the noise-aware fast kernels:
 about 50x on \code{n = 30}, \code{B = 99}).}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the draws.
+\code{FALSE} (default): every draw analyses its rows of the design's original
+imputation. \code{TRUE}: each draw's resampled rows are imputed again
+(\code{missingness_method}) once, when the draws are made, and that imputation is
+reused at every \code{delta} the inversion evaluates (the fresh assignment is also
+drawn on those rows), so the cost is one imputation per draw, not per draw and
+\code{delta}. The closed-form inversion for affine statistics and class-specific
+batch kernels are bypassed when it is \code{TRUE}. Without missing covariates the
+two are identical. Not available when the inference's covariate matrix differs from
+the design's (a \code{model_formula}, or covariates dropped as perfect predictors).
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }

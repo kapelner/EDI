@@ -1,6 +1,6 @@
 """Python binding defaults must match their R twins' defaults.
 
-v1.0.6-TODO-72 (GitHub issue #33): `fast_coxph_regression` and
+v1.0.6-TODO-35 (GitHub issue #33): `fast_coxph_regression` and
 `fast_stratified_coxph_regression` defaulted to `maxit = 20` in
 python/cpp/bindings_survival.cpp after R raised its Cox kernels to
 `maxit = 100` in v1.0.5, so Python could stop early on fits R finishes.

@@ -59,7 +59,7 @@ InferenceBaiAdjustedTKK14 = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
-		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# v1.0.6-TODO-158: no Bayesian bootstrap. Without a weighted refit of this
 		# estimator the replicate fell through to the KK compound's generic
 		# mean-difference fallback, a different estimator from compute_estimate();
 		# the Bai et al. pair-of-pairs variance that sets its weights has no weighted analogue.

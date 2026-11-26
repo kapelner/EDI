@@ -26,7 +26,7 @@ ic_fx <- function(seed, n = 40L, class = InferenceSurvivalLogRank) {
 }
 
 # ictest()'s estimate is "row-1 arm minus the other"; EDI reports treatment minus control
-# (v1.0.6-TODO-117/-121), so orient the reference the same way.
+# (v1.0.6-TODO-71 / v1.0.6-TODO-75), so orient the reference the same way.
 ref_est <- function(ref) EDI:::ictest_treatment_minus_control_sign(ref) * as.numeric(ref$estimate)
 
 ref_wald_ci <- function(ref, alpha = 0.05) {

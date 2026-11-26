@@ -9,13 +9,13 @@ library(EDI)
 # bcce1ded, 2026-09-23, fix_glmm_weibull_frailty_ivwc_estimate_only_na_pooling.md) made w_star =
 # NA/NA = NA in that case, making beta_hat_T unconditionally NA on every resampling draw under
 # estimate_only = TRUE even though both components were individually usable. The fix falls back to
-# equal weighting (w_star = 0.5) whenever either ssq is non-finite. v1.0.6-TODO-132 (2026-11-19,
+# equal weighting (w_star = 0.5) whenever either ssq is non-finite. v1.0.6-TODO-86 (2026-11-19,
 # owner decision) replaced that fallback: estimate_only = TRUE now runs both component fitters with
 # their variances and pools them by the same inverse-variance weights as the full call, so resampling
 # replicates estimate the reported quantity; the tests below pin that. A codebase-wide grep confirmed
 # zero test references anywhere for this exact class's shared()/w_star logic (the class's own existing
 # tests only covered compute_estimate_with_bootstrap_weights(), a different code path that bypassed this
-# combination entirely and was removed by v1.0.6-TODO-235: the class now refuses the Bayesian bootstrap). Reached by unlockBinding-replacing the two component fitters (clayton_copula_
+# combination entirely and was removed by v1.0.6-TODO-169: the class now refuses the Bayesian bootstrap). Reached by unlockBinding-replacing the two component fitters (clayton_copula_
 # for_matched_pairs()/weibull_for_reservoir()) with stubs setting exact cached beta/ssq values,
 # independent of the real (documented-fragile) Clayton-copula/Weibull-frailty MLE machinery -- the
 # same technique already established for this file's sibling IVWC classes.

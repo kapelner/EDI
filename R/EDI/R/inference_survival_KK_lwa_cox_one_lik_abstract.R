@@ -101,23 +101,7 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 		#' @description Compute an asymptotic confidence interval.
 		#' @param alpha Significance level.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			# TODO-121: dispatch on the testing type (was: always Wald).
-			switch(
-				private$testing_type,
-				wald = {
-					private$shared_combined_likelihood(estimate_only = FALSE)
-					private$compute_z_or_t_ci_from_s_and_df(alpha)
-				},
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+			edi_stacked_likelihood_ci(private, alpha, private$shared_combined_likelihood(estimate_only = FALSE))
 		},
 		#' @description Compute an asymptotic two-sided p-value.
 		#' @param delta Null treatment effect value.
@@ -126,19 +110,10 @@ KKLWACoxOneLikPartialLikelihoodSource = list(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			# TODO-121: dispatch on the testing type (was: always Wald).
-			switch(
-				private$testing_type,
-				wald = {
-					private$shared_combined_likelihood(estimate_only = FALSE)
-					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-				},
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+			edi_likelihood_asymp_pval(private, delta, {
+				private$shared_combined_likelihood(estimate_only = FALSE)
+				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			})
 		}
 	),
 	private = list(

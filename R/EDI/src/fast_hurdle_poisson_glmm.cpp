@@ -36,7 +36,7 @@ using namespace Rcpp;
 namespace {
 
 // The Gauss-Hermite rule and the soft log_sigma barrier are the shared
-// glmm:: versions from _glmm_engine.h (v1.0.6-TODO-193).
+// glmm:: versions from _glmm_engine.h (v1.0.7-TODO-54).
 using GHRuleHP = glmm::GHRule;
 
 inline double log_one_minus_exp_neg_hp(double lam, double eneg, double eta) {
@@ -399,6 +399,40 @@ public:
 // shim over this). Preserves all hot-loop perf work in
 // HurdlePoissonGLMMObjective (preallocated lam/eneg buffers, exp-sharing,
 // single GEMV per group, estimate_only early return) unchanged.
+static std::vector<int> hurdle_poisson_positive_rows(
+    const Eigen::Ref<const Eigen::VectorXd>& y, Eigen::Index n, const double* weights) {
+    std::vector<int> rows;
+    rows.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        if (y[i] > 0.0 && (!weights || weights[i] > 0.0)) rows.push_back(i);
+    }
+    return rows;
+}
+
+struct HurdlePoissonPositiveData {
+    Eigen::MatrixXd X;
+    Eigen::VectorXd y;
+    Eigen::VectorXd weights;
+    std::vector<int> group_id;
+};
+
+static HurdlePoissonPositiveData subset_hurdle_poisson_rows(
+    const Eigen::Ref<const Eigen::MatrixXd>& X, const Eigen::Ref<const Eigen::VectorXd>& y,
+    const Eigen::Ref<const Eigen::VectorXi>& group_id, const std::vector<int>& rows, const double* weights) {
+    const Eigen::Index n = static_cast<Eigen::Index>(rows.size());
+    HurdlePoissonPositiveData positive{
+        Eigen::MatrixXd(n, X.cols()), Eigen::VectorXd(n), Eigen::VectorXd(weights ? n : 0),
+        std::vector<int>(n)};
+    for (Eigen::Index k = 0; k < n; ++k) {
+        const int i = rows[k];
+        positive.X.row(k) = X.row(i);
+        positive.y[k] = y[i];
+        positive.group_id[k] = group_id[i];
+        if (weights) positive.weights[k] = weights[i];
+    }
+    return positive;
+}
+
 edi::ResultMap fast_hurdle_poisson_glmm_internal(
     const Eigen::Ref<const Eigen::MatrixXd>& X,
     const Eigen::Ref<const Eigen::VectorXd>& y,
@@ -420,11 +454,7 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
     const int total = p + 1;
 
     // Filter to positive-count observations (truncated Poisson component)
-    std::vector<int> pos_idx;
-    pos_idx.reserve(n_all);
-    for (int i = 0; i < n_all; ++i) {
-        if (y[i] > 0.0) pos_idx.push_back(i);
-    }
+    const auto pos_idx = hurdle_poisson_positive_rows(y, n_all, nullptr);
     const int n_pos = (int)pos_idx.size();
 
     if (n_pos <= p) {
@@ -440,17 +470,8 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
             .set("variance_boundary_hit", std::monostate{});
     }
 
-    Eigen::MatrixXd X_pos(n_pos, p);
-    Eigen::VectorXd y_pos(n_pos);
-    std::vector<int> gid_pos(n_pos);
-    for (int k = 0; k < n_pos; ++k) {
-        const int i = pos_idx[k];
-        X_pos.row(k) = X.row(i);
-        y_pos[k]     = y[i];
-        gid_pos[k]   = group_id[i];
-    }
-
-    HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
+    const auto positive = subset_hurdle_poisson_rows(X, y, group_id, pos_idx, nullptr);
+    HurdlePoissonGLMMData dat(positive.X, positive.y, positive.group_id, n_gh);
 
     Eigen::VectorXd par(total);
     if (warm_start_params.has_value()) {
@@ -461,9 +482,9 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
         par = *warm_start_params;
     } else if (smart_cold_start) {
         par.setZero();
-        Eigen::VectorXd log_y = y_pos.array().log().matrix();
+        Eigen::VectorXd log_y = positive.y.array().log().matrix();
         Eigen::VectorXd legacy_beta = Eigen::VectorXd::Zero(p);
-        if (try_safe_ols_solve(X_pos, log_y, legacy_beta)) {
+        if (try_safe_ols_solve(positive.X, log_y, legacy_beta)) {
             par.head(p) = legacy_beta;
         }
         par[total - 1] = -3.0;
@@ -579,7 +600,7 @@ edi::ResultMap fast_hurdle_poisson_glmm_internal(
 
 #ifndef EDI_CORE_ONLY
 namespace {
-// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported fit.
+// v1.0.6-TODO-140 (4), 2026-11-19: argument checks for the exported fit.
 // Without them a y of length 0, a group_id shorter than y or an out-of-range
 // j_T read out of bounds (the derivative/likelihood exports already check their
 // dimensions). Named hpg_* because a unity build puts several kernels'
@@ -606,32 +627,33 @@ inline void hpg_check_kernel_inputs(SEXP y, Eigen::Index n_X, Eigen::Index p_X, 
 }
 } // namespace
 
+static HurdlePoissonGLMMData make_hurdle_poisson_glmm_test_data(
+    const Eigen::Map<Eigen::MatrixXd>& X_r, const Eigen::Map<const Eigen::VectorXd>& y,
+    const Eigen::Map<Eigen::VectorXi>& group_id_r,
+    const Eigen::Map<const Eigen::VectorXd>* weights, Eigen::Index params_size, int n_gh) {
+	if (X_r.rows() != y.size() || X_r.rows() != group_id_r.size() || (weights && X_r.rows() != weights->size())) {
+		if (weights) {
+			Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
+			           X_r.rows(), y.size(), group_id_r.size(), weights->size());
+		}
+		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
+		           X_r.rows(), y.size(), group_id_r.size());
+	}
+	if (params_size != X_r.cols() + 1) {
+		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params_size, X_r.cols() + 1);
+	}
+	const double* row_weights = weights ? weights->data() : nullptr;
+	const auto pos_idx = hurdle_poisson_positive_rows(y, X_r.rows(), row_weights);
+	const auto positive = subset_hurdle_poisson_rows(X_r, y, group_id_r, pos_idx, row_weights);
+	return HurdlePoissonGLMMData(positive.X, positive.y, positive.group_id, n_gh,
+		weights ? &positive.weights : nullptr);
+}
+
 // [[Rcpp::export]]
 Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    nullptr, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
@@ -643,31 +665,8 @@ Eigen::VectorXd get_hurdle_poisson_glmm_score_cpp(const Eigen::Map<Eigen::Matrix
 Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	Eigen::VectorXd weights_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		weights_pos[k] = weights_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    &weights_r_vec_coerced, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::VectorXd grad(params.size());
 	obj(params, grad);
@@ -678,29 +677,8 @@ Eigen::VectorXd get_hurdle_poisson_glmm_weighted_score_cpp(const Eigen::Map<Eige
 // [[Rcpp::export]]
 Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    nullptr, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
 	information(X_r.cols(), X_r.cols()) -= glmm::soft_barrier_hessian(params[X_r.cols()]);
@@ -711,31 +689,8 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_hessian_cpp(const Eigen::Map<Eigen::Matr
 Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	Eigen::VectorXd weights_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		weights_pos[k] = weights_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    &weights_r_vec_coerced, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	Eigen::MatrixXd information = obj.hessian(params);
 	information(X_r.cols(), X_r.cols()) -= glmm::soft_barrier_hessian(params[X_r.cols()]);
@@ -745,29 +700,8 @@ Eigen::MatrixXd get_hurdle_poisson_glmm_weighted_hessian_cpp(const Eigen::Map<Ei
 // [[Rcpp::export]]
 double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    nullptr, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	return likelihood_value(obj, params) - glmm::soft_barrier(params[X_r.cols()]);
 }
@@ -776,31 +710,8 @@ double get_hurdle_poisson_glmm_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>&
 double get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(const Eigen::Map<Eigen::MatrixXd>& X_r, SEXP y_r, const Eigen::Map<Eigen::VectorXi>& group_id_r, SEXP weights_r, const Eigen::Map<Eigen::VectorXd>& params, int n_gh = 7) {
 	NumericVector weights_r_r_coerced(weights_r); Eigen::Map<const Eigen::VectorXd> weights_r_vec_coerced(weights_r_r_coerced.begin(), weights_r_r_coerced.size());
 	NumericVector y_r_r_coerced(y_r); Eigen::Map<const Eigen::VectorXd> y_r_vec_coerced(y_r_r_coerced.begin(), y_r_r_coerced.size());
-	if (X_r.rows() != y_r_vec_coerced.size() || X_r.rows() != group_id_r.size() || X_r.rows() != weights_r_vec_coerced.size()) {
-		Rcpp::stop("Dimension mismatch: X_r has %d rows, y_r has %d elements, group_id_r has %d elements, weights_r has %d elements",
-		           X_r.rows(), y_r_vec_coerced.size(), group_id_r.size(), weights_r_vec_coerced.size());
-	}
-	if (params.size() != X_r.cols() + 1) {
-		Rcpp::stop("params must have length ncol(X_r) + 1 (got %d, expected %d)", params.size(), X_r.cols() + 1);
-	}
-	std::vector<int> pos_idx;
-	pos_idx.reserve(X_r.rows());
-	for (int i = 0; i < X_r.rows(); ++i) {
-		if (y_r_vec_coerced[i] > 0.0 && i < weights_r_vec_coerced.size() && weights_r_vec_coerced[i] > 0.0) pos_idx.push_back(i);
-	}
-	const int n_pos = static_cast<int>(pos_idx.size());
-	Eigen::MatrixXd X_pos(n_pos, X_r.cols());
-	Eigen::VectorXd y_pos(n_pos);
-	Eigen::VectorXd weights_pos(n_pos);
-	std::vector<int> gid_pos(n_pos);
-	for (int k = 0; k < n_pos; ++k) {
-		const int i = pos_idx[k];
-		X_pos.row(k) = X_r.row(i);
-		y_pos[k] = y_r_vec_coerced[i];
-		weights_pos[k] = weights_r_vec_coerced[i];
-		gid_pos[k] = group_id_r[i];
-	}
-	HurdlePoissonGLMMData dat(X_pos, y_pos, gid_pos, n_gh, &weights_pos);
+	const auto dat = make_hurdle_poisson_glmm_test_data(X_r, y_r_vec_coerced, group_id_r,
+	                                                    &weights_r_vec_coerced, params.size(), n_gh);
 	HurdlePoissonGLMMObjective obj(dat);
 	return likelihood_value(obj, params) - glmm::soft_barrier(params[X_r.cols()]);
 }

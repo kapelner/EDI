@@ -6,7 +6,7 @@
 # Where: R/EDI/R/helper_robust_sandwich.R:155 (kind: na_where_defined).
 # On commit 4fc58cd063bc this test failed with: Expected `is.null(cr_small)` to be FALSE.
 # Differences: `actual`: TRUE `expected`: FALSE
-# v1.0.6-TODO-58: fixed 2026-11-19 (noise floor now relative to the scale of y and the fitted values).
+# v1.0.6-TODO-22: fixed 2026-11-19 (noise floor now relative to the scale of y and the fitted values).
 
 test_that("CR2 cluster-robust variance is scale-equivariant for responses in small units", {
 		set.seed(1)

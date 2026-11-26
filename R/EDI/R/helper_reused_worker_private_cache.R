@@ -32,7 +32,7 @@ reset_reused_worker_private_caches = function(worker_priv, changed = c("sample",
 	invisible(NULL)
 }
 
-# v1.0.6-TODO-131: per-subject fields that bootstrap_subset_inference() sets from the
+# v1.0.6-TODO-85: per-subject fields that bootstrap_subset_inference() sets from the
 # draw itself; everything else on a subset copy that still has the parent's rows is a
 # stale cache.
 EDI_SUBSET_COPY_ROW_FIELDS = c("X", "y", "y_temp", "w", "dead", "y_L", "y_R", "m", "cached_values")
@@ -43,7 +43,7 @@ EDI_SUBSET_COPY_ROW_FIELDS = c("X", "y", "y_temp", "w", "dead", "y_L", "y_R", "m
 # strat_cox_strata_info_cache$strata_id). duplicate() copies these from the parent and
 # nothing rebuilds them for the subset, so they are either keyed caches that would miss
 # anyway or unkeyed ones that R would silently recycle or misalign against the subset
-# (za_X_cov_all, v1.0.6-TODO-126). Clearing rather than subsetting: a cache may depend on
+# (za_X_cov_all, v1.0.6-TODO-80). Clearing rather than subsetting: a cache may depend on
 # the whole sample (centring, weights, fitted values), so only a rebuild is right, and
 # every such field is a lazily rebuilt cache (no Inference class stores per-subject
 # input outside `keep`). Character vectors are left alone (labels and column names,

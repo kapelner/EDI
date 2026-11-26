@@ -1,8 +1,8 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-100 (assertNumeric calls that let NA through), v1.0.6-TODO-94
-# (add_one_subject_response(1, y = NA) accepted silently) and v1.0.6-TODO-93 (a
+# v1.0.6-TODO-58 (assertNumeric calls that let NA through), v1.0.6-TODO-53
+# (add_one_subject_response(1, y = NA) accepted silently) and v1.0.6-TODO-52 (a
 # missing non-survival response gave an error about survival-only y_Ls/y_Rs).
 # NA responses and NA design parameters must be rejected at the call that
 # supplies them, with asserts on and with asserts off, since these checks guard

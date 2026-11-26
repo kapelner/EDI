@@ -1,12 +1,12 @@
 #!/usr/bin/env Rscript
-# NA audit gate (v1.0.6-TODO-95), shared by check_comprehensive_suite_quality_gates.R
+# NA audit gate (v1.0.6-TODO-54), shared by check_comprehensive_suite_quality_gates.R
 # and check_public_argument_combination_quality_gates.R.
 #
 # Rule: a case whose inputs are finite and whose estimate, CI bound or p-value comes back
 # NA/NaN/Inf without a warning or an error is a FAILURE (gate "silent_na_output", hard).
 # It is not "unsupported". The only ways past the gate are rows of na_audit_allowlist.csv:
 #   kind = "todo"         the NA is a known bug; `todo` cites an OPEN release-prefixed TODO
-#                         (v1.0.6-TODO-74). The gate checks the release plans and fails the
+#                         (v1.0.7-TODO-37). The gate checks the release plans and fails the
 #                         allowlist row itself once that TODO is closed or missing, so a fixed
 #                         bug's row has to be pruned (same rule as calibration acceptance).
 #   kind = "intentional"  a documented NA return that warns (e.g. a "not estimable" path).
@@ -28,9 +28,9 @@
 #   argument combos      run_public_argument_combinations.R records output_outcome per result row
 #                        (silent_na / recorded_na / warned_na / nonfinite / finite / ...). recorded_na
 #                        (no warning, only a reason stored on the object) counts as silent: that is
-#                        how v1.0.6-TODO-75 got through. A data-shape fixture with a missing
+#                        how v1.0.6-TODO-37 got through. A data-shape fixture with a missing
 #                        covariate (inputs not finite) gets its own gate, silent_na_output_missing_input
-#                        (v1.0.6-TODO-97 holds every cell to "finite output or a clear error").
+#                        (v1.0.7-TODO-41 holds every cell to "finite output or a clear error").
 
 `%||%` = function(x, y) if (is.null(x)) y else x
 
@@ -58,7 +58,7 @@ na_audit_read_allowlist = function(path) na_audit_read_csv(path, na_audit_allowl
 # TODO references and their open/closed state in the release plans.
 # ---------------------------------------------------------------------------------------
 
-# "v1.0.6-TODO-74", "v1.0.6 TODO-74" -> "v1.0.6-TODO-74"; anything else is not a citation.
+# "v1.0.7-TODO-37", "v1.0.7 TODO-37" -> "v1.0.7-TODO-37"; anything else is not a citation.
 na_audit_todo_refs = function(text) {
 	text = na_audit_chr(text)
 	hits = regmatches(text, gregexpr("v[0-9]+(\\.[0-9]+)+[- ]TODO-[0-9]+", text, perl = TRUE))
@@ -97,7 +97,7 @@ na_audit_validate_allowlist = function(allowlist, open_todos) {
 		}
 		if (identical(kind, "todo")) {
 			if (!length(refs[[i]])) {
-				add(i, "kind=todo must cite a release-prefixed TODO in `todo` (e.g. v1.0.6-TODO-74).")
+				add(i, "kind=todo must cite a release-prefixed TODO in `todo` (e.g. v1.0.7-TODO-37).")
 			} else if (!any(refs[[i]] %in% open_todos)) {
 				add(i, paste0("cites ", paste(refs[[i]], collapse = ", "), ", which is not an open TODO in the release plans: the bug is fixed or the TODO moved. Prune or repoint this row."))
 			}
@@ -323,9 +323,9 @@ na_audit_cases_from_digest = function(digest) {
 
 # Public-argument-combination result rows -> gate cases. Reads the runner's output_outcome
 # column (run_public_argument_combinations.R, classify_output_outcome(), added with
-# v1.0.6-TODO-97): silent_na (NA, no warning, no recorded reason) and recorded_na (all NA, no
+# v1.0.7-TODO-41): silent_na (NA, no warning, no recorded reason) and recorded_na (all NA, no
 # warning, only a reason the receiver recorded: is_nonestimable() or procedure_failure_reason,
-# which the user never sees; v1.0.6-TODO-75 got through exactly this way) are silent;
+# which the user never sees; v1.0.6-TODO-37 got through exactly this way) are silent;
 # warned_na and nonfinite (Inf, or partial NA that EDI explained) are reported only.
 # Returns NULL when the results predate output_outcome (nothing can be evaluated).
 na_audit_cases_from_argument_results = function(results) {
@@ -353,7 +353,7 @@ na_audit_cases_from_argument_results = function(results) {
 	)
 }
 
-# TRUE for a data-shape fixture (v1.0.6-TODO-97) with missing_covariate = "yes". The id is
+# TRUE for a data-shape fixture (v1.0.7-TODO-41) with missing_covariate = "yes". The id is
 # "data_shape__" + the axis values joined by "__" in data_shape_fixture_axes() order (design,
 # response_type, sample_size, group_sizes, censoring, missing_covariate, effect;
 # public_argument_combination_fixtures.R), so missing_covariate is the 6th field. Its inputs

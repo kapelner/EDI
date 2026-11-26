@@ -123,7 +123,7 @@ InferenceMixinKKGEEShared = list(
 			}
 		},
 		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, type = NULL, args_for_type = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
-			# v1.0.6-TODO-328: `alternative` as in InferenceRand's method (one-sided
+			# v1.0.6-TODO-209: `alternative` as in InferenceRand's method (one-sided
 			# tail from the same draws); this override used to reject it.
 			alternative = match.arg(alternative, c("two.sided", "greater", "less"))
 			if (isTRUE(delta != 0) &&
@@ -133,10 +133,10 @@ InferenceMixinKKGEEShared = list(
 			}
 			if (should_run_asserts()) {
 				private$assert_design_supports_randomization_draw("Randomization inference")
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE) # v1.0.6-TODO-100
+				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE) # v1.0.6-TODO-58
 				assertFlag(na.rm)
 			}
-			# v1.0.6-TODO-405: the `type` dispatch and the refusals below are behaviour, not
+			# v1.0.6-TODO-202: the `type` dispatch and the refusals below are behaviour, not
 			# assertions, so they run whatever the assertion setting.
 			if (private$should_use_zhang_incidence_randomization() && !identical(transform_responses, "none")) {
 				stop("transform_responses is not supported for incidence randomization inference.")
@@ -176,35 +176,8 @@ InferenceMixinKKGEEShared = list(
 				)
 			}
 			cache_key = private$build_randomization_distribution_cache_key(r, delta, transform_responses, permutations)
-			private$ensure_resampling_distribution_cache("rand")
-			t = private$compute_treatment_estimate_during_randomization_inference()
-			if (is.function(self$is_nonestimable) && isTRUE(self$is_nonestimable("estimate"))) return(NA_real_)
-			if (length(t) != 1 || !is.finite(t)) {
-				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "randomization_observed_statistic_unavailable", "estimate")
-				return(NA_real_)
-			}
-			mc_pval = private$compute_two_sided_pval_with_sequential_mc(
-				t = t,
-				r = r,
-				delta = delta,
-				transform_responses = transform_responses,
-				show_progress = show_progress,
-				permutations = permutations,
-				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp,
-				alternative = alternative
-			)
-			if (!is.null(mc_pval)) return(mc_pval)
-			t0s = private$get_randomization_distribution_prefix(
-				r = r,
-				delta = delta,
-				transform_responses = transform_responses,
-				show_progress = show_progress,
-				permutations = permutations,
-				cache_key = cache_key,
-				zero_one_logit_clamp = zero_one_logit_clamp
-			)
-			private$compute_two_sided_randomization_pval_from_t0s(t0s, t, alternative)
+			compute_randomization_pval_from_draws(self, private, r, delta, transform_responses,
+				show_progress, permutations, cache_key, zero_one_logit_clamp, alternative, cache_affine = FALSE)
 		}
 	),
 	private = list(
@@ -487,20 +460,20 @@ InferenceMixinKKGEEShared = list(
 
 				private$set_fit_warm_start(mod$beta, "beta", fisher = mod$fisher_information)
 			}
-			# v1.0.6-TODO-122: recorded for jackknife_full_fit_is_separated().
+			# v1.0.6-TODO-76: recorded for jackknife_full_fit_is_separated().
 			private$cached_values$gee_full_fit_separated = FALSE
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
 				private$cache_nonestimable_se("kk_gee_standard_error_unavailable")
 				return(invisible(NULL))
 			}
-			# v1.0.6-TODO-118: under (quasi-)complete separation a logit-link GEE
+			# v1.0.6-TODO-72: under (quasi-)complete separation a logit-link GEE
 			# has no finite solution; the fitter stops at a huge beta_hat_T and
 			# the sandwich SE collapses with it (e.g. estimate 50, SE 0.7, p = 0).
 			# That Wald SE is not an estimate of anything, so the SE (hence the
 			# asymptotic p-value and CI) is NA, with one classed warning per
 			# object (silent inside resampling). The estimate is left as is,
-			# matching v1.0.6-TODO-109. Logit link only: other families skip it.
-			# v1.0.6-TODO-274: a fitted |eta| >= qlogis(1 - 1e-8) is only the
+			# matching v1.0.6-TODO-63. Logit link only: other families skip it.
+			# v1.0.6-TODO-173: a fitted |eta| >= qlogis(1 - 1e-8) is only the
 			# screen; one high-leverage subject reaches it in a fit whose
 			# solution exists (estimate 0.67, max |eta| 27). The SE is blanked
 			# only when the exact data check edi_binary_data_separated() on the
@@ -521,7 +494,7 @@ InferenceMixinKKGEEShared = list(
 			}
 			private$clear_nonestimable_state()
 		},
-		# v1.0.6-TODO-122: the jackknife driver's separation hook (see
+		# v1.0.6-TODO-76: the jackknife driver's separation hook (see
 		# InferenceJackknife). The jackknife only asks for the estimate, so run
 		# the full fit (with SE) once to get the separation check of
 		# shared_gee_default() / the ordinal shared_gee_dispatch(); that call
@@ -537,13 +510,13 @@ InferenceMixinKKGEEShared = list(
 			}
 			isTRUE(private$cached_values$gee_full_fit_separated)
 		},
-		# v1.0.6-TODO-118: TRUE when the GEE family uses the logit link (incidence
+		# v1.0.6-TODO-72: TRUE when the GEE family uses the logit link (incidence
 		# and proportion KK GEE), the only link the separation check covers.
 		gee_uses_logit_link = function(){
 			fam = tryCatch(private$gee_family(), error = function(e) NULL)
 			!is.null(fam) && identical(fam$family, "binomial") && identical(fam$link, "logit")
 		},
-		# v1.0.6-TODO-274: exact separation check of the data a GEE fit used
+		# v1.0.6-TODO-173: exact separation check of the data a GEE fit used
 		# (design incl. intercept, response): TRUE / FALSE, or NA when the
 		# design or response cannot be recovered from the fit.
 		gee_fit_data_separated = function(mod){
@@ -558,7 +531,7 @@ InferenceMixinKKGEEShared = list(
 			if (is.null(X) || is.null(y)) return(NA)
 			edi_binary_data_separated(X, y)
 		},
-		# v1.0.6-TODO-118: fitted linear predictor X %*% beta of a GEE fit, from
+		# v1.0.6-TODO-72: fitted linear predictor X %*% beta of a GEE fit, from
 		# geepack's linear.predictors or the Rcpp result's stored X_fit; NULL if
 		# it cannot be formed.
 		gee_fitted_linear_predictor = function(mod){
@@ -643,10 +616,10 @@ InferenceMixinKKGEEShared = list(
 					)
 				}, error = private$kk_gee_error_to_null)
 				if (!is.null(res) && isTRUE(res$converged)) {
-					# v1.0.6-TODO-118: keep the design matrix so the separation
+					# v1.0.6-TODO-72: keep the design matrix so the separation
 					# check can form the linear predictor (the Rcpp result has none).
 					res$X_fit = X_rcpp
-					# v1.0.6-TODO-274: and the response, for the exact separation check.
+					# v1.0.6-TODO-173: and the response, for the exact separation check.
 					res$y_fit = as.numeric(fit_data$y_sorted)
 					return(res)
 				}
@@ -808,5 +781,39 @@ InferenceMixinKKGEEShared = list(
 			if (fam$family == "poisson") return("poisson")
 			"gaussian"
 		}
+	)
+)
+
+kk_binomial_gee_private = function(response_type) {
+	list(
+		gee_response_type = switch(response_type,
+			incidence = function() "incidence", proportion = function() "proportion"),
+		gee_family = function() stats::binomial(link = "logit"),
+		shared_gee_dispatch = function(estimate_only = FALSE) private$shared_gee_default(estimate_only)
+	)
+}
+
+kk_binomial_gee_overrides = list(
+	public = c(
+		"compute_estimate",
+		"compute_estimate_with_bootstrap_weights",
+		"compute_asymp_confidence_interval",
+		"compute_asymp_two_sided_pval",
+		"compute_rand_two_sided_pval"
+	),
+	private = c(
+		"shared",
+		"resolve_jackknife_unit",
+		"jackknife_block_size_gt_one_unsupported",
+		"mark_jackknife_nonestimable_if_block_unsupported",
+		"jackknife_full_fit_is_separated",
+		"supports_reusable_bootstrap_worker",
+		"create_bootstrap_worker_state",
+		"load_bootstrap_sample_into_worker",
+		"compute_bootstrap_worker_estimate",
+		"compute_treatment_estimate_during_randomization_inference",
+		"compute_wald_confidence_interval_impl",
+		"compute_wald_two_sided_pval_impl",
+		"get_complexity_tier"
 	)
 )

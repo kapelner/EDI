@@ -53,13 +53,22 @@ InferenceMixinKKPassThrough = list(
 		#'   }
 		#'   Passing a blocking-only value for a non-blocking KK design triggers an
 		#'   assertion failure via \code{private$assert_valid_bootstrap_type()}.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+		#'   (default) keeps the design's original imputation in every resample. \code{TRUE} re-runs it per
+		#'   resample on a design without matches (see
+		#'   \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}); the matched-pair-plus-
+		#'   reservoir resampler above cannot re-impute, so there \code{TRUE} is refused when covariates are
+		#'   missing.
+		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, reimpute_missing_vals_each_resample = FALSE){
 				if (should_run_asserts()) {
 					private$assert_valid_bootstrap_type(bootstrap_type)
 				}
 				if (!private$has_match_structure){
-					super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug = debug, bootstrap_type = bootstrap_type)
+					super$approximate_bootstrap_distribution_beta_hat_T(B, show_progress, debug = debug, bootstrap_type = bootstrap_type,
+						reimpute_missing_vals_each_resample = edi_bootstrap_reimpute_forward(reimpute_missing_vals_each_resample, missing(reimpute_missing_vals_each_resample)))
 				} else {
+					edi_assert_bootstrap_reimpute_not_requested(private, reimpute_missing_vals_each_resample,
+						missing(reimpute_missing_vals_each_resample), "KK matched-pair bootstrap")
 					if (should_run_asserts()) {
 						assertCount(B, positive = TRUE)
 					}
@@ -112,34 +121,35 @@ InferenceMixinKKPassThrough = list(
 						des_priv$draw_bootstrap_indices(),
 						simplify = FALSE
 					)
+					estimate_boot_draw = function(boot_sample, recompute_match_stats = FALSE) {
+						i_b = boot_sample$i_b
+						m_vec_b = boot_sample$m_vec_b
+						boot_inf_obj = self$duplicate()
+						worker = boot_inf_obj$.__enclos_env__$private
+						worker$y = y[i_b]
+						worker$y_temp = worker$y
+						worker$dead = dead[i_b]
+						worker$w = w[i_b]
+						worker$X = X[i_b, , drop = FALSE]
+						private$clear_kk_bootstrap_worker_design_caches(worker)
+						worker$m = m_vec_b
+						worker$cached_values = list(
+							KKstats = compute_bootstrap_matching_stats_cpp(
+								X = X, y = y, w = w, i_b = i_b, n_reservoir = n_reservoir
+							)
+						)
+						if (recompute_match_stats) worker$compute_reservoir_and_match_statistics()
+						as.numeric(boot_inf_obj$compute_estimate(estimate_only = TRUE))[1L]
+					}
 					if (isTRUE(debug)) {
 						debug_results = vector("list", B)
 						has_res_stat_debug = private$has_private_method("compute_reservoir_and_match_statistics")
 						for (b in seq_len(B)) {
 							boot_sample = kk_boot_draws[[b]]
-							i_b   = boot_sample$i_b
-							m_vec_b = boot_sample$m_vec_b
 							iter_warns = character(0)
 							iter_val = withCallingHandlers(
-								tryCatch({
-									boot_inf_obj = self$duplicate()
-									boot_inf_obj$.__enclos_env__$private$y = y[i_b]
-									boot_inf_obj$.__enclos_env__$private$y_temp = boot_inf_obj$.__enclos_env__$private$y
-									boot_inf_obj$.__enclos_env__$private$dead = dead[i_b]
-										boot_inf_obj$.__enclos_env__$private$w = w[i_b]
-										boot_inf_obj$.__enclos_env__$private$X = X[i_b, , drop = FALSE]
-										private$clear_kk_bootstrap_worker_design_caches(boot_inf_obj$.__enclos_env__$private)
-										boot_inf_obj$.__enclos_env__$private$m = m_vec_b
-										boot_inf_obj$.__enclos_env__$private$cached_values = list(
-										KKstats = compute_bootstrap_matching_stats_cpp(
-											X = X, y = y, w = w, i_b = i_b, n_reservoir = n_reservoir
-										)
-									)
-									if (has_res_stat_debug) {
-										boot_inf_obj$.__enclos_env__$private$compute_reservoir_and_match_statistics()
-									}
-									as.numeric(boot_inf_obj$compute_estimate(estimate_only = TRUE))[1L]
-								}, error = function(e) list(val = NA_real_, error = conditionMessage(e))),
+								tryCatch(estimate_boot_draw(boot_sample, recompute_match_stats = has_res_stat_debug),
+									error = function(e) list(val = NA_real_, error = conditionMessage(e))),
 								warning = function(w) {
 									iter_warns <<- c(iter_warns, conditionMessage(w))
 									invokeRestart("muffleWarning")
@@ -155,57 +165,15 @@ InferenceMixinKKPassThrough = list(
 						}
 						return(debug_results)
 					}
-					# Standard Loop
+					estimate_boot_draw_or_na = function(b) {
+						tryCatch(estimate_boot_draw(kk_boot_draws[[b]]), error = function(e) NA_real_)
+					}
 					cores_to_use = private$effective_parallel_cores("bootstrap", self$num_cores)
 					res = if (cores_to_use > 1L) {
-						unlist(private$par_lapply(
-							as.list(seq_len(B)),
-							function(b) {
-								tryCatch({
-									boot_sample = kk_boot_draws[[b]]
-									i_b = boot_sample$i_b
-									m_vec_b = boot_sample$m_vec_b
-									boot_inf_obj = self$duplicate()
-									boot_inf_obj$.__enclos_env__$private$y = y[i_b]
-									boot_inf_obj$.__enclos_env__$private$y_temp = boot_inf_obj$.__enclos_env__$private$y
-									boot_inf_obj$.__enclos_env__$private$dead = dead[i_b]
-										boot_inf_obj$.__enclos_env__$private$w = w[i_b]
-										boot_inf_obj$.__enclos_env__$private$X = X[i_b, , drop = FALSE]
-										private$clear_kk_bootstrap_worker_design_caches(boot_inf_obj$.__enclos_env__$private)
-										boot_inf_obj$.__enclos_env__$private$m = m_vec_b
-										boot_inf_obj$.__enclos_env__$private$cached_values = list(
-										KKstats = compute_bootstrap_matching_stats_cpp(
-											X = X, y = y, w = w, i_b = i_b, n_reservoir = n_reservoir
-										)
-									)
-									as.numeric(boot_inf_obj$compute_estimate(estimate_only = TRUE))[1L]
-								}, error = function(e) { NA_real_ })
-							},
-							n_cores = cores_to_use,
-							show_progress = show_progress
-						))
+						unlist(private$par_lapply(as.list(seq_len(B)), estimate_boot_draw_or_na,
+							n_cores = cores_to_use, show_progress = show_progress))
 					} else {
-						vapply(seq_len(B), function(b) {
-							tryCatch({
-								boot_sample = kk_boot_draws[[b]]
-								i_b = boot_sample$i_b
-								m_vec_b = boot_sample$m_vec_b
-								boot_inf_obj = self$duplicate()
-								boot_inf_obj$.__enclos_env__$private$y = y[i_b]
-								boot_inf_obj$.__enclos_env__$private$y_temp = boot_inf_obj$.__enclos_env__$private$y
-								boot_inf_obj$.__enclos_env__$private$dead = dead[i_b]
-									boot_inf_obj$.__enclos_env__$private$w = w[i_b]
-									boot_inf_obj$.__enclos_env__$private$X = X[i_b, , drop = FALSE]
-									private$clear_kk_bootstrap_worker_design_caches(boot_inf_obj$.__enclos_env__$private)
-									boot_inf_obj$.__enclos_env__$private$m = m_vec_b
-									boot_inf_obj$.__enclos_env__$private$cached_values = list(
-									KKstats = compute_bootstrap_matching_stats_cpp(
-										X = X, y = y, w = w, i_b = i_b, n_reservoir = n_reservoir
-									)
-								)
-								as.numeric(boot_inf_obj$compute_estimate(estimate_only = TRUE))[1L]
-							}, error = function(e) { NA_real_ })
-						}, numeric(1L))
+						vapply(seq_len(B), estimate_boot_draw_or_na, numeric(1L))
 					}
 					res
 				}
@@ -224,7 +192,7 @@ InferenceMixinKKPassThrough = list(
 				w_info$row_weights = row_weights
 				return(private$compute_weighted_estimate_ivwc(w_info, estimate_only))
 			}
-			# v1.0.6-TODO-217: there is no generic fallback. The former one returned a
+			# v1.0.6-TODO-158: there is no generic fallback. The former one returned a
 			# weighted mean of KKstats$y_matched_diffs and of the reservoir responses,
 			# pooled with the observed-data w_star: a raw-scale mean difference, not
 			# this class's estimator (e.g. all zeros for the stratified Cox IVWC, whose

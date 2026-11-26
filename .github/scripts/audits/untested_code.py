@@ -28,7 +28,7 @@ start/end blocks, platform branches (`#ifdef _WIN32`-style blocks, R branches on
 or `Sys.info()`), files the coverage registry marks excluded or codecov.yml ignores (the known
 measurement artifacts, contract section 6), generated files, single isolated C++ lines with no
 control flow (-O2 line noise, contract 6.3), and ALLOWLIST rows. Every allowlist row must lead its
-reason with an open release TODO (`v1.0.6-TODO-30: ...`), as the calibration and NA allowlists do; a
+reason with an open release TODO (`v1.0.6-TODO-6: ...`), as the calibration and NA allowlists do; a
 row whose TODO is ticked, moved or missing does not excuse anything and is reported (the
 allowlist-hygiene audit also removes it).
 
@@ -675,7 +675,7 @@ def validate_allowlist(rows, todo_state):
         m = LEAD_CITE.match(reason)
         if not m:
             problems.append(f"`{ALLOWLIST}` row {i} (`{match}`): the reason must start with an open release TODO "
-                            "(`v1.0.6-TODO-30: ...`); the row excuses nothing until it does.")
+                            "(`v1.0.6-TODO-6: ...`); the row excuses nothing until it does.")
             continue
         state, why = todo_state(release_file_of(m.group(1)), m.group(2))
         if state != "open":

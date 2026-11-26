@@ -1,4 +1,4 @@
-# v1.0.6-TODO-116: a BCa interval or p-value that is NA because the adjustment is on the boundary
+# v1.0.6-TODO-70: a BCa interval or p-value that is NA because the adjustment is on the boundary
 # or the bias correction / acceleration is unstable raises exactly one warning: the specific
 # edi_bootstrap_bca_boundary_warning / edi_bootstrap_bca_unstable_warning. The Bayesian BCa
 # interval used to raise the generic edi_procedure_na_warning from missing_bootstrap_ci() as well

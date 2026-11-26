@@ -1,4 +1,4 @@
-# v1.0.6-TODO-123: on a rank-deficient draw the reusable bootstrap/jackknife worker sets
+# v1.0.6-TODO-77: on a rank-deficient draw the reusable bootstrap/jackknife worker sets
 # private$X to NULL so the covariate matrix is rebuilt from the resampled design
 # (load_bootstrap_sample_into_design_backed_worker). Classes that read private$X directly
 # then either errored (as.matrix(NULL): KK OLS/RobustRegr/GLMM/Hurdle/CondLogit/RankRegr,
@@ -119,7 +119,7 @@ for (rt in names(rank_deficient_kk_classes)) local({
 test_that("InferenceSurvivalStratCoxPHRegr leave-one-block-out jackknife is finite when the formula names the strata", {
 	inf = InferenceSurvivalStratCoxPHRegr$new(rank_deficient_blocking_design("survival"), verbose = FALSE)
 	inf$num_cores = 1L
-	# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
+	# v1.0.6-TODO-1 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
 	# its stratum, so leave-one-block-out is asked for explicitly.
 	jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = "block")
 	expect_length(jack, 3L)

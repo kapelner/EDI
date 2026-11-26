@@ -61,7 +61,7 @@ InferenceExtBartlettApprox = list(
 			max_attempts = as.integer(private$bartlett_factor_mc_max_attempts_per_replicate)
 
 			# run_param_bootstrap_replicates() sets active_resampling_operation for the
-			# replicate loop only (v1.0.6-TODO-207).
+			# replicate loop only (v1.0.6-TODO-148).
 			run = tryCatch(
 				private$run_param_bootstrap_replicates(
 					spec = spec,

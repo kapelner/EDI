@@ -1,4 +1,4 @@
-# v1.0.6-TODO-54: prepare_optimal_objective_matrices() judged Sigma singular with rcond(Sigma), which is
+# v1.0.6-TODO-18: prepare_optimal_objective_matrices() judged Sigma singular with rcond(Sigma), which is
 # not invariant to column scaling, so full-rank covariates on very different scales silently dropped
 # the mahal_dist objective for l1. Singularity is now tested on the correlation matrix.
 

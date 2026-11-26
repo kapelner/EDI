@@ -192,7 +192,7 @@ DesignFixedRerandomization = define_design_class(
 				stop("Specify an acceptance rule: obj_val_cutoff (accept a draw iff M(w) <= the cutoff) or prop_acceptable ",
 					"(keep the best fraction of draws, e.g. prop_acceptable = 0.1). prop_acceptable = 1 accepts every draw.", call. = FALSE)
 			}
-			# v1.0.6-TODO-70: the balanced C++ fast path treated any objective other than
+			# v1.0.6-TODO-33: the balanced C++ fast path treated any objective other than
 			# "mahal_dist" as abs_sum_diff, so a typo filtered silently on the wrong criterion.
 			private$assert_supported_objective(objective)
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed)
@@ -216,7 +216,7 @@ DesignFixedRerandomization = define_design_class(
 			}
 			invisible(NULL)
 		},
-		# abs_sum_diff is sum_j |mean_T,j - mean_C,j| / sd_j on every path (v1.0.6-TODO-70).
+		# abs_sum_diff is sum_j |mean_T,j - mean_C,j| / sd_j on every path (v1.0.6-TODO-33).
 		# Both C++ kernels (rerandomization_search_cpp, compute_objective_vals_cpp) and
 		# DesignFixedGreedy's abs_sum_diff standardize; the pure-R path and compute_obj
 		# used raw differences, so the same cutoff accepted different allocations at odd n
@@ -244,10 +244,10 @@ DesignFixedRerandomization = define_design_class(
 			if (is.null(private$X) || ncol(private$X) == 0){
 				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
 			}
-			# Every path below must see a supported objective before any C++ call (v1.0.6-TODO-70).
+			# Every path below must see a supported objective before any C++ call (v1.0.6-TODO-33).
 			private$assert_supported_objective(private$objective)
 			# prop_acceptable path: each returned allocation is the best of k = round(1 / prop_acceptable)
-			# base draws (v1.0.6-TODO-294, DECISION-v1.0.6-TODO-294 (b)). The realized allocation
+			# base draws (v1.0.6-TODO-181, DECISION-v1.0.6-TODO-294 (b)). The realized allocation
 			# (r = 1) was always the best of k, but r > 1 kept the best r of r / prop_acceptable draws
 			# overall, so the randomization reference followed a tighter law than the realized
 			# allocation and the rand test over-rejected (7.25% at nominal 5%). Now draw r * k
@@ -260,7 +260,7 @@ DesignFixedRerandomization = define_design_class(
 				k = max(1L, as.integer(round(1 / private$prop_acceptable)))
 				n_draw = as.integer(r) * k
 				ext_seed = if (!is.null(private$seed)) private$seed else sample.int(.Machine$integer.max, 1L)
-				# v1.0.6-TODO-234: the forced-balanced kernel draws floor(n / 2) treated, which
+				# v1.0.6-TODO-168: the forced-balanced kernel draws floor(n / 2) treated, which
 				# equals round(n * prob_T) only for even n; odd n uses the n_T kernel like
 				# every other path (n = 23: 12 treated, not 11).
 				if (private$prob_T == 0.5 && n %% 2 == 0) {

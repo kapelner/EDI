@@ -1,4 +1,4 @@
-# v1.0.6-TODO-217 (4): the Weibull frailty IVWC classes' randomization statistic
+# v1.0.6-TODO-158 (4): the Weibull frailty IVWC classes' randomization statistic
 # (compute_treatment_estimate_during_randomization_inference) refits each half with the
 # frailty / sigma parameters fixed at their observed values. Three defects:
 # * the reservoir refit fixed parameter p_r (one-based) instead of log sigma at p_r + 1,
@@ -7,7 +7,7 @@
 # * the halves were pooled with the observed data's variances read from cached_values, or
 #   50/50 when that cache was empty (a duplicate, or a reused worker after its per-draw
 #   reset), so the observed statistic and the permuted ones were different functions of
-#   the data. The weights now come from the draw's own fits (v1.0.6-TODO-132 rule);
+#   the data. The weights now come from the draw's own fits (v1.0.6-TODO-86 rule);
 # * Loggamma's best_X_colnames_reservoir was c("w", "", ...) (KKstats$X_reservoir has no
 #   column names), so the reservoir refit dropped every covariate.
 

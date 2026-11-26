@@ -91,118 +91,39 @@ InferenceOrdinalCauchitRegr = R6::R6Class("InferenceOrdinalCauchitRegr",
 			)
 		},
 		get_likelihood_test_spec = function(){
-			private$shared(estimate_only = FALSE)
-			ctx = private$cached_values$likelihood_test_context
-			if (is.null(ctx)) return(NULL)
-			X_fit = ctx$X
-			y = as.numeric(private$y)
-			j_treat = as.integer(ctx$j_treat)
-			full_fit = list(params = ctx$full_params, neg_loglik = ctx$full_neg_loglik)
-			list(
-				X = X_fit, y = y, j = j_treat,
-				full_fit = full_fit,
-				fit_null = function(delta, start = NULL){
-					res = tryCatch(
-						ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
-							X_fit, y,
-							fixed_idx = j_treat, fixed_values = delta,
-							warm_start_params = start %||% private$get_fit_warm_start_for_length("params", length(ctx$full_params)),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(length(ctx$full_params)),
-							smart_cold_start = private$smart_cold_start_default
-						),
-						error = function(e) NULL
-					)
-					if (is.null(res) || length(res) == 0) return(NULL)
-					list(params = as.numeric(res$params), neg_loglik = as.numeric(res$neg_loglik), observed_information = res$observed_information)
-				},
-				extract_start = function(fit){
-					as.numeric(fit$params)
-				},
-				score = function(fit){
-					get_ordinal_cauchit_regression_score_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				observed_information = function(fit){
-					-get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				# Expected information (v1.0.6-TODO-201); the C++ fit returns only
-				# the observed information (v1.0.6-TODO-215).
-				fisher_information = function(fit){
-					ordinal_cumlink_expected_information(X_fit, y, fit$params, "cauchit")
-				},
-				information = function(fit){
-					fit$information %||% fit$observed_information %||% -get_ordinal_cauchit_regression_hessian_cpp(X_fit, y, as.numeric(fit$params))
-				},
-				neg_loglik = function(fit){ as.numeric(fit$neg_loglik) }
-			)
+			ordinal_cumlink_likelihood_test_spec(private, fast_ordinal_cauchit_regression_cpp,
+				score_fn = get_ordinal_cauchit_regression_score_cpp,
+				hessian_fn = get_ordinal_cauchit_regression_hessian_cpp, link = "cauchit", direct_warm_start = TRUE)
 		},
 		generate_mod = function(estimate_only = FALSE){
-			X_full = private$build_design_matrix()
-			attempt = private$fit_with_hardened_qr_column_dropping(implicit_intercept = TRUE, 
-				X_full = X_full,
-				required_cols = 1L,
-				fit_fun = function(X_fit){
-					n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
-					warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
-					warm_fisher = private$get_fit_warm_start_fisher(n_params)
-					if (estimate_only) {
-						res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
-							X_fit, private$y,
-							warm_start_params = warm_start_params,
-							warm_start_fisher_info = warm_fisher,
-							smart_cold_start = private$smart_cold_start_default,
-							estimate_only = TRUE
-						)
-						if (is.null(res) || length(res) == 0) return(NULL)
-						list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = warm_fisher)
-					} else {
-						res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_with_var_cpp,
-							X_fit, private$y,
-							warm_start_params = warm_start_params,
-							warm_start_fisher_info = warm_fisher,
-							smart_cold_start = private$smart_cold_start_default
-						)
-						if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
-						list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
-					}
-				},
-				fit_ok = function(mod, X_fit, keep){
-					# treatment is b[1] (X's first column); see the comment on
-					# compute_treatment_estimate_during_randomization_inference()
-					# above -- this used to gate on b[length(mod$b)], the last
-					# covariate's coefficient, not treatment's.
-					if (is.null(mod) || length(mod$b) < 1L || !is.finite(mod$b[1])) return(FALSE)
-					if (estimate_only) return(TRUE)
-					ssq = mod$ssq_b_j
-					!is.null(ssq) && is.finite(ssq) && ssq > 0
-				}
-			)
-			if (!is.null(attempt$fit)){
-				private$set_fit_warm_start(attempt$fit$params, "params", fisher = attempt$fit$observed_information)
-				private$best_X_colnames = setdiff(colnames(attempt$X), "treatment")
-				if (!estimate_only) {
-					n_alpha = length(attempt$fit$params) - ncol(attempt$X)
-					private$cached_values$likelihood_test_context = list(
-						X = attempt$X,
-						j_treat = as.integer(n_alpha + 1L),
-						full_params = attempt$fit$params,
-						full_neg_loglik = attempt$fit$neg_loglik
+			ordinal_cumlink_generate_mod(private, estimate_only, function(X_fit){
+				n_params = ncol(X_fit) + length(sort(unique(private$y))) - 1L
+				warm_start_params = private$get_fit_warm_start_for_length("params", n_params)
+				warm_fisher = private$get_fit_warm_start_fisher(n_params)
+				if (estimate_only) {
+					res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_cpp,
+						X_fit, private$y,
+						warm_start_params = warm_start_params,
+						warm_start_fisher_info = warm_fisher,
+						smart_cold_start = private$smart_cold_start_default,
+						estimate_only = TRUE
 					)
+					if (is.null(res) || length(res) == 0) return(NULL)
+					list(b = res$b, ssq_b_j = NA_real_, params = res$params, observed_information = warm_fisher)
+				} else {
+					res = ordinal_fit_scaled(fast_ordinal_cauchit_regression_with_var_cpp,
+						X_fit, private$y,
+						warm_start_params = warm_start_params,
+						warm_start_fisher_info = warm_fisher,
+						smart_cold_start = private$smart_cold_start_default
+					)
+					if (is.null(res) || length(res$b) == 0 || is.na(res$b[1])) return(NULL)
+					list(b = res$b, ssq_b_j = res$ssq_b_j, params = res$params, neg_loglik = res$neg_loglik, observed_information = res$observed_information)
 				}
-				list(b = c(0, attempt$fit$b[1]), ssq_b_2 = attempt$fit$ssq_b_j)
-			} else {
-				private$cached_values$likelihood_test_context = NULL
-				NULL
-			}
+			})
 		},
 		build_design_matrix = function(){
-			X_cov = private$get_X()
-			if (is.null(X_cov) || ncol(X_cov) == 0) {
-				X = matrix(private$w, ncol = 1L)
-				colnames(X) = "treatment"
-			} else {
-				X = cbind(treatment = private$w, X_cov)
-			}
-			X
+			ordinal_cumlink_design_matrix(private)
 		}
 	)
 )
@@ -274,60 +195,8 @@ OrdinalCauchitLikelihoodSource = inference_component_source_parts(InferenceOrdin
 #' \code{harden = TRUE} always applies, and the seed for the resampling methods is
 #' set after construction with \code{$set_seed()}.
 #' @export
-InferenceOrdinalCauchitRegr = define_inference_class(
-	classname = "InferenceOrdinalCauchitRegr",
-	inherit = Inference,
-	components = c(
-		"RandomizationCI",
-		"RandomizationBootstrapCI",
-		"BayesianBootstrap",
-		"Jackknife",
-		"ParametricLikelihoodBootstrap",
-		"OrdinalCauchitLikelihood"
-	),
-	public = list(
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
-	),
-	metadata = list(
-		response_types = "ordinal",
-		likelihood_tier = "full"
-	),
-	overrides = list(
-		public = c(
-			"compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval",
-			"compute_asymp_two_sided_pval",
-			"compute_estimate",
-			"compute_estimate_with_bootstrap_weights",
-			"get_supported_testing_types", "set_testing_type"
-		),
-		private = c(
-			"resolve_jackknife_unit",
-			"jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"supports_reusable_bootstrap_worker",
-			"create_bootstrap_worker_state",
-			"load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate",
-			"get_supported_testing_types_impl",
-			"supports_bartlett_likelihood_ratio_approx",
-			"get_bartlett_factor_approx",
-			"compute_treatment_estimate_during_randomization_inference",
-			"get_standard_error",
-			"get_degrees_of_freedom",
-			"make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval",
-			"compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl",
-			"compute_lik_ratio_two_sided_pval_impl",
-			"get_likelihood_test_spec",
-			"supports_likelihood_tests",
-			"supports_fisher_information",
-			"supports_lik_ratio_param_bootstrap",
-			"simulate_under_lik_null",
-			"generate_mod"
-		)
-	)
+InferenceOrdinalCauchitRegr = define_ordinal_cumulative_likelihood_class(
+	"InferenceOrdinalCauchitRegr", "OrdinalCauchitLikelihood"
 )
 
 

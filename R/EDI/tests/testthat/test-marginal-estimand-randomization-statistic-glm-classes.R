@@ -1,4 +1,4 @@
-# v1.0.6-TODO-189: under estimand = "marginal_mean_diff" (or "marginal_ratio") the
+# v1.0.6-TODO-135: under estimand = "marginal_mean_diff" (or "marginal_ratio") the
 # randomization statistic (compute_treatment_estimate_during_randomization_inference)
 # of InferencePropBetaRegr, InferenceCountPoisson / QuasiPoisson,
 # InferenceCountHurdlePoisson, InferenceCountZeroInflatedPoisson and
@@ -7,7 +7,7 @@
 # randomization test then compared a conditional observed statistic with marginal
 # null draws on the worker path (InferenceIncidLogRegr rand p 0.02 vs 0.525 on the
 # slow path), and the BRT slow path disagreed with the worker by 0.1-1.1. Same fix
-# as v1.0.6-TODO-184 (ZOIB). Also: $capabilities() drops the randomization CIs,
+# as v1.0.6-TODO-130 (ZOIB). Also: $capabilities() drops the randomization CIs,
 # which are refused under a marginal estimand.
 
 make_marginal_rand_stat_fixture = function(class_name, response_type, seed = 1L, n = 80L, zero_inflate = FALSE){

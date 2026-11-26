@@ -24,7 +24,7 @@ Reports the Bayesian-bootstrap weighted re-estimate as
   unavailable for this model. The joint dependent-censoring likelihood
   takes no observation weights, and the weighted Cox fit formerly used in
   its place estimates a log hazard ratio under independent censoring, a
-  different quantity from this class's log time ratio (v1.0.6-TODO-326).
+  different quantity from this class's log time ratio (v1.0.6-TODO-176).
 
 Reports the Bayesian-bootstrap two-sided p-value as
   unavailable for this model (see

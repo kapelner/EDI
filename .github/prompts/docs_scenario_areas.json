@@ -1,6 +1,6 @@
 {
   "_comment": [
-    "Feature areas for the weekly docs-only scenario job (.github/workflows/audit-docs-scenarios.yml, v1.0.6-TODO-98).",
+    "Feature areas for the weekly docs-only scenario job (.github/workflows/audit-docs-scenarios.yml, v1.0.6-TODO-56).",
     "Runbook: R/package_metadata/new_feature_plans/v1_0_6/docs_only_scenario_runbook.md (section 7: the CI job).",
     "Add an area by adding an object to `areas`. Fields:",
     "  id        short kebab-case name; folder and file names use it, so never rename one (its state would restart).",

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-141: the Bayesian bootstrap under left-/interval-censoring used to fail inside every
+# v1.0.6-TODO-94: the Bayesian bootstrap under left-/interval-censoring used to fail inside every
 # Dirichlet-weighted draw (the interval-censored fits take no case weights) and come back NA with a
 # misleading "too few finite draws" / "non-finite replicates" reason, or (RestrictedMeanDiff's
 # p-value) a silent NA. It now stops up front with one clear error for the CI, the p-value and the

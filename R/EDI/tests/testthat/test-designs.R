@@ -61,7 +61,7 @@ test_that("DesignSeqOneByOneiBCRD works", {
 	x_new <- data.frame(x1 = rnorm(1))
 	w <- des$add_one_subject_to_experiment_and_assign(x_new)
 	expect_true(w %in% c(0, 1))
-	# Mid-trial, get_block_ids() returns the ids of the subjects enrolled so far (v1.0.6-TODO-46;
+	# Mid-trial, get_block_ids() returns the ids of the subjects enrolled so far (v1.0.6-TODO-11;
 	# it used to error "improperly sized" until all n were in).
 	expect_identical(des$get_block_ids(), 1L)
 	for (i in 2:10) {

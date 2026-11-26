@@ -4,6 +4,7 @@
 #else
 #include "_helper_functions.h"
 #include "result_map_rcpp.h"
+#include "survival_rand_bootstrap_rcpp.h"
 #include <RcppEigen.h>
 #include <Rmath.h>
 #endif
@@ -230,7 +231,7 @@ void general_to_effective(const Eigen::Ref<const Eigen::VectorXd>& y,
 }
 
 // Internal column standardization for the Weibull AFT fitters
-// (v1.0.6-TODO-163). With covariates on their raw scale (age in years,
+// (v1.0.6-TODO-112). With covariates on their raw scale (age in years,
 // lymph-node counts, ...) next to an intercept, the likelihood is badly
 // conditioned and both L-BFGS and Newton-Raphson hit maxit far from the
 // optimum, so callers saw non-convergence (and dropped covariates). The fit
@@ -424,48 +425,9 @@ LikelihoodFitResult fit_weibull_aft_with_column_scaling(
 
 } // namespace
 
-// Portable core: same fit as fast_weibull_regression_cpp below, but built
-// directly on edi::ResultMap rather than _helper_functions.h's Rcpp-coupled
-// make_uniform_likelihood_fit_result (params/neg_loglik/converged/score/
-// observed_information/hessian/information/information_type/vcov -- same
-// field set, information_type fixed at "observed" since fisher_information
-// is never passed here, matching that helper's own default). Fast path:
-// exact/right-censored responses only -- see WeibullAFTLikelihood's own
-// comment and TODO-28. For left-/interval-censored responses, use
-// fast_weibull_regression_left_interval_censoring_internal below instead.
-edi::ResultMap fast_weibull_regression_internal(
-    const Eigen::Ref<const Eigen::MatrixXd>& X,
-    const Eigen::Ref<const Eigen::VectorXd>& y,
-    const Eigen::Ref<const Eigen::VectorXd>& dead,
-    std::optional<Eigen::VectorXd> warm_start_params = std::nullopt,
-    bool smart_cold_start = true,
-    bool estimate_only = false,
-    int maxit = 100,
-    double tol = 1e-8,
-    std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
-    std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
-    std::string optimization_alg = "lbfgs",
-    std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt
-) {
-    int p = (int)X.cols();
-    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
-    FixedParamSpec fixed_spec = make_fixed_param_spec(p + 1, fixed_idx, fixed_values);
-    WeibullAFTLikelihood fun(y, dead, X);
-
-    // Fit on internally standardized columns when X is badly scaled, results
-    // mapped back to X's scale (v1.0.6-TODO-163; see make_weibull_column_scaling).
-    LikelihoodFitResult fit = fit_weibull_aft_with_column_scaling(
-        fun,
-        [&](const Eigen::MatrixXd& Xs) { return WeibullAFTLikelihood(y, dead, Xs); },
-        [&](const Eigen::MatrixXd& Xfit) {
-            WeibullStart legacy_start;
-            legacy_start.beta = Eigen::VectorXd::Zero(p);
-            legacy_start.log_sigma = 0.0;
-            WeibullStart start = smart_cold_start ? weibull_aft_start_or_legacy(Xfit, y, dead, legacy_start, fixed_spec) : legacy_start;
-            return weibull_start_to_params(start);
-        },
-        X, fixed_spec, warm_start_params, maxit, tol, optimization_alg, warm_start_fisher_info);
-
+template <typename WeibullLikelihood>
+static edi::ResultMap weibull_aft_fit_result(WeibullLikelihood& fun, const LikelihoodFitResult& fit,
+    const FixedParamSpec& fixed_spec, int p, bool estimate_only) {
     if (estimate_only) {
         return edi::ResultMap()
             .set("b", fit.params.head(p))
@@ -502,6 +464,51 @@ edi::ResultMap fast_weibull_regression_internal(
         .set("information", hess)
         .set("information_type", std::string("observed"))
         .set("vcov", vcov);
+}
+
+// Portable core: same fit as fast_weibull_regression_cpp below, but built
+// directly on edi::ResultMap rather than _helper_functions.h's Rcpp-coupled
+// make_uniform_likelihood_fit_result (params/neg_loglik/converged/score/
+// observed_information/hessian/information/information_type/vcov -- same
+// field set, information_type fixed at "observed" since fisher_information
+// is never passed here, matching that helper's own default). Fast path:
+// exact/right-censored responses only -- see WeibullAFTLikelihood's own
+// comment and TODO-28. For left-/interval-censored responses, use
+// fast_weibull_regression_left_interval_censoring_internal below instead.
+edi::ResultMap fast_weibull_regression_internal(
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::VectorXd>& y,
+    const Eigen::Ref<const Eigen::VectorXd>& dead,
+    std::optional<Eigen::VectorXd> warm_start_params = std::nullopt,
+    bool smart_cold_start = true,
+    bool estimate_only = false,
+    int maxit = 100,
+    double tol = 1e-8,
+    std::optional<Eigen::VectorXi> fixed_idx = std::nullopt,
+    std::optional<Eigen::VectorXd> fixed_values = std::nullopt,
+    std::string optimization_alg = "lbfgs",
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt
+) {
+    int p = (int)X.cols();
+    require_square_matrix(warm_start_fisher_info, p + 1, "warm_start_fisher_info");
+    FixedParamSpec fixed_spec = make_fixed_param_spec(p + 1, fixed_idx, fixed_values);
+    WeibullAFTLikelihood fun(y, dead, X);
+
+    // Fit on internally standardized columns when X is badly scaled, results
+    // mapped back to X's scale (v1.0.6-TODO-112; see make_weibull_column_scaling).
+    LikelihoodFitResult fit = fit_weibull_aft_with_column_scaling(
+        fun,
+        [&](const Eigen::MatrixXd& Xs) { return WeibullAFTLikelihood(y, dead, Xs); },
+        [&](const Eigen::MatrixXd& Xfit) {
+            WeibullStart legacy_start;
+            legacy_start.beta = Eigen::VectorXd::Zero(p);
+            legacy_start.log_sigma = 0.0;
+            WeibullStart start = smart_cold_start ? weibull_aft_start_or_legacy(Xfit, y, dead, legacy_start, fixed_spec) : legacy_start;
+            return weibull_start_to_params(start);
+        },
+        X, fixed_spec, warm_start_params, maxit, tol, optimization_alg, warm_start_fisher_info);
+
+    return weibull_aft_fit_result(fun, fit, fixed_spec, p, estimate_only);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -647,7 +654,7 @@ edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
 
     // Same optimizer as the exact/right-censored path, same conditioning
     // problem on raw-scale covariates: same internal standardization
-    // (v1.0.6-TODO-163; see make_weibull_column_scaling).
+    // (v1.0.6-TODO-112; see make_weibull_column_scaling).
     LikelihoodFitResult fit = fit_weibull_aft_with_column_scaling(
         fun,
         [&](const Eigen::MatrixXd& Xs) { return WeibullAFTLikelihoodGeneral(y, y_L, y_R, Xs); },
@@ -662,41 +669,7 @@ edi::ResultMap fast_weibull_regression_left_interval_censoring_internal(
         },
         X, fixed_spec, warm_start_params, maxit, tol, optimization_alg, warm_start_fisher_info);
 
-    if (estimate_only) {
-        return edi::ResultMap()
-            .set("b", fit.params.head(p))
-            .set("log_sigma", fit.params[p])
-            .set("converged", fit.converged)
-            .set("num_iter", fit.niter)
-            .set("hit_iteration_cap", fit.hit_iteration_cap)
-            .set("gradient_norm", fit.gradient_norm)
-            .set("min_eigenvalue_information", fit.min_eigenvalue_information);
-    }
-
-    Eigen::MatrixXd hess = fun.hessian(fit.params);
-    Eigen::VectorXd score = -likelihood_score(fun, fit.params);
-    Eigen::MatrixXd neg_hess = -hess;
-    // Match the standard Weibull path's covariance conditional on fixed values.
-    Eigen::MatrixXd vcov = fixed_spec.has_fixed
-        ? expand_free_covariance(p + 1, fixed_spec,
-            covariance_from_information(subset_matrix(hess, fixed_spec.free_idx, fixed_spec.free_idx)), true)
-        : covariance_from_information(hess);
-    return edi::ResultMap()
-        .set("params", fit.params)
-        .set("neg_loglik", fit.value)
-        .set("neg_ll", fit.value)
-        .set("loglik", std::isfinite(fit.value) ? -fit.value : std::numeric_limits<double>::quiet_NaN())
-        .set("converged", fit.converged)
-        .set("num_iter", fit.niter)
-        .set("hit_iteration_cap", fit.hit_iteration_cap)
-        .set("gradient_norm", fit.gradient_norm)
-        .set("min_eigenvalue_information", fit.min_eigenvalue_information)
-        .set("score", score)
-        .set("observed_information", hess)
-        .set("hessian", neg_hess)
-        .set("information", hess)
-        .set("information_type", std::string("observed"))
-        .set("vcov", vcov);
+    return weibull_aft_fit_result(fun, fit, fixed_spec, p, estimate_only);
 }
 
 #ifndef EDI_CORE_ONLY
@@ -842,76 +815,27 @@ NumericVector compute_weibull_rand_bootstrap_parallel_cpp(
     Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
     int num_cores)
 {
-    const int n       = i_mat.nrow();
-    const int nsim    = i_mat.ncol();
-    const int n_full  = y0.size();
-    const int p_cov   = Xc.ncol();
-    const int p       = 2 + p_cov;   // intercept + treatment + covariates
-    const int n_params = p + 1;       // +1 for log_sigma
-
-    const double* y0_ptr   = y0.begin();
-    const int*    dead_ptr = dead.begin();
-    const double* xc_ptr   = (p_cov > 0) ? Xc.begin() : nullptr;
-    const int*    i_ptr    = i_mat.begin();
-    const int*    w_ptr    = w_mat.begin();
-    const double  mult     = (delta != 0.0) ? std::exp(delta) : 1.0;
-
-    FixedParamSpec fspec = make_fixed_param_spec(n_params);
-
-    std::vector<double> results(nsim, NA_REAL);
-    double* res_ptr = results.data();
-
-    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
-    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
-    NumericMatrix noise_m;
-    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
-    const bool has_noise = noise_m.size() > 0;
-    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
-
-#pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
-    {
-        Eigen::VectorXd y_b(n), dead_b(n), params0(n_params);
-        Eigen::MatrixXd X_b(n, p);
-
-#pragma omp for schedule(dynamic)
-        for (int b = 0; b < nsim; ++b) {
-            const int* ic = i_ptr + (size_t)b * n;
-            const int* wc = w_ptr + (size_t)b * n;
-
-            int n_t = 0, n_c = 0;
-            for (int i = 0; i < n; ++i) {
-                const int r  = ic[i] - 1;
-                const int wt = (wc[i] == 1) ? 1 : 0;
-                X_b(i, 0) = 1.0;
-                X_b(i, 1) = static_cast<double>(wt);
-                for (int j = 0; j < p_cov; ++j)
-                    X_b(i, j + 2) = xc_ptr[(size_t)j * n_full + r];
-                double yv = y0_ptr[r];
-                if (has_noise) yv += noise_ptr[(size_t)b * n + i];
-                y_b(i)    = (wt && mult != 1.0) ? yv * mult : yv;
-                dead_b(i) = static_cast<double>(dead_ptr[r]);
-                n_t += wt;
-                n_c += (1 - wt);
-            }
-            if (n_t < 2 || n_c < 2) continue;
-
+    const int n_params = 3 + Xc.ncol();
+    const FixedParamSpec fspec = make_fixed_param_spec(n_params);
+    return survival_rand_bootstrap(y0, dead, Xc, i_mat, w_mat, delta, noise_mat, num_cores, 1, n_params,
+        [&](const Eigen::MatrixXd& X_b, const Eigen::VectorXd& y_b,
+            const Eigen::VectorXd& dead_b, Eigen::VectorXd& params0) {
             params0.setZero();
             // Bootstrap replicates are always exact/right-censored by
             // construction (never interval/left-censored) -- route through
             // the fast kernel per TODO-28's routing principle, no
             // y_exact/y_L/y_R conversion needed. Raw-scale covariates are
             // standardized for the fit and the treatment coefficient mapped
-            // back (v1.0.6-TODO-163; see make_weibull_column_scaling).
+            // back (v1.0.6-TODO-112; see make_weibull_column_scaling).
             WeibullColumnScaling sc = make_weibull_column_scaling(X_b, fspec);
             WeibullAFTLikelihood fun(y_b, dead_b, sc.active ? sc.Xs : X_b);
             LikelihoodFitResult fit = optimize_fixed_likelihood(
                 fun, params0, fspec, 100, 1e-8, "lbfgs", "", 0, nullptr);
             if (sc.active && fit.params.size() == n_params) fit.params = sc.T * fit.params;
             if (fit.converged && fit.params.size() > 1 && std::isfinite(fit.params[1]))
-                res_ptr[b] = fit.params[1];
-        }
-    }
-    return wrap(results);
+                return fit.params[1];
+            return NA_REAL;
+        });
 }
 
 #endif // EDI_CORE_ONLY

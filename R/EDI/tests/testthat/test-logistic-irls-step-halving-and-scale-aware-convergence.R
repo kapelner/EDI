@@ -1,10 +1,10 @@
-# v1.0.6-TODO-192 C++ follow-up (filed under v1.0.6-TODO-169/170): the logistic IRLS kernel
+# v1.0.6-TODO-138 C++ follow-up (filed under v1.0.6-TODO-117 / v1.0.6-TODO-118): the logistic IRLS kernel
 # (fast_logistic_regression_internal, behind fast_logistic_regression_cpp / _weighted_cpp /
 # _with_var_cpp) had no step halving. From the warm start (-0.70, 2.24, 3.18, -1.38) on the
-# rep-102 data of the v1.0.6-TODO-168 coverage study it ran the coefficients to |b| ~ 1e9 in 100
+# rep-102 data of the v1.0.6-TODO-116 coverage study it ran the coefficients to |b| ~ 1e9 in 100
 # iterations with converged = FALSE, although a cold start converges to glm's answer. A fit that
 # does not converge on the plain IRLS path is now rerun with step halving (the negative
-# log-likelihood may not increase). Separately (v1.0.6-TODO-170), the absolute gradient rule
+# log-likelihood may not increase). Separately (v1.0.6-TODO-118), the absolute gradient rule
 # reported a correct fit as not converged when a covariate has a large offset; a scale-aware
 # Newton-decrement fallback now declares it converged.
 #
@@ -15,7 +15,7 @@ skip_unless_logistic_irls_has_step_halving = function(){
 	probe = fast_logistic_regression_weighted_cpp(X = cbind(1, c(0, 1, 0, 1, 1, 0)), y = c(0, 1, 1, 1, 0, 0),
 		weights = rep(1, 6))
 	testthat::skip_if(is.null(probe$num_step_halvings),
-		"installed EDI predates the logistic IRLS step-halving patch (v1.0.6-TODO-192 C++ follow-up); rebuild EDI")
+		"installed EDI predates the logistic IRLS step-halving patch (v1.0.6-TODO-138 C++ follow-up); rebuild EDI")
 }
 
 make_logistic_rep102_fit_inputs = function(){

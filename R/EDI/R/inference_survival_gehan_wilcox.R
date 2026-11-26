@@ -128,7 +128,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' of the Peto-Prentice weighted martingale residual mean difference. When the SE
 		#' is unavailable the interval is \code{NA}, with the reason recorded and an
 		#' \code{edi_wald_unavailable_warning}; no bootstrap interval is substituted
-		#' (v1.0.6-TODO-380; call \code{compute_bootstrap_confidence_interval()} for one).
+		#' (v1.0.6-TODO-225; call \code{compute_bootstrap_confidence_interval()} for one).
 		#'
 		#' @param  alpha  Significance level. Default is 0.05.
 		#'
@@ -156,7 +156,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 			}
 			private$compute_shared()
 			if (is.na(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -169,7 +169,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 		#' p-value is \code{NA}, with the reason recorded under
 		#' \code{procedure_failure_reason$rank_test} and an
 		#' \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
-		#' substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+		#' substituted (v1.0.6-TODO-231; call \code{compute_bootstrap_two_sided_pval()}
 		#' for one).
 		#'
 		#' @param  delta  Null treatment effect to test against. Default is 0.
@@ -202,7 +202,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 			private$compute_shared()
 			if (isTRUE(private$has_general_censoring)) {
 				pv = private$cached_values$icen_pval
-				# v1.0.6-TODO-417 (DECISION-v1.0.6-TODO-380d): was a bootstrap fallback.
+				# v1.0.6-TODO-231 (DECISION-v1.0.6-TODO-380d): was a bootstrap fallback.
 				if (!is.finite(pv)) return(edi_rank_test_unavailable_na(self, private))
 				return(pv)
 			}
@@ -230,7 +230,7 @@ InferenceSurvivalGehanWilcox = define_inference_class(
 	private = list(
 		supports_interval_or_left_censored_data = function() TRUE,
 		weighted_peto_prentice_mean_difference = function(row_weights){
-			# Shared with InferenceSurvivalLogRank (v1.0.6-TODO-193); the Peto-Prentice
+			# Shared with InferenceSurvivalLogRank (v1.0.7-TODO-54); the Peto-Prentice
 			# KM weights are the only difference.
 			survival_null_martingale_mean_difference(private$y, private$dead, private$w, row_weights, peto_prentice = TRUE)
 		},

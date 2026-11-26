@@ -7,7 +7,7 @@ library(EDI)
 # type) treatment effect and are within 1e-2 of the quasi-binomial glm on this fixture (the pair correlation is small),
 # away from the beta-regression fit (0.55) and far from a Gaussian model on logit(y) (0.79; GEE/GLMM 0.57).
 #
-# v1.0.6-TODO-45 (KK14's match test was twice as strict as published; fixed 2026-11-17): the fix changed this
+# v1.0.6-TODO-10 (KK14's match test was twice as strict as published; fixed 2026-11-17): the fix changed this
 # seed's allocation (56 pairs; the old-threshold allocation had 54) and with it the data, and the GEE/GLMM-vs-
 # Gaussian-logit gap fell from 0.17 to 0.05, failing the > 0.1 check. That gap is a property of the method, not
 # of the seed: GEE/GLMM estimate the coefficient of logit(E[y]) (as quasi-binomial does), the Gaussian fit the
@@ -33,7 +33,7 @@ fx <- function() {
 	m <- des$.__enclos_env__$private$m[seq_len(n)]
 	u <- ifelse(m > 0, rnorm(max(m))[pmax(m, 1)], 0) * 0.5
 	mu <- plogis(-0.2 + 0.5 * w + 0.4 * X$x + u)
-	phi <- 4 # was 8; see the v1.0.6-TODO-45 note in the header
+	phi <- 4 # was 8; see the v1.0.6-TODO-10 note in the header
 	y <- rbeta(n, mu * phi, (1 - mu) * phi)
 	des$add_all_subject_responses(y)
 	list(des = des, d = data.frame(y = y, w = w, x = X$x, m = m))

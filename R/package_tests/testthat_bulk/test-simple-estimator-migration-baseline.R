@@ -42,40 +42,40 @@ simple_estimator_expected_classes = c(
 # 2026-11-10: +1 public method on every class for get_procedure_validity() on the
 # Inference root (procedure validity lookup, commit 168c2e92): 66/66/66/60/60.
 # 2026-11-16: +1 private method on every class for rand_likelihood_is_nonconcave()
-# (rand warm-start chaining gated on likelihood_concave; release_v1_0_6.md TODO-30):
+# (rand warm-start chaining gated on likelihood_concave; release_v1_0_6.md TODO-6):
 # private owners 328/331/339/312/325.
 # 2026-11-18 (abd7e49d, v1.0.6 fixes): +8 private owners on every class -- the
-# helpers warn_hardened_column_drop (v1.0.6-TODO-138), randomization_null_censoring_bounds
-# and rand_bootstrap_null_censoring_bounds (v1.0.6-TODO-143), bootstrap_estimand_on_link_scale,
+# helpers warn_hardened_column_drop (v1.0.6-TODO-92), randomization_null_censoring_bounds
+# and rand_bootstrap_null_censoring_bounds (v1.0.6-TODO-95), bootstrap_estimand_on_link_scale,
 # bootstrap_link_scale_ci_plausible, jackknife_full_fit_is_separated, plus their supporting
 # private fields. Private owners 336/339/347/320/333 at the committed source.
-# 2026-11-19 (v1.0.6-TODO-176): +4 private owners on every class for the
-# perfect_predictor_* fields (dropped/full_X/n_recorded/state) added by v1.0.6-TODO-158.
+# 2026-11-19 (v1.0.6-TODO-122): +4 private owners on every class for the
+# perfect_predictor_* fields (dropped/full_X/n_recorded/state) added by v1.0.6-TODO-108.
 # Re-confirmed via EDI:::simple_estimator_behavior_manifest() against a HEAD copy: these four
 # names are the only difference. Private owners 340/343/351/324/337.
 # 2026-11-19 (same re-pin): +2 more private owners on every class for
 # bootstrap_estimand_is_raw_ratio and bootstrap_ci_estimates_extreme
-# (NonparametricBootstrap, v1.0.6-TODO-160/175 work, uncommitted when pinned).
+# (NonparametricBootstrap, v1.0.6-TODO-109 / v1.0.6-TODO-121 work, uncommitted when pinned).
 # Re-confirmed via the manifest: private owners 342/345/353/326/339.
-# 2026-11-19 (v1.0.6-TODO-194): +1 private owner on every class for
+# 2026-11-19 (v1.0.6-TODO-139): +1 private owner on every class for
 # resampling_centered_pivot_for_inference (NonparametricBootstrap; shared m-out-of-n /
 # subsampling CI and p-value setup). Re-confirmed via the manifest: it is the only new name.
 # Private owners 343/346/354/327/340.
-# 2026-11-19 (v1.0.6-TODO-196): +1 private owner on every class for
+# 2026-11-19 (v1.0.6-TODO-141): +1 private owner on every class for
 # select_resampling_size_from_spec (NonparametricBootstrap; list b / m size selection shared
 # by the generic setup and the risk-ratio log-scale pivots). Re-confirmed via the manifest.
 # Private owners 344/347/355/328/341.
-# 2026-11-19 (v1.0.6-TODO-4): +2 private owners on every class for jackknife_stratified_layout
+# 2026-11-19 (v1.0.6-TODO-1): +2 private owners on every class for jackknife_stratified_layout
 # and jackknife_replicate_strata (NonparametricBootstrap; the permuted-block / within-stratum
 # jackknife units). Private owners 346/349/357/330/343.
-# 2026-11-19 (v1.0.6-TODO-208 item (4)): +3 public methods on every class for the root
+# 2026-11-19 (v1.0.6-TODO-149 item (4)): +3 public methods on every class for the root
 # set_estimand() / get_estimand() / get_supported_estimands() (classed
 # edi_estimand_not_supported error; MarginalEstimand overrides them) and +1 private owner
 # for stop_estimand_not_supported(). Also +1 private owner on InferenceAllKKMeanDiffIVWC for
-# compute_weighted_estimate_ivwc (v1.0.6-TODO-217, 5bdb9dfb, not pinned until now).
+# compute_weighted_estimate_ivwc (v1.0.6-TODO-158, 5bdb9dfb, not pinned until now).
 # Re-confirmed via EDI:::simple_estimator_behavior_manifest(): public 69/69/69/63/63,
 # private owners 347/350/359/331/344.
-# 2026-11-24 (d06dbb6f, v1.0.6-TODO-345): +1 private owner on every class for
+# 2026-11-24 (d06dbb6f, v1.0.6-TODO-216): +1 private owner on every class for
 # warm_start_on_separation_boundary() on the Inference root (count-model warm-start guard).
 # Private owners 348/351/360/332/345.
 simple_estimator_expected_current = list(

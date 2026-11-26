@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-210 (owner decisions 2026-11-19):
+# v1.0.6-TODO-151 (owner decisions 2026-11-19):
 # (1) the three LR-bootstrap CI NA reasons are recorded in procedure_failure_reason (under
 #     "lik_ratio_bootstrap_ci", like "rand_bootstrap_ci"), still with exactly one warning;
 # (2) the CI errors up front when B < 2 / alpha - 1: the bootstrap p-value it inverts is at

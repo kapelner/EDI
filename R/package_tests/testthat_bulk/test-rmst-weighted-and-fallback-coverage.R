@@ -64,7 +64,7 @@ test_that("weighted RMST returns missing when an arm has no positive weight", {
 
 test_that("RMST with unavailable Greenwood uncertainty gives NA Wald inference, not the bootstrap", {
   # All observations censored is a reachable zero-Greenwood-information case.
-  # v1.0.6-TODO-380: this used to route to the bootstrap; a Wald request now gets NA with a reason.
+  # v1.0.6-TODO-225: this used to route to the bootstrap; a Wald request now gets NA with a reason.
   generator <- R6::R6Class("InferenceSurvivalRestrictedMeanDiff",
     inherit = InferenceSurvivalRestrictedMeanDiff, parent_env = asNamespace("EDI"),
     lock_objects = FALSE,

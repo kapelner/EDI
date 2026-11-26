@@ -53,7 +53,7 @@ To promote a failure into a focused `testthat` regression test:
 
 The cases above vary argument values on the canonical fixtures, which are all `n = 8`, fixed `n`,
 equal blocks and clusters, complete covariates, right censoring at most and no treatment effect.
-The data-shape matrix (v1.0.6-TODO-97) varies the data instead:
+The data-shape matrix (v1.0.7-TODO-41) varies the data instead:
 
 | Axis | Values |
 |---|---|

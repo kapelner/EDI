@@ -10,7 +10,7 @@ kk_cox_fully_fixed_null_fit = function(X, y, dead, strata, delta){
 		converged = TRUE, fixed_all = TRUE)
 }
 
-# v1.0.6-TODO-128: columns of a stratified Cox design that are aliased once each
+# v1.0.6-TODO-82: columns of a stratified Cox design that are aliased once each
 # stratum's mean is removed (constant within every stratum, or a within-stratum
 # linear combination of earlier columns) are not identified by the partial
 # likelihood. Returns X unchanged when it has full within-strata rank; otherwise
@@ -201,7 +201,7 @@ SurvivalKKStratCoxIVWCSource = list(
 			}
 			candidates
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate. It used to fall through to
 		# the KK compound's generic mean-difference fallback, which reads
 		# KKstats$y_matched_diffs; this class never builds that field, so every
 		# replicate was sum(NULL) / ... = 0 and the interval was [0, 0]. Now it is the
@@ -261,14 +261,13 @@ SurvivalKKStratCoxIVWCSource = list(
 			if (estimate_only) return(TRUE)
 			# A negative variance is unusable; test it before sqrt() so it does not
 			# warn "NaNs produced" (every resampling replicate now takes this path,
-			# v1.0.6-TODO-132).
+			# v1.0.6-TODO-86).
 			v = fit$vcov[1L, 1L]
 			is.finite(v) && v > 0 && sqrt(v) <= private$max_abs_reasonable_coef
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			# v1.0.6-TODO-132 (owner decision 2026-11-19): estimate_only = TRUE used
+			if (kk_ivwc_cache_is_current(private, estimate_only)) return(invisible(NULL))
+			# v1.0.6-TODO-86 (owner decision 2026-11-19): estimate_only = TRUE used
 			# to combine the two halves by sample size (and to accept halves whose
 			# variance was not finite), a different estimator from the reported
 			# inverse-variance-weighted one. The reusable worker, the jackknife and
@@ -278,10 +277,7 @@ SurvivalKKStratCoxIVWCSource = list(
 			# returned). The IVW weights need both halves' variances, so every call
 			# now runs the full fit; estimate_only only selects the cache check above.
 			private$clear_nonestimable_state()
-			if (is.null(private$cached_values$KKstats)){
-				private$compute_basic_match_data()
-			}
-			KKstats = private$cached_values$KKstats
+			KKstats = kk_ivwc_match_stats(private)
 			if (is.null(KKstats)) return(invisible(NULL))
 			m = KKstats$m
 			nRT = KKstats$nRT
@@ -299,7 +295,7 @@ SurvivalKKStratCoxIVWCSource = list(
 				strata_m = KKstats$m_matched_long
 				X_cov_m = KKstats$X_matched_long
 				X_m = cbind(w = w_m, X_cov_m)
-				# v1.0.6-TODO-128: a covariate constant within every pair (e.g. a rare
+				# v1.0.6-TODO-82: a covariate constant within every pair (e.g. a rare
 				# binary whose carriers all sit in the reservoir, or a bootstrap draw
 				# that omits them) is aliased with the pair strata. The C++ fitter then
 				# returns a finite treatment coefficient but a NaN vcov, so the matched
@@ -337,7 +333,7 @@ SurvivalKKStratCoxIVWCSource = list(
 						break
 					}
 				}
-				# v1.0.6-TODO-133: the treatment-only fallback used to be accepted
+				# v1.0.6-TODO-87: the treatment-only fallback used to be accepted
 				# unchecked, so a separated reservoir (e.g. one treated subject)
 				# passed an infinite-coefficient fit (|beta| ~ 22, huge SE) into the
 				# combination. It also ran when an arm was empty, where y_r/dead_r
@@ -367,7 +363,7 @@ SurvivalKKStratCoxIVWCSource = list(
 			} else if (m_ok){
 				private$cached_values$beta_hat_T = beta_m
 				private$cached_values$s_beta_hat_T = sqrt(ssq_m)
-				# v1.0.6-TODO-133: say so whenever a non-empty reservoir is dropped
+				# v1.0.6-TODO-87: say so whenever a non-empty reservoir is dropped
 				# (warn on direct calls only, never inside resampling). Owner decision
 				# 2026-11-18: an empty reservoir arm warns too; it carries no treatment
 				# contrast, so the reservoir subjects do not contribute to the estimate.
@@ -392,7 +388,7 @@ SurvivalKKStratCoxIVWCSource = list(
 				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else {
 				private$cache_nonestimable_estimate("kk_strat_cox_ivwc_both_failed")
-				# v1.0.6-TODO-128: do not hand back NA silently. Resampling replicates
+				# v1.0.6-TODO-82: do not hand back NA silently. Resampling replicates
 				# are summarised by the resampling layer, so warn only on direct calls.
 				if (is.null(private$active_resampling_operation)) {
 					warning(structure(

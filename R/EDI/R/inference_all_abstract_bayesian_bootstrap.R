@@ -1,4 +1,4 @@
-# v1.0.6-TODO-141: one shared up-front refusal for left-/interval-censored data,
+# v1.0.6-TODO-94: one shared up-front refusal for left-/interval-censored data,
 # called at the top of every public Bayesian-bootstrap entry point. Every class
 # that accepts general censoring (KMDiff, RestrictedMeanDiff, GehanWilcox,
 # LogRank, WeibullRegr) fits that case with a routine that takes no case weights
@@ -8,7 +8,7 @@
 # replicates" reason (or, for RestrictedMeanDiff's p-value, a silent NA). A
 # plain function rather than a private method or a supports_bayesian_bootstrap()
 # override: the component is lazily installed, and overriding its private gate
-# per class broke lazy component loading (v1.0.6-TODO-90 note). If a class ever
+# per class broke lazy component loading (v1.0.6-TODO-49 note). If a class ever
 # gains weighted general-censoring fits, give it an opt-out here.
 edi_stop_if_bayesian_bootstrap_under_general_censoring = function(self, private){
 	if (!isTRUE(private$has_general_censoring)) return(invisible(NULL))
@@ -106,7 +106,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			if (!isTRUE(private$supports_bayesian_bootstrap()))
 				stop(class(self)[1], " does not support Bayesian bootstrap (supports_bayesian_bootstrap() = FALSE).")
 			edi_stop_if_bayesian_bootstrap_under_general_censoring(self, private)
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -371,7 +371,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(NA_real_)
 			}
 			if (type %in% c("studentized", "bootstrap-t")) {
-				# NA for missing/unstable SEs warns like the CI does (v1.0.6-TODO-140); silent inside resampling.
+				# NA for missing/unstable SEs warns like the CI does (v1.0.6-TODO-93); silent inside resampling.
 				warn_studentized_na = function(reason) edi_warn_procedure_na(self, private,
 					procedure = "Bayesian bootstrap p-value", reason = reason, detail = bootstrap_studentized_se_na_detail())
 				boot_stats = private$approximate_bayesian_bootstrap_statistics_beta_hat_T(
@@ -400,7 +400,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 					warn_studentized_na("bayesian_bootstrap_unstable_studentized_standard_errors")
 					return(NA_real_)
 				}
-				# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+				# v1.0.6-TODO-2: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
 				if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_stats$theta), B, min_fraction_usable_samples)) {
 					if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_valid_replicates_fraction", "se")
 					edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
@@ -431,13 +431,13 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			if (length(boot_distr) < as.integer(min_number_usable_samples)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_finite_estimates", "estimate")
-				# v1.0.6-TODO-145: warn instead of a silent NA (silent inside resampling).
+				# v1.0.6-TODO-97: warn instead of a silent NA (silent inside resampling).
 				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
 					reason = "bayesian_bootstrap_too_few_finite_estimates",
 					detail = bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+			# v1.0.6-TODO-2: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
 			if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_distr), B, min_fraction_usable_samples)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_too_few_valid_replicates_fraction", "estimate")
 				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
@@ -466,7 +466,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(min(1, max(2 / n_bs, mean(D_boot >= D_obs))))
 			}
 			if (type == "bca") {
-				# v1.0.6-TODO-165: an unavailable BCa p-value warns once instead of a silent NA
+				# v1.0.6-TODO-113: an unavailable BCa p-value warns once instead of a silent NA
 				# (silent inside resampling). The jackknife-gate and boundary NAs inside
 				# pval_bayesian_bca() record a reason and warn already, so they are skipped here.
 				warn_bca_na = function(detail = NULL) edi_warn_procedure_na(self, private,
@@ -490,7 +490,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			se_boot = stats::sd(boot_distr)
 			if (!is.finite(se_boot) || se_boot <= 0) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bayesian_bootstrap_standard_error_unavailable", "se")
-				# v1.0.6-TODO-185: warn instead of a silent NA (silent inside resampling).
+				# v1.0.6-TODO-131: warn instead of a silent NA (silent inside resampling).
 				edi_warn_procedure_na(self, private, procedure = "Bayesian bootstrap p-value",
 					reason = "bayesian_bootstrap_standard_error_unavailable",
 					detail = paste0("The ", length(boot_distr), " finite Bayesian-bootstrap draws have no spread ",
@@ -791,7 +791,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			theta
 		},
 		approximate_bayesian_bootstrap_statistics_beta_hat_T = function(B = 501, show_progress = TRUE, na.rm = TRUE, require_se = FALSE, weighting_unit_type = NULL) {
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -863,7 +863,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			result
 		},
 		approximate_bayesian_jackknife_distribution_beta_hat_T = function(weighting_unit_type = NULL) {
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "bayesian_boot"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -905,7 +905,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		ci_bayesian_bca = function(boot_distr, alpha, est, weighting_unit_type = NULL) {
 			jack_all = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
 			jack = jack_all[is.finite(jack_all)]
-			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			# v1.0.6-TODO-89 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
 			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bayesian_bootstrap_bca_", block_check = FALSE)
 			if (!is.null(reason)) {
 				too_few_units = grepl("jackknife_too_few_deletion_units$", reason)
@@ -915,7 +915,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 				return(private$missing_bootstrap_ci(alpha, reason, stage = "se", warn = !too_few_units))
 			}
 			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
-				# v1.0.6-TODO-116: when the specific BCa boundary/unstable warning covers this NA, it is
+				# v1.0.6-TODO-70: when the specific BCa boundary/unstable warning covers this NA, it is
 				# the only warning (as on the plain bootstrap path); the generic procedure-NA warning
 				# from missing_bootstrap_ci() is kept for every other reason.
 				ctx = private$cached_values$ci_call_ctx
@@ -928,7 +928,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 		pval_bayesian_bca = function(boot_distr, est, delta, weighting_unit_type = NULL) {
 			jack_all = private$approximate_bayesian_jackknife_distribution_beta_hat_T(weighting_unit_type = weighting_unit_type)
 			jack = jack_all[is.finite(jack_all)]
-			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+			# v1.0.6-TODO-89 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
 			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bayesian_bootstrap_bca_", block_check = FALSE)
 			if (!is.null(reason)) {
 				edi_record_procedure_failure(self, private, reason, "se")
@@ -938,7 +938,7 @@ InferenceBayesianBootstrap = R6::R6Class("InferenceBayesianBootstrap",
 			}
 			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bayesian_bootstrap_bca_", on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
-				# v1.0.6-TODO-114: warn like the BCa CI does on the same boundary (no-op for other reasons)
+				# v1.0.6-TODO-68: warn like the BCa CI does on the same boundary (no-op for other reasons)
 				edi_warn_bca_boundary_once(self, private, length(boot_distr), "bca", reason, what = "p-value")
 				NA_real_
 			})

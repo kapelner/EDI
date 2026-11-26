@@ -1,4 +1,4 @@
-# v1.0.6-TODO-120 (and v1.0.6-TODO-63, same root cause): the KK21stepwise weight kernels leave every
+# v1.0.6-TODO-74 (and v1.0.6-TODO-27, same root cause): the KK21stepwise weight kernels leave every
 # covariate's weight NA (or 0) when the residual variance is 0 for every candidate, i.e. when the
 # responses so far are constant or fit exactly by [1, w, x]. na0() turned that into all-zero raw
 # weights and assign_wt() normalized them as 0/0 = NaN, so the next assignment crashed in

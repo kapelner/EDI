@@ -1,4 +1,4 @@
-# v1.0.6-TODO-125: RMST leftovers from v1.0.6-TODO-115.
+# v1.0.6-TODO-79: RMST leftovers from v1.0.6-TODO-69.
 # (1) A user tau is validated against the same horizon rule as the default (under general censoring,
 #     exact-event y values folded in as [y, y] count toward an arm's largest observed time), so a valid
 #     tau is no longer rejected when an arm's largest time is an exact event.

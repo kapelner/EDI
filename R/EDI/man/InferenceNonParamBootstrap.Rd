@@ -293,7 +293,8 @@ Politis, D. N., Romano, J. P., and Wolf, M. (1999).
   debug = FALSE,
   bootstrap_type = NULL,
   scaling = "sqrt_n",
-  center = "full_estimate"
+  center = "full_estimate",
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -318,6 +319,14 @@ default \code{"sqrt_n"} uses \code{sqrt(m)} for the m-sample
 distribution and converts back to the full-sample scale using
 \code{sqrt(n_units)}.}
       \item{\code{center}}{Centering convention for diagnostics and cache keys.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -343,7 +352,8 @@ distribution and converts back to the full-sample scale using
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
   scaling = "sqrt_n",
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -373,11 +383,19 @@ count a zero total; or a separated logistic fit) or its fit fails. Below this
 fraction the method returns \code{NA} with reason
 \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
 \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 with an extreme estimate, so a stricter cap returns \code{NA} on many data
 sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 it to return \code{NA} sooner. Other classes ignore it and keep their fixed
 rule (at least half of the resamples finite).}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -404,7 +422,8 @@ rule (at least half of the resamples finite).}
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
   scaling = "sqrt_n",
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -435,11 +454,19 @@ count a zero total; or a separated logistic fit) or its fit fails. Below this
 fraction the method returns \code{NA} with reason
 \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
 \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 with an extreme estimate, so a stricter cap returns \code{NA} on many data
 sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 it to return \code{NA} sooner. Other classes ignore it and keep their fixed
 rule (at least half of the resamples finite).}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -469,7 +496,8 @@ rule (at least half of the resamples finite).}
   bootstrap_type = NULL,
   scaling = "sqrt_n",
   show_progress = TRUE,
-  min_finite_fraction = 0.8
+  min_finite_fraction = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -491,6 +519,14 @@ volatility across candidate sizes.}
 displayed.}
       \item{\code{min_finite_fraction}}{Minimum finite-resample fraction required for a
 candidate size to be eligible.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -515,7 +551,8 @@ candidate size to be eligible.}
   debug = FALSE,
   subsampling_type = NULL,
   scaling = "sqrt_n",
-  center = "full_estimate"
+  center = "full_estimate",
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -540,6 +577,14 @@ default \code{"sqrt_n"} uses \code{sqrt(b)} for the subsample
 distribution and converts back to the full-sample scale using
 \code{sqrt(n_units)}.}
       \item{\code{center}}{Centering convention for diagnostics and cache keys.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -565,7 +610,8 @@ distribution and converts back to the full-sample scale using
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
   scaling = "sqrt_n",
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -595,11 +641,19 @@ count a zero total; or a separated logistic fit) or its fit fails. Below this
 fraction the method returns \code{NA} with reason
 \code{"subsampling_too_few_usable_draws_fraction"} and one
 \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 with an extreme estimate, so a stricter cap returns \code{NA} on many data
 sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 it to return \code{NA} sooner. Other classes ignore it and keep their fixed
 rule (at least half of the subsamples finite).}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -626,7 +680,8 @@ rule (at least half of the subsamples finite).}
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
   scaling = "sqrt_n",
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -657,11 +712,19 @@ count a zero total; or a separated logistic fit) or its fit fails. Below this
 fraction the method returns \code{NA} with reason
 \code{"subsampling_too_few_usable_draws_fraction"} and one
 \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 with an extreme estimate, so a stricter cap returns \code{NA} on many data
 sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 it to return \code{NA} sooner. Other classes ignore it and keep their fixed
 rule (at least half of the subsamples finite).}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -691,7 +754,8 @@ rule (at least half of the subsamples finite).}
   subsampling_type = NULL,
   scaling = "sqrt_n",
   show_progress = TRUE,
-  min_finite_fraction = 0.8
+  min_finite_fraction = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -713,6 +777,14 @@ volatility across candidate sizes.}
 displayed.}
       \item{\code{min_finite_fraction}}{Minimum finite-subsample fraction required for
 a candidate size to be eligible.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -740,7 +812,8 @@ a candidate size to be eligible.}
   subsampling_type = NULL,
   scaling = "sqrt_n",
   show_progress = TRUE,
-  min_finite_fraction = 0
+  min_finite_fraction = 0,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -762,6 +835,14 @@ volatility across candidate sizes.}
 displayed.}
       \item{\code{min_finite_fraction}}{Minimum finite-subsample fraction required for
 a candidate size to be eligible. Defaults to 0 for sensitivity scans.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation. \code{TRUE}: each resample runs the design's missing-data step
+(\code{missingness_method}) again on its own raw covariates, at the cost of one
+imputation per resample (a small resample may hold too few rows to impute, and
+then its estimate is \code{NA}). Without missing covariates the two are identical.
+Not available when the inference's covariate matrix differs from the design's.
+See \code{compute_bootstrap_confidence_interval()}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -786,7 +867,8 @@ a candidate size to be eligible. Defaults to 0 for sensitivity scans.}
   B = 501,
   show_progress = TRUE,
   debug = FALSE,
-  bootstrap_type = NULL
+  bootstrap_type = NULL,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -818,6 +900,16 @@ values. Runs serially. Default \code{FALSE}.}
     rather than resampling units within each block.}
 }
 Any non-\code{NULL} value is rejected for designs outside that blocking family.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation, so the interval or p-value is conditional on that imputation, and a
+resample costs no more than with complete data. \code{TRUE}: each resample runs the
+design's missing-data step (\code{missingness_method}) again on its own raw
+covariates, so the bootstrap includes the imputation's variability, at the cost of
+one imputation per resample. Without missing covariates the two are identical. Not
+available when the inference's covariate matrix differs from the design's (a
+\code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+batch kernel is bypassed when it is \code{TRUE}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -848,7 +940,8 @@ Any non-\code{NULL} value is rejected for designs outside that blocking family.}
   na.rm = FALSE,
   show_progress = TRUE,
   min_number_usable_samples = 5L,
-  min_fraction_usable_samples = 0.95
+  min_fraction_usable_samples = 0.95,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -916,6 +1009,16 @@ confidence intervals. Below it the p-value is \code{NA} with the recorded reason
 p-value is never formed from the few resamples on which the estimator happened to
 work. \code{0} turns the check off; \code{1} requires every replicate. Ignored when
 \code{na.rm = FALSE}, which already returns \code{NA} on any non-finite replicate.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation, so the interval or p-value is conditional on that imputation, and a
+resample costs no more than with complete data. \code{TRUE}: each resample runs the
+design's missing-data step (\code{missingness_method}) again on its own raw
+covariates, so the bootstrap includes the imputation's variability, at the cost of
+one imputation per resample. Without missing covariates the two are identical. Not
+available when the inference's covariate matrix differs from the design's (a
+\code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+batch kernel is bypassed when it is \code{TRUE}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -940,7 +1043,8 @@ work. \code{0} turns the check off; \code{1} requires every replicate. Ignored w
   type = NULL,
   na.rm = TRUE,
   show_progress = TRUE,
-  min_number_usable_samples = 5L
+  min_number_usable_samples = 5L,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -988,6 +1092,16 @@ Default TRUE. Non-finite replicates are always removed internally.}
       \item{\code{show_progress}}{Show progress bar.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite bootstrap samples
 required after filtering. Default 5. Must be less than or equal to \code{B}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples.
+\code{FALSE} (default): every resample analyses its rows of the design's original
+imputation, so the interval or p-value is conditional on that imputation, and a
+resample costs no more than with complete data. \code{TRUE}: each resample runs the
+design's missing-data step (\code{missingness_method}) again on its own raw
+covariates, so the bootstrap includes the imputation's variability, at the cost of
+one imputation per resample. Without missing covariates the two are identical. Not
+available when the inference's covariate matrix differs from the design's (a
+\code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+batch kernel is bypassed when it is \code{TRUE}.}
     }
     \if{html}{\out{</div>}}
   }

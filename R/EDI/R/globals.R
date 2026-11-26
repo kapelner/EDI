@@ -19,7 +19,7 @@ edi_package_version = function(){
 # `id` is the same pattern: .kk_rank_regr_aftsrr_seeded() passes `id = id` to
 # aftgee::aftsrr(), which resolves it as the cluster column dat$id.
 # `wt__` likewise: the Bayesian-bootstrap case-weight column passed as `weights = wt__`
-# (v1.0.6-TODO-217), resolved by aftgee::aftsrr() against `data = dat`.
+# (v1.0.6-TODO-158), resolved by aftgee::aftsrr() against `data = dat`.
 utils::globalVariables(c(".wgt__", ".cluster__", "id", "wt__"))
 
 # `i`, `j`, `tvar`, `y`, `w` are ompr MILP modeling-DSL symbols used via NSE
@@ -291,9 +291,9 @@ kk_pair_and_reservoir_bootstrap_weights = function(private_env, row_weights) {
   )
 }
 
-# v1.0.6-TODO-217: helpers for the weighted (Bayesian-bootstrap) replicate of a KK
+# v1.0.6-TODO-158: helpers for the weighted (Bayesian-bootstrap) replicate of a KK
 # inverse-variance-weighted compound (IVWC) estimator. A replicate must be the same
-# estimator as compute_estimate() (v1.0.6-TODO-132 rule): refit each half under the
+# estimator as compute_estimate() (v1.0.6-TODO-86 rule): refit each half under the
 # draw's weights, take each half's variance from that weighted fit, and pool them
 # with the same inverse-variance rule and the same one-half fallbacks.
 kk_ivwc_pool_halves = function(beta_m, ssq_m, beta_r, ssq_r) {
@@ -308,13 +308,38 @@ kk_ivwc_pool_halves = function(beta_m, ssq_m, beta_r, ssq_r) {
   list(beta = NA_real_, ssq = NA_real_)
 }
 
+# A fit that always computes the combined SE can also reuse a cached point.
+kk_ivwc_cache_is_current = function(private, estimate_only, full_fit_cached = FALSE) {
+  if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(TRUE)
+  if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(TRUE)
+  full_fit_cached && !is.null(private$cached_values$beta_hat_T)
+}
+
+kk_ivwc_match_stats = function(private, refresh = FALSE) {
+  if (refresh || is.null(private$cached_values$KKstats)) private$compute_basic_match_data()
+  private$cached_values$KKstats
+}
+
+fit_and_pool_kk_ivwc_halves = function(private, KKstats, fit_matched, fit_reservoir, cache_se) {
+  # Both fits need variances to compute the weights, including on estimate-only calls.
+  if (KKstats$m > 0) force(fit_matched)
+  beta_m = private$cached_values$beta_T_matched
+  ssq_m = private$cached_values$ssq_beta_T_matched
+  if (KKstats$nRT > 0 && KKstats$nRC > 0) force(fit_reservoir)
+  beta_r = private$cached_values$beta_T_reservoir
+  ssq_r = private$cached_values$ssq_beta_T_reservoir
+  pooled = kk_ivwc_pool_halves(beta_m, ssq_m, beta_r, ssq_r)
+  private$cached_values$beta_hat_T = pooled$beta
+  if (cache_se) private$cached_values$s_beta_hat_T = sqrt(pooled$ssq)
+}
+
 # Weighted Cox fit of one KK half over a ladder of design-matrix candidates (treatment
 # first). Returns list(beta, ssq) for the first usable candidate, else NULL. `strata`
 # gives a stratified fit (pair strata); `cluster` gives the robust (Lin-Wei / LWA)
 # variance. The weighted partial likelihood is survival::coxph(weights = ) with
 # ties = "breslow", the same tie rule as the unweighted C++ fitter
 # (fast_coxph_regression.cpp: each tied set shares one risk-set denominator).
-# v1.0.6-TODO-271: this used coxph()'s default Efron ties before, so on tied data
+# v1.0.6-TODO-170: this used coxph()'s default Efron ties before, so on tied data
 # the replicates fit a different partial likelihood from the estimate.
 kk_ivwc_weighted_cox_half = function(time, dead, X_candidates, row_weights, strata = NULL, cluster = NULL, max_abs = 1e4) {
   if (!length(time) || sum(dead[is.finite(row_weights) & row_weights > 0]) == 0) return(NULL)
@@ -350,7 +375,7 @@ kk_ivwc_row_weights = function(w_info, n) {
 
 # `ties` defaults to "breslow", the rule of every EDI Cox point estimate (C++
 # fitter and the pinned R fallbacks), so a weighted replicate fits the same
-# partial likelihood as the estimate it resamples (v1.0.6-TODO-271). The
+# partial likelihood as the estimate it resamples (v1.0.6-TODO-170). The
 # package-wide ties choice is v1.1.0-TODO-61.
 weighted_cox_bootstrap_surrogate_fit = function(time, dead, X, row_weights, strata = NULL, cluster = NULL, warm_start_beta = NULL, ties = "breslow") {
   ties = match.arg(ties, c("breslow", "efron"))

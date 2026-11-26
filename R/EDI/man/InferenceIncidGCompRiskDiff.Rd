@@ -42,7 +42,7 @@ Computes a jackknife-Wald two-sided p-value for the treatment effect.
 Computes a jackknife-Wald confidence interval for the treatment effect.
 
 Computes a PRW subsampling two-sided p-value for the treatment effect.
-  For the risk ratio the p-value is symmetric (v1.0.6-TODO-230): the share of usable
+  For the risk ratio the p-value is symmetric (v1.0.6-TODO-164): the share of usable
   pivot draws \eqn{\sqrt{b}(\log\widehat{RR}^* - \log\widehat{RR})} at least as large in absolute value
   as \eqn{\sqrt{n}(\log\widehat{RR} - \log\delta)}, floored at \eqn{1/B}, because the small-sample
   law of \eqn{\log\widehat{RR}^*} is skewed toward the observed effect and the equal-tailed rule doubled
@@ -55,7 +55,7 @@ Computes a PRW subsampling two-sided p-value for the treatment effect.
 Computes a PRW subsampling confidence interval for the treatment effect.
 
 Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
-  For the risk ratio the p-value is symmetric (v1.0.6-TODO-230): the share of usable
+  For the risk ratio the p-value is symmetric (v1.0.6-TODO-164): the share of usable
   pivot draws \eqn{\sqrt{m}(\log\widehat{RR}^* - \log\widehat{RR})} at least as large in absolute value
   as \eqn{\sqrt{n}(\log\widehat{RR} - \log\delta)}, floored at \eqn{1/B}, because the small-sample
   law of \eqn{\log\widehat{RR}^*} is skewed toward the observed effect and the equal-tailed rule doubled
@@ -232,7 +232,8 @@ inf$compute_estimate()
   B = 501,
   show_progress = TRUE,
   debug = FALSE,
-  bootstrap_type = NULL
+  bootstrap_type = NULL,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -261,6 +262,31 @@ inf$compute_estimate()
       \item{\code{bootstrap_type}}{Optional resampling scheme.}
       \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
       \item{\code{bootstrap_type}}{Optional empirical-resampling scheme.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -278,7 +304,8 @@ inf$compute_estimate()
   type = NULL,
   na.rm = TRUE,
   show_progress = TRUE,
-  min_number_usable_samples = 5L
+  min_number_usable_samples = 5L,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -328,6 +355,31 @@ inf$compute_estimate()
       \item{\code{min_number_usable_samples}}{Minimum number of finite subsampled estimates required.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
       \item{\code{min_number_usable_samples}}{Minimum number of finite resampled estimates required.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -346,7 +398,8 @@ inf$compute_estimate()
   na.rm = FALSE,
   show_progress = TRUE,
   min_number_usable_samples = 5L,
-  min_fraction_usable_samples = 0.95
+  min_fraction_usable_samples = 0.95,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -438,6 +491,31 @@ uses the usable draws only. Default 0.8, lower than the bootstrap's 0.95 because
 draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 null data sets were \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -694,7 +772,8 @@ m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGComp
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -786,6 +865,31 @@ uses the usable draws only. Default 0.8, lower than the bootstrap's 0.95 because
 draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 null data sets were \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -805,7 +909,8 @@ m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGComp
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   subsampling_type = NULL,
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -897,6 +1002,31 @@ uses the usable draws only. Default 0.8, lower than the bootstrap's 0.95 because
 draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 null data sets were \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -916,7 +1046,8 @@ m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGComp
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -1009,6 +1140,31 @@ uses the usable draws only. Default 0.8, lower than the bootstrap's 0.95 because
 draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 null data sets were \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }
@@ -1028,7 +1184,8 @@ m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGComp
   show_progress = TRUE,
   min_number_usable_samples = 5L,
   bootstrap_type = NULL,
-  min_fraction_usable_samples = 0.8
+  min_fraction_usable_samples = 0.8,
+  reimpute_missing_vals_each_resample = FALSE
 )}
     \if{html}{\out{</div>}}
   }
@@ -1121,6 +1278,31 @@ uses the usable draws only. Default 0.8, lower than the bootstrap's 0.95 because
 draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 null data sets were \code{NA}). See \strong{Subsampling and
 m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample, \code{TRUE} re-runs it per
+resample. See \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
+      \item{\code{reimpute_missing_vals_each_resample}}{Missing covariate values in the resamples: \code{FALSE}
+(default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+the missing-data step on each resample. See
+\code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.}
     }
     \if{html}{\out{</div>}}
   }

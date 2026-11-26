@@ -1,4 +1,4 @@
-# v1.0.6-TODO-57: the non-Bayesian D/A criterion matrices built by build_optimal_design_P_H()
+# v1.0.6-TODO-21: the non-Bayesian D/A criterion matrices built by build_optimal_design_P_H()
 # (helper_optimal_shared.R) were wrong when Z0 = cbind(1, X) is rank deficient although the
 # covariates alone are not (a covariate collinear with the intercept, e.g. x2 = x1 + 1, or 0/1
 # indicators that sum to 1). P = Q Q' used every column of qr.Q(), so it projected onto an extra

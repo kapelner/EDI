@@ -1,10 +1,10 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-191 (owner decision 2026-11-19): the g-computation risk-ratio subsampling and
+# v1.0.6-TODO-137 (owner decision 2026-11-19): the g-computation risk-ratio subsampling and
 # m-out-of-n p-values and intervals treat a degenerate draw (an arm with no events or only
 # events, or a non-converged or separated logistic fit) as unusable. The replicate comes back
-# NaN; when fewer than min_fraction_usable_samples (default 0.8 since v1.0.6-TODO-230; it was 0.95) of
+# NaN; when fewer than min_fraction_usable_samples (default 0.8 since v1.0.6-TODO-164; it was 0.95) of
 # the B draws are usable the
 # method returns NA with a recorded reason and one edi_procedure_na_warning, otherwise the
 # pivot uses the usable draws only. The risk difference is unchanged.
@@ -76,7 +76,7 @@ test_that("RR subsampling drops degenerate draws and the p-value uses the usable
 	n_units = priv$get_exchangeable_units(unit = "auto", resampling_type = NULL)$n_units
 	b = priv$resolve_resampling_size(NULL, n_units, "b")
 	expected = priv$resampling_centered_pval(sqrt(b) * (log(usable) - log(est)), est = log(est), delta = 0,
-		n_units = n_units, scaling = "sqrt_n", symmetric = TRUE)  # v1.0.6-TODO-230
+		n_units = n_units, scaling = "sqrt_n", symmetric = TRUE)  # v1.0.6-TODO-164
 	expect_identical(res$value, expected)
 	expect_length(res$na, 0L)
 	ci = inf$compute_subsampling_confidence_interval(B = 199, show_progress = FALSE)
@@ -118,7 +118,7 @@ test_that("KK risk ratio applies the same rule", {
 	set.seed(1)
 	draws = inf$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T(B = 100, show_progress = FALSE)
 	expect_gt(sum(is.nan(draws)), 5L)
-	# Between 5% and 20% of the draws are degenerate here: the 0.8 default (v1.0.6-TODO-230)
+	# Between 5% and 20% of the draws are degenerate here: the 0.8 default (v1.0.6-TODO-164)
 	# uses the usable ones, a stricter user cap returns NA.
 	expect_lt(sum(!is.finite(draws)), 20L)
 	res_default = collect_warnings(inf$compute_m_out_of_n_bootstrap_two_sided_pval(B = 100, show_progress = FALSE))

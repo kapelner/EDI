@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-214: compute_rand_bootstrap_two_sided_pval(na.rm = FALSE) returns NA on any
+# v1.0.6-TODO-155: compute_rand_bootstrap_two_sided_pval(na.rm = FALSE) returns NA on any
 # invalid null draw on every path (percentile, smoothed, studentized / symmetric-percentile-t,
 # sequential Monte Carlo), with one edi_bootstrap_nonfinite_na_warning per object (silent
 # inside an outer resampling operation), as the nonparametric and Bayesian bootstrap p-values

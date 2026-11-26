@@ -304,22 +304,10 @@ DesignFixedGreedyDOptimal = define_design_class(
 	),
 	private = list(
 		draw_ws_raw = function(r = 100){
-			private$maybe_set_seed()
-			if (should_run_asserts()) {
-				assertCount(r, positive = TRUE)
-				self$assert_all_subjects_arrived()
-			}
-			n = self$get_n()
-			private$ensure_model_matrix_current()
-			n_T = as.integer(round(n * private$prob_T))
-			if (n_T < 1L || n_T > n - 1L) {
-				stop(sprintf("prob_T = %g with n = %d yields a treated count of %d; need at least one treated and one control subject.", private$prob_T, n, n_T))
-			}
-			if (is.null(private$X) || ncol(private$X) == 0){
-				# No covariates: nothing to optimize -- pure random allocation with
-				# exactly n_T treated (consistent with the kernel path's treated count).
-				return(replicate(r, sample(c(rep(1, n_T), rep(0, n - n_T)))))
-			}
+			draw_setup = edi_greedy_draw_setup(self, private, r)
+			if (!is.null(draw_setup$draws)) return(draw_setup$draws)
+			n = draw_setup$n
+			n_T = draw_setup$n_T
 			X_now = private$X[1:n, , drop = FALSE]
 			# Bootstrap-randomization replay (2026-10-23, release_v1_0_5.md
 			# TODO-131): a duplicated design whose X was replaced by a bootstrap

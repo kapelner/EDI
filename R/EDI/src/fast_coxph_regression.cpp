@@ -4,6 +4,7 @@
 #else
 #include "_helper_functions.h"
 #include "result_map_rcpp.h"
+#include "survival_rand_bootstrap_rcpp.h"
 #include <RcppEigen.h>
 #endif
 #include <vector>
@@ -1181,65 +1182,17 @@ NumericVector compute_coxph_rand_bootstrap_parallel_cpp(
     Rcpp::Nullable<Rcpp::NumericMatrix> noise_mat,
     int num_cores)
 {
-    const int n      = i_mat.nrow();
-    const int nsim   = i_mat.ncol();
-    const int n_full = y0.size();
-    const int p_cov  = Xc.ncol();
-    const int p      = 1 + p_cov;  // treatment + covariates; no intercept in Cox PH
-
-    const double* y0_ptr   = y0.begin();
-    const int*    dead_ptr = dead.begin();
-    const double* xc_ptr   = (p_cov > 0) ? Xc.begin() : nullptr;
-    const int*    i_ptr    = i_mat.begin();
-    const int*    w_ptr    = w_mat.begin();
-    const double  mult     = (delta != 0.0) ? std::exp(delta) : 1.0;
-
-    FixedParamSpec fspec = make_fixed_param_spec(p);
-
-    std::vector<double> results(nsim, NA_REAL);
-    double* res_ptr = results.data();
-
-    // An empty (0-length) matrix, e.g. matrix(0, 0, 0), is Nullable::isNotNull() == TRUE
-    // but has no data: treat it as absent so noise_ptr[b * n + i] is never read OOB.
-    NumericMatrix noise_m;
-    if (noise_mat.isNotNull()) noise_m = NumericMatrix(noise_mat);
-    const bool has_noise = noise_m.size() > 0;
-    const double* noise_ptr = has_noise ? noise_m.begin() : nullptr;
-
-#pragma omp parallel if(EDI_KERNEL_NUM_THREADS(num_cores) > 1) num_threads(EDI_KERNEL_NUM_THREADS(num_cores))
-    {
-        Eigen::VectorXd y_b(n), dead_b(n);
-        Eigen::MatrixXd X_b(n, p);
-
-#pragma omp for schedule(dynamic)
-        for (int b = 0; b < nsim; ++b) {
-            const int* ic = i_ptr + (size_t)b * n;
-            const int* wc = w_ptr + (size_t)b * n;
-
-            int n_t = 0, n_c = 0;
-            for (int i = 0; i < n; ++i) {
-                const int r  = ic[i] - 1;
-                const int wt = (wc[i] == 1) ? 1 : 0;
-                X_b(i, 0) = static_cast<double>(wt);
-                for (int j = 0; j < p_cov; ++j)
-                    X_b(i, j + 1) = xc_ptr[(size_t)j * n_full + r];
-                double yv = y0_ptr[r];
-                if (has_noise) yv += noise_ptr[(size_t)b * n + i];
-                y_b(i)    = (wt && mult != 1.0) ? yv * mult : yv;
-                dead_b(i) = static_cast<double>(dead_ptr[r]);
-                n_t += wt;
-                n_c += (1 - wt);
-            }
-            if (n_t < 2 || n_c < 2) continue;
-
+    const FixedParamSpec fspec = make_fixed_param_spec(1 + Xc.ncol());
+    return survival_rand_bootstrap(y0, dead, Xc, i_mat, w_mat, delta, noise_mat, num_cores, 0, 0,
+        [&](const Eigen::MatrixXd& X_b, const Eigen::VectorXd& y_b,
+            const Eigen::VectorXd& dead_b, Eigen::VectorXd&) {
             std::vector<CoxData> strata;
             strata.emplace_back(y_b, dead_b, X_b);
             CoxFitResult fit = cox_newton_raphson(strata, std::nullopt, true, fspec,
                                                   true, 20, 1e-6);
             if (fit.converged && !fit.beta.empty() && std::isfinite(fit.beta[0]))
-                res_ptr[b] = fit.beta[0];
-        }
-    }
-    return wrap(results);
+                return fit.beta[0];
+            return NA_REAL;
+        });
 }
 #endif // EDI_CORE_ONLY

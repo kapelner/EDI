@@ -55,7 +55,7 @@ test_that("pval_bca reproduces the hand-computed BCa p-value, is floored at 2 / 
 	}
 	expect_equal(f$p$pval_bca(boot, est, -0.4), 2 / length(boot))         # far in the lower tail: hits the 2 / B floor
 	expect_lte(f$p$pval_bca(boot, est, -0.4), f$p$pval_bca(boot, est, -0.2))
-	expect_equal(f$p$pval_bca(boot, est, 5), 2 / length(boot))            # beyond every draw: the 2 / B floor, not NA (v1.0.6-TODO-75)
+	expect_equal(f$p$pval_bca(boot, est, 5), 2 / length(boot))            # beyond every draw: the 2 / B floor, not NA (v1.0.6-TODO-37)
 })
 
 test_that("non-finite jackknife draws are dropped; fewer than two usable ones make the result NA with a reason", {

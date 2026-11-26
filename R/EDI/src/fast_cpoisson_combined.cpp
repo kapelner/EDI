@@ -320,7 +320,7 @@ edi::ResultMap fast_cpoisson_combined_internal(
 		iterations_run = iter + 1;
 		edi_check_R_user_interrupt_every(iter);
 		// Pair + reservoir score and Fisher information come from the shared
-		// cpoisson_combined_score_info_cpp_impl() (v1.0.6-TODO-193); the
+		// cpoisson_combined_score_info_cpp_impl() (v1.0.7-TODO-54); the
 		// gradient of the negative log-likelihood is the negated score.
 		if (iter == 0 && warm_start_fisher_info.has_value()) {
 			H = *warm_start_fisher_info;

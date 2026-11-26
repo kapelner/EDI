@@ -89,6 +89,6 @@ test_that("an unusable weighted fractional logit refit returns NA and is reporte
     expect_true(is.na(private$last_weighted_refit$beta_hat_T))
     flagged[as.character(harden)] <- private$weighted_refit_is_nonestimable()
   }
-  skip("v1.0.6-TODO-265: the weighted refit returns NA but never calls cache_nonestimable_estimate(), so weighted_refit_is_nonestimable() is FALSE")
+  skip("v1.0.7-TODO-119: the weighted refit returns NA but never calls cache_nonestimable_estimate(), so weighted_refit_is_nonestimable() is FALSE")
   expect_true(all(flagged))
 })

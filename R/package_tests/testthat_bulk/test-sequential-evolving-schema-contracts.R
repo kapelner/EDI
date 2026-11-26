@@ -75,7 +75,7 @@ test_that("reordered factor and logical attributes retain their classes and valu
 })
 
 test_that("a closed sequential schema accepts reordered attributes and refuses unconvertible type changes", {
-  # v1.0.6-TODO-351: a genuine type change used to warn and retype the stored column; it is now refused
+  # v1.0.6-TODO-219: a genuine type change used to warn and retype the stored column; it is now refused
   # (or coerced back to the stored type when that keeps the value) and the stored column is unchanged.
   des <- DesignSeqOneByOneBernoulli$new("continuous", seed = 647)
   des$add_one_subject(data.frame(x = 1.0, site = "A"))

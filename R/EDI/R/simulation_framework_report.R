@@ -134,7 +134,7 @@ SimulationFrameworkReport = R6::R6Class("SimulationFrameworkReport",
       # ── Aggregate raw results ─────────────────────────────────────────────────
       dt         = private$results_dt
       alpha      = private$alpha
-      # v1.0.6-TODO-356: the CIs were built at the framework's alpha; an alpha
+      # v1.0.6-TODO-222: the CIs were built at the framework's alpha; an alpha
       # override applies to power and size only.
       ci_alpha   = private$ci_alpha %||% private$alpha
       report_cov = any(grepl("_ci$",   private$inf_types))

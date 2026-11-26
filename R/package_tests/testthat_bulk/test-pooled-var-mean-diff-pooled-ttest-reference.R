@@ -52,7 +52,7 @@ test_that("Pooled-variance mean-difference CI/p-value are unavailable with fewer
 	expect_true(is.na(inf$compute_asymp_two_sided_pval()))
 })
 
-# v1.0.6-TODO-293 (docs-scenarios fixed-designs F1): after a randomization p-value the asymptotic
+# v1.0.6-TODO-180 (docs-scenarios fixed-designs F1): after a randomization p-value the asymptotic
 # p-value and CI came back NA, because the randomization path cached beta_hat_T without the per-arm
 # responses that the pooled-t components read.
 test_that("Pooled-variance asymptotic p-value and CI do not depend on which procedure ran first", {

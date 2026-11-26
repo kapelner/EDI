@@ -25,7 +25,7 @@ kk_passthrough_compound_host_public = list(
 		#' @param estimate_only If TRUE, skip variance calculations.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE) {
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			# Same dispatch as the KKPassThrough component (v1.0.6-TODO-217): the
+			# Same dispatch as the KKPassThrough component (v1.0.6-TODO-158): the
 			# class's own weighted refit, or a refusal, never a raw mean difference.
 			if (is.function(private$compute_weighted_estimate_ivwc)) {
 				w_info = kk_pair_and_reservoir_bootstrap_weights(private, row_weights)
@@ -87,3 +87,74 @@ InferenceKKPassThroughCompoundNoParamBootstrap = define_inference_class(
 		private = "compute_basic_match_data"
 	)
 )
+
+kk_stacked_weighted_estimate = function(self, private, subject_or_block_weights, estimate_only, fit_weighted) {
+	row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
+	if (weights_are_effectively_constant(row_weights)) {
+		self$compute_estimate(estimate_only = estimate_only)
+		beta_hat_T = as.numeric(private$cached_values$beta_hat_T)[1L]
+		if (is.finite(beta_hat_T)) {
+			return(private$cached_values$beta_hat_T)
+		}
+	}
+	result = fit_weighted(row_weights, estimate_only = estimate_only)
+	if (is.list(result)) {
+		private$cached_values$beta_hat_T = result$beta
+		private$cached_values$s_beta_hat_T = result$se
+	} else {
+		private$cached_values$beta_hat_T = result
+		private$cached_values$s_beta_hat_T = NA_real_
+	}
+	private$cached_values$beta_hat_T
+}
+
+kk_stacked_linear_estimate = function(private, estimate_only) {
+	private$fit_combined(estimate_only = estimate_only)
+	private$cached_values$beta_hat_T
+}
+
+kk_stacked_linear_model_data = function(private, cache_key) {
+	KKstats = private$cached_values$KKstats
+	if (is.null(KKstats)){
+		private$compute_basic_match_data()
+		KKstats = private$cached_values$KKstats
+	}
+	m   = KKstats$m
+	nRT = KKstats$nRT
+	nRC = KKstats$nRC
+	nR  = nRT + nRC
+	if (m > 0 && nRT > 0 && nRC > 0){
+		if (ncol(as.matrix(private$get_X())) > 0){
+			Xd_full = as.matrix(KKstats$X_matched_diffs_full)
+			p = ncol(Xd_full)
+		} else {
+			Xd_full = matrix(nrow = m, ncol = 0L)
+			p = 0L
+		}
+		X_comb = rbind(
+			if (p > 0L) cbind(0, 1, Xd_full) else cbind(numeric(m), rep(1.0, m)),
+			if (p > 0L) cbind(rep(1, nR), KKstats$w_reservoir, as.matrix(KKstats$X_reservoir)) else cbind(rep(1, nR), KKstats$w_reservoir)
+		)
+		y_comb = c(KKstats$y_matched_diffs, KKstats$y_reservoir)
+		j_treat = 2L
+	} else if (m > 0){
+		Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
+		X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
+		y_comb = KKstats$y_matched_diffs
+		j_treat = 1L
+	} else if (nRT > 0 && nRC > 0){
+		X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
+		X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
+		y_comb = KKstats$y_reservoir
+		j_treat = 2L
+	} else {
+		private$cache_nonestimable_estimate("no_usable_matched_or_reservoir_data")
+		return(NULL)
+	}
+	reduced = private$reduce_design_matrix_once(
+		X_comb,
+		j_treat,
+		cache_key = cache_key
+	)
+	list(X = reduced$X, y = y_comb, j_treat = reduced$j_treat)
+}

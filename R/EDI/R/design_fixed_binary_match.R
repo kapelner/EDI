@@ -179,7 +179,7 @@ DesignFixedBinaryMatch = define_design_class(
 		#'   supplied, it is used directly as the treatment allocation instead of drawing
 		#'   a fresh within-pair-randomized allocation.
 		assign_w_to_all_subjects = function(w_precomputed = NULL){
-			private$assert_n_known_for_assignment() # v1.0.6-TODO-298
+			private$assert_n_known_for_assignment() # v1.0.6-TODO-185
 			private$ensure_matching_structure_computed()
 			super$assign_w_to_all_subjects(w_precomputed)
 		}

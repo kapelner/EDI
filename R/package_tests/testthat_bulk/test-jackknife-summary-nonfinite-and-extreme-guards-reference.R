@@ -40,7 +40,7 @@ mock_jackknife_distribution <- function(priv, distribution_fn) {
 
 test_that("any non-finite jackknife replicate is nonestimable, with the raw distribution still recorded", {
 	f <- jackknife_fixture(1L)
-	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	# >= 5 replicates so the v1.0.6-TODO-89 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
 	jack <- c(f$theta_hat, NA_real_, f$theta_hat + 0.1, f$theta_hat, f$theta_hat + 0.1)
 	mock_jackknife_distribution(f$priv, function(unit) jack)
 
@@ -52,7 +52,7 @@ test_that("any non-finite jackknife replicate is nonestimable, with the raw dist
 
 test_that("a jackknife replicate exceeding bootstrap_extreme_estimate_threshold is nonestimable", {
 	f <- jackknife_fixture(2L)
-	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	# >= 5 replicates so the v1.0.6-TODO-89 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
 	jack <- c(f$theta_hat, f$theta_hat, f$theta_hat + 1e10, f$theta_hat, f$theta_hat)
 	mock_jackknife_distribution(f$priv, function(unit) jack)
 

@@ -1,6 +1,6 @@
 #' TRUE when both arms are non-empty and each is constant (finite values), the
 #' case where stats::wilcox.test(conf.int = TRUE) cannot invert the rank-sum test
-#' (v1.0.6-TODO-59).
+#' (v1.0.6-TODO-23).
 #' @keywords internal
 #' @noRd
 wilcox_each_arm_constant = function(yT, yC){
@@ -10,7 +10,7 @@ wilcox_each_arm_constant = function(yT, yC){
 }
 
 #' Classed warning for the Wilcoxon CI that does not exist when each arm is
-#' constant (v1.0.6-TODO-59).
+#' constant (v1.0.6-TODO-23).
 #' @keywords internal
 #' @noRd
 # When every observation in both arms is tied (after shifting yT by the null delta),
@@ -146,7 +146,7 @@ SimpleWilcoxSource = list(
 			yT = as.numeric(private$y[private$w == 1])
 			yC = as.numeric(private$y[private$w == 0])
 			if (length(yT) == 0L || length(yC) == 0L) return(c(NA_real_, NA_real_))
-			# v1.0.6-TODO-59: no test-inversion interval exists when each arm is constant
+			# v1.0.6-TODO-23: no test-inversion interval exists when each arm is constant
 			# (see shared()); say so instead of handing back a silent NA.
 			if (wilcox_each_arm_constant(yT, yC)) {
 				warn_wilcox_ci_each_arm_constant(class(self)[1L])
@@ -392,7 +392,7 @@ SimpleWilcoxSource = list(
 				}
 			)
 			if (is.null(mod) && each_arm_constant){
-				# v1.0.6-TODO-59: with each arm constant every pairwise difference equals
+				# v1.0.6-TODO-23: with each arm constant every pairwise difference equals
 				# yT[1] - yC[1], so the Hodges-Lehmann estimate is defined and the rank-sum
 				# test is still defined (ties-corrected), but the test-inversion CI is not:
 				# the rank statistic only takes its extreme values off delta = yT[1] - yC[1]
@@ -437,25 +437,11 @@ SimpleWilcoxSource = list(
 			"wald"
 		},
 		simulate_under_lik_null = function(spec, delta, null_fit){
-			b_null = as.numeric(null_fit$b)
-			vt = spec$full_fit$vt; vc = spec$full_fit$vc
-			w = spec$X[, 2]; n = length(w)
-			y_sim = numeric(n)
-			y_sim[w == 1] = b_null[1] + b_null[2] + rnorm(sum(w == 1), 0, sqrt(vt))
-			y_sim[w == 0] = b_null[1] + rnorm(sum(w == 0), 0, sqrt(vc))
-			
-			hl_sim = private$hl_point_estimate(y_sim, w)
-			list(
-				full_fit = list(b = c(mean(y_sim - hl_sim * w), hl_sim), vt = var(y_sim[w==1]), vc = var(y_sim[w==0])),
-				fit_null = function(d, start = NULL){
-					m_joint = mean(y_sim - w * d)
-					list(b = c(m_joint, d), vt = var(y_sim[w==1]), vc = var(y_sim[w==0]))
-				},
-				neg_loglik = function(fit){
-					mu = fit$b[1] + fit$b[2]*w
-					sum((y_sim - mu)^2)
-				}
-			)
+			simulate_gaussian_two_arm_null(spec, null_fit,
+				function(y_sim, w) {
+				hl_sim = private$hl_point_estimate(y_sim, w)
+				c(mean(y_sim - hl_sim * w), hl_sim)
+			})
 		},
 		get_likelihood_test_spec = function(){
 			NULL

@@ -58,8 +58,8 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 	# 2026-11-17: 5e-2. With weights the two solvers differ more than without:
 	# over 20 seeds of this fixture, |EDI - geepack| was at most 0.035 weighted
 	# but at most 0.003 unweighted. The 2e-2 bar only held for the old KK14
-	# assignments; the v1.0.6-TODO-45 matching fix changed w and the data here.
-	# v1.0.6-TODO-47 (2026-11-24): which side is wrong? Neither. EDI's beta solves the weighted GEE
+	# assignments; the v1.0.6-TODO-10 matching fix changed w and the data here.
+	# v1.0.6-TODO-12 (2026-11-24): which side is wrong? Neither. EDI's beta solves the weighted GEE
 	# U(beta; alpha) = sum D' V^-1 (W^1/2 r) at its own alpha (|U| = 1.2e-9) and geepack's beta solves the
 	# same equation at geepack's alpha (|U| = 4.3e-5, its tolerance). They differ only in the exchangeable
 	# alpha moment estimator: EDI 0.027, geepack 0.123 on this draw (the unweighted alpha is -0.061 / -0.058).
@@ -100,7 +100,7 @@ test_that("KK GEE weighted-bootstrap refit (use_rcpp=TRUE) matches an independen
 })
 
 test_that("KK GEE weighted refit equals geepack with the working correlation fixed at EDI's alpha", {
-	# v1.0.6-TODO-47: isolates the beta solver from the alpha moment-estimator convention (see above).
+	# v1.0.6-TODO-12: isolates the beta solver from the alpha moment-estimator convention (see above).
 	skip_if_not_installed("geepack")
 	for (seed in c(20260918, 1, 2, 3, 4)) {
 		set.seed(seed)

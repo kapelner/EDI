@@ -119,6 +119,21 @@ public:
             const double* xci = m_X.data() + i;    // xci[j * m_n] == X(i,j)
             const double* xzi = m_Xzi.data() + i;  // xzi[j * m_n] == Xzi(i,j)
 
+            const auto add_diagonal_blocks = [&](double h_cc, double h_zz) {
+                // cond-cond block (upper triangle)
+                for (int c = 0; c < m_p_cond; ++c) {
+                    const double s = h_cc * xci[c * m_n];
+                    for (int r = 0; r <= c; ++r)
+                        H_data[r + c * total_p] += s * xci[r * m_n];
+                }
+                // zi-zi block (upper triangle)
+                for (int c = 0; c < m_p_zi; ++c) {
+                    const double s = h_zz * xzi[c * m_n];
+                    for (int r = 0; r <= c; ++r)
+                        H_data[(m_p_cond + r) + (m_p_cond + c) * total_p] += s * xzi[r * m_n];
+                }
+            };
+
             if (m_is_hurdle) {
                 // zi-zi block (upper triangle): rows/cols m_p_cond..total_p-1
                 for (int c = 0; c < m_p_zi; ++c) {
@@ -152,35 +167,13 @@ public:
                     double h_zz = q_z * q_z / (q * q) - q_zz / q;
                     double h_cz = q_c * q_z / (q * q) - q_zc / q;
 
-                    // cond-cond block (upper triangle)
-                    for (int c = 0; c < m_p_cond; ++c) {
-                        const double s = h_cc * xci[c * m_n];
-                        for (int r = 0; r <= c; ++r)
-                            H_data[r + c * total_p] += s * xci[r * m_n];
-                    }
-                    // zi-zi block (upper triangle)
-                    for (int c = 0; c < m_p_zi; ++c) {
-                        const double s = h_zz * xzi[c * m_n];
-                        for (int r = 0; r <= c; ++r)
-                            H_data[(m_p_cond + r) + (m_p_cond + c) * total_p] += s * xzi[r * m_n];
-                    }
+                    add_diagonal_blocks(h_cc, h_zz);
                     // cond-zi cross block (full, not symmetric)
                     for (int c = 0; c < m_p_zi; ++c)
                         for (int r = 0; r < m_p_cond; ++r)
                             H_data[r + (m_p_cond + c) * total_p] += h_cz * xci[r * m_n] * xzi[c * m_n];
                 } else {
-                    // cond-cond block (upper triangle)
-                    for (int c = 0; c < m_p_cond; ++c) {
-                        const double s = lambda * xci[c * m_n];
-                        for (int r = 0; r <= c; ++r)
-                            H_data[r + c * total_p] += s * xci[r * m_n];
-                    }
-                    // zi-zi block (upper triangle)
-                    for (int c = 0; c < m_p_zi; ++c) {
-                        const double s = pi_prime * xzi[c * m_n];
-                        for (int r = 0; r <= c; ++r)
-                            H_data[(m_p_cond + r) + (m_p_cond + c) * total_p] += s * xzi[r * m_n];
-                    }
+                    add_diagonal_blocks(lambda, pi_prime);
                 }
             }
         }
@@ -366,7 +359,7 @@ edi::ResultMap fast_zap_with_var_internal(const Eigen::Ref<const Eigen::MatrixXd
 
 #ifndef EDI_CORE_ONLY
 namespace {
-// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported kernels.
+// v1.0.6-TODO-140 (4), 2026-11-19: argument checks for the exported kernels.
 // Without them a y of the wrong length (numeric(0) aborted R with a segfault; a
 // short y or an Xzi with fewer rows than X read past the end of y / Xzi and
 // returned a "converged" fit of garbage) and a params vector of the wrong length

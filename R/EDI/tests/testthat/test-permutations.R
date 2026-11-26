@@ -24,7 +24,7 @@ test_that("Different designs work with continuous response", {
 	}
 })
 
-# morrison = TRUE is reserved and not implemented (v1.0.6-TODO-46): it warns and runs the
+# morrison = TRUE is reserved and not implemented (v1.0.6-TODO-11): it warns and runs the
 # standard KK14 schedule, so the design must still work end to end.
 test_that("KK14 with morrison = TRUE warns that it is not implemented and still works", {
 	n <- 20

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-215 item (3): observed and expected (Fisher) information of the
+# v1.0.6-TODO-156 item (3): observed and expected (Fisher) information of the
 # partial proportional-odds cumulative-logit model
 # (ordinal_partial_po_information(), clm `nominal` parameterization). The
 # observed information is the exact negative Hessian of the log-likelihood and

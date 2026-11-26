@@ -71,50 +71,9 @@ InferenceExtPRWSubsampling = list(
 				cached = private$get_cached_resampling_distribution("subsampling", cache_key)
 				if (!is.null(cached)) return(cached)
 			}
-			private$check_bootstrap_replicate_deadline("subsampling draw generation")
-			if (!is.null(private$seed)) {
-				had_seed = exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-				if (had_seed) old_seed = get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-				on.exit(
-					if (had_seed) assign(".Random.seed", old_seed, envir = .GlobalEnv) else rm(".Random.seed", envir = .GlobalEnv),
-					add = TRUE
-				)
-				set.seed(private$seed)
-			}
-			draws = private$generate_exchangeable_resampling_draws(
-				unit_info = unit_info,
-				B = B,
-				size = b,
-				replace = FALSE,
-				stratified = !identical(subsampling_type, "resample_blocks"),
-				preserve_order = TRUE,
-				size_label = "b"
-			)
-			# Flag only the replicate loop (v1.0.6-TODO-207), restoring the caller's value
-			# (v1.0.6-TODO-185), so this method's own top-level code is not silenced.
-			prev_resampling_operation = private$active_resampling_operation
-			private$active_resampling_operation = "subsampling"
-			res = tryCatch(
-				private$compute_resampling_draw_distribution(
-					draws = draws,
-					operation = "subsampling",
-					show_progress = show_progress,
-					debug = debug,
-					cache_key = cache_key
-				),
-				finally = private$active_resampling_operation <- prev_resampling_operation
-			)
-			if (isTRUE(debug)) {
-				private$check_bootstrap_replicate_deadline("subsampling debug summary")
-				est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
-				res$centered_scaled_values = private$resampling_scaling_factor(b, scaling) * (res$values - est)
-				res$full_estimate = est
-				res$b = b
-				res$n_units = unit_info$n_units
-				res$scaling = scaling
-				res$unit_type = unit_info$unit_type
-			}
-			res
+			edi_exchangeable_resample_distribution(self, private, unit_info, B, b, subsampling_type, scaling,
+				show_progress, debug, cache_key, operation = "subsampling", family = "subsampling",
+				size_label = "b", replace = FALSE)
 		},
 		#' @description Computes a centered PRW subsampling two-sided p-value.
 		#'
@@ -152,7 +111,7 @@ InferenceExtPRWSubsampling = list(
 				min_number_usable_samples = min_number_usable_samples, resampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 			if (is.null(setup$pivot)) return(setup$value)
 			pivot = setup$pivot
-			# v1.0.6-TODO-230: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
+			# v1.0.6-TODO-164: ratio estimands (classes with a degenerate-draw rule) use the symmetric p-value.
 			private$resampling_centered_pval(pivot$centered_scaled, est = pivot$est, delta = delta, n_units = pivot$n_units, scaling = scaling,
 				symmetric = !is.null(edi_ratio_resampling_degenerate_rule(self, private)))
 		},
@@ -296,7 +255,9 @@ InferenceExtPRWSubsampling = list(
 		}
 		,
 		subsampling_cache_key = function(B, b, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
-			paste(as.integer(B), as.integer(b), subsampling_type %||% "NULL", private$resampling_scaling_key(scaling), center, sep = "|")
+			# v1.0.7-TODO-190: re-imputed subsamples are cached apart from the default ones.
+			paste(as.integer(B), as.integer(b), subsampling_type %||% "NULL", private$resampling_scaling_key(scaling), center,
+				if (edi_bootstrap_reimputes(private)) "reimpute" else NULL, sep = "|")
 		},
 		subsampling_centered_pivot = function(B, b, unit_info, show_progress = TRUE, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = ratio_resampling_min_fraction_usable){
 			private$check_bootstrap_replicate_deadline("subsampling centered pivot")
@@ -305,7 +266,7 @@ InferenceExtPRWSubsampling = list(
 			if (is.null(pivot)) {
 				# Builds the pivot from fresh draws; a failure (ok = FALSE) is returned uncached.
 				pivot = (function(){
-					# Control conditions (timeouts, interrupts) re-throw, as in the m-out-of-n pivot (v1.0.6-TODO-194).
+					# Control conditions (timeouts, interrupts) re-throw, as in the m-out-of-n pivot (v1.0.6-TODO-139).
 					est = tryCatch(as.numeric(self$compute_estimate(estimate_only = TRUE))[1L], error = private$resampling_error_to_na)
 					if (!is.finite(est)) {
 						return(list(ok = FALSE, reason = "subsampling_original_estimate_unavailable"))
@@ -323,7 +284,7 @@ InferenceExtPRWSubsampling = list(
 					# m_out_of_n_bootstrap_centered_pivot() -- same rationale, same
 					# fix, kept consistent across both resampling families. A class with a
 					# degenerate-draw rule uses min_fraction_usable_samples instead
-					# (subsampling_centered_pivot(); v1.0.6-TODO-269).
+					# (subsampling_centered_pivot(); v1.0.6-TODO-204).
 					has_ratio_rule = !is.null(edi_ratio_resampling_degenerate_rule(self, private))
 					if (!has_ratio_rule && length(sub) > 0L && length(finite) / length(sub) < 0.5) {
 						return(list(ok = FALSE, reason = "subsampling_high_replicate_failure_rate"))
@@ -358,7 +319,7 @@ InferenceExtPRWSubsampling = list(
 				if (!isTRUE(pivot$ok)) return(pivot)
 				private$set_cached_centered_resampling_pivot("subsampling", cache_key, pivot)
 			}
-			# v1.0.6-TODO-230 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
+			# v1.0.6-TODO-164 / 269: a ratio estimand with degenerate (NaN) or failed (NA) draws needs
 			# min_fraction_usable_samples of the B subsamples to be usable. Checked after the cache so a
 			# pivot built under one cap is judged under the cap of each call.
 			too_few_usable = edi_ratio_resampling_usable_fraction_failure(self, private, "subsampling",

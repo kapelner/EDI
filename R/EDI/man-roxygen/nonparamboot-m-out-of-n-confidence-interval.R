@@ -19,7 +19,7 @@
 #'   \code{InferenceIncidLogBinomial}, \code{InferenceCountPoisson}): minimum fraction of the
 #'   \code{B} resamples that must be usable (not degenerate, fit not failed). Below it the method
 #'   returns \code{NA} with reason \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
-#'   \code{edi_procedure_na_warning}. Default 0.8 (v1.0.6-TODO-230 / 269). Other classes ignore it.
+#'   \code{edi_procedure_na_warning}. Default 0.8 (v1.0.6-TODO-164 / 269). Other classes ignore it.
 #'
 #' @details The \code{NULL} default is grounded in the standard m-out-of-n
 #'   asymptotic condition \eqn{m \to \infty} and \eqn{m / n \to 0}. The

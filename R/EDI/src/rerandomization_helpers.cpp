@@ -51,12 +51,10 @@ static void shuffle_vec(std::vector<int>& v, edi_rng::RRng& rng) {
     }
 }
 
-// [[Rcpp::export]]
-Rcpp::IntegerMatrix complete_randomization_forced_balanced_cpp(int n, int r, int seed) {
+static Rcpp::IntegerMatrix complete_randomization_fixed_count(int n, int nT, int r, int seed) {
     edi_rng::RRng rng = make_rng(seed);
     Rcpp::IntegerMatrix out(r, n);
     std::vector<int> v(n, 0);
-    int nT = n / 2;
     for (int i = 0; i < nT; i++) v[i] = 1;
     for (int row = 0; row < r; row++) {
         shuffle_vec(v, rng);
@@ -66,16 +64,13 @@ Rcpp::IntegerMatrix complete_randomization_forced_balanced_cpp(int n, int r, int
 }
 
 // [[Rcpp::export]]
+Rcpp::IntegerMatrix complete_randomization_forced_balanced_cpp(int n, int r, int seed) {
+    return complete_randomization_fixed_count(n, n / 2, r, seed);
+}
+
+// [[Rcpp::export]]
 Rcpp::IntegerMatrix complete_randomization_imbalanced_cpp(int n, int nT, int r, int seed) {
-    edi_rng::RRng rng = make_rng(seed);
-    Rcpp::IntegerMatrix out(r, n);
-    std::vector<int> v(n, 0);
-    for (int i = 0; i < nT; i++) v[i] = 1;
-    for (int row = 0; row < r; row++) {
-        shuffle_vec(v, rng);
-        for (int j = 0; j < n; j++) out(row, j) = v[j];
-    }
-    return out;
+    return complete_randomization_fixed_count(n, nT, r, seed);
 }
 
 // [[Rcpp::export]]
@@ -102,7 +97,7 @@ Rcpp::NumericVector compute_objective_vals_cpp(
     for (int i = 0; i < n; i++)
         for (int j = 0; j < p; j++) sum_all[j] += X(i, j);
 
-    // v1.0.6-TODO-276: same scaling rule as rerandomization_search_cpp. The SD is
+    // v1.0.6-TODO-175: same scaling rule as rerandomization_search_cpp. The SD is
     // over all n rows (n - 1 denominator) from centered sums, and a zero-variance
     // column (var < 1e-24) is left unscaled (inv_sd = 1), so it adds ~0 instead of
     // 0/0 = NaN. A constant column reaches here through a design_formula term such

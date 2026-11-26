@@ -122,12 +122,17 @@ double smart_truncated_negbin_theta_start_from_beta(const Eigen::Ref<const Matri
 	return std::max(0.1, theta_hat);
 }
 
-VectorXd make_truncated_negbin_start(const Eigen::Ref<const MatrixXd>& X_pos, const Eigen::Ref<const VectorXi>& y_pos) {
-	const int p = (int)X_pos.cols();
-	const VectorXd y_double = y_pos.cast<double>();
+struct TruncatedNegBinMomentStart {
+	double theta;
+	VectorXd beta;
+};
+
+TruncatedNegBinMomentStart truncated_negbin_moment_start(
+	const Eigen::Ref<const MatrixXd>& X_pos, const VectorXd& y_double) {
+	const int p = static_cast<int>(X_pos.cols());
 	const double mean_y = y_double.mean();
 	const double var_y = (y_double.array() - mean_y).square().sum() /
-		static_cast<double>(std::max(1, static_cast<int>(y_pos.size()) - 1));
+		static_cast<double>(std::max(1, static_cast<int>(y_double.size()) - 1));
 	const double theta_start = (var_y > mean_y && mean_y > 0.0) ?
 		std::max(0.1, mean_y * mean_y / (var_y - mean_y)) : 10.0;
 
@@ -135,30 +140,29 @@ VectorXd make_truncated_negbin_start(const Eigen::Ref<const MatrixXd>& X_pos, co
 	if (p > 0 && X_pos.col(0).array().isApprox(ArrayXd::Ones(X_pos.rows()), 1e-12)) {
 		legacy_beta[0] = std::log(std::max(mean_y, 1e-8));
 	}
+	return {theta_start, std::move(legacy_beta)};
+}
+
+VectorXd make_truncated_negbin_start(const Eigen::Ref<const MatrixXd>& X_pos, const Eigen::Ref<const VectorXi>& y_pos) {
+	const int p = (int)X_pos.cols();
+	const VectorXd y_double = y_pos.cast<double>();
+	const auto moment_start = truncated_negbin_moment_start(X_pos, y_double);
 	VectorXd beta_smart = ols_smart_cold_start_beta_on_log1p(X_pos, y_double);
-	VectorXd beta_start = vector_is_usable_start(beta_smart, p) ? beta_smart : legacy_beta;
+	VectorXd beta_start = vector_is_usable_start(beta_smart, p) ? beta_smart : moment_start.beta;
 	VectorXd params = VectorXd::Zero(p + 1);
 	params.head(p) = beta_start;
-	params[p] = std::log(smart_truncated_negbin_theta_start_from_beta(X_pos, y_pos, beta_start, theta_start));
+	params[p] = std::log(smart_truncated_negbin_theta_start_from_beta(X_pos, y_pos, beta_start, moment_start.theta));
 	return params;
 }
 
 std::vector<VectorXd> make_truncated_negbin_candidate_starts(const Eigen::Ref<const MatrixXd>& X_pos, const Eigen::Ref<const VectorXi>& y_pos) {
 	const int p = (int)X_pos.cols();
 	const VectorXd y_double = y_pos.cast<double>();
-	const double mean_y = y_double.mean();
-	const double var_y = (y_double.array() - mean_y).square().sum() /
-		static_cast<double>(std::max(1, static_cast<int>(y_pos.size()) - 1));
-	const double theta_moment = (var_y > mean_y && mean_y > 0.0) ?
-		std::max(0.1, mean_y * mean_y / (var_y - mean_y)) : 10.0;
-
-	VectorXd legacy_beta = VectorXd::Zero(p);
-	if (p > 0 && X_pos.col(0).array().isApprox(ArrayXd::Ones(X_pos.rows()), 1e-12)) {
-		legacy_beta[0] = std::log(std::max(mean_y, 1e-8));
-	}
+	const auto moment_start = truncated_negbin_moment_start(X_pos, y_double);
+	const double theta_moment = moment_start.theta;
 
 	std::vector<VectorXd> beta_candidates;
-	beta_candidates.push_back(legacy_beta);
+	beta_candidates.push_back(moment_start.beta);
 
 	VectorXd beta_log1p = ols_smart_cold_start_beta_on_log1p(X_pos, y_double);
 	if (vector_is_usable_start(beta_log1p, p)) beta_candidates.push_back(beta_log1p);
@@ -471,7 +475,7 @@ public:
 	// zero-truncated NB distribution of y at each row's mu. That Hessian is linear in y except
 	// through digamma(y + r) and trigamma(y + r), so the series only needs four scalar sums per
 	// row (sum p, sum p*y, sum p*digamma(y + r), sum p*trigamma(y + r)) over the same truncated
-	// terms and stopping rule. v1.0.6-TODO-411: this used to build a one-row model and a full
+	// terms and stopping rule. v1.0.6-TODO-229: this used to build a one-row model and a full
 	// Hessian for every term, and the Newton-decrement finish calls it whenever the observed
 	// Hessian is not positive definite, so randomization-CI bound searches over extreme shifts
 	// (large mu, long series) took minutes to hours.
@@ -919,7 +923,7 @@ edi::ResultMap fast_truncated_negbin_count_internal(
 
 #ifndef EDI_CORE_ONLY
 namespace {
-// v1.0.6-TODO-195 (4), 2026-11-19: argument checks for the exported hurdle
+// v1.0.6-TODO-140 (4), 2026-11-19: argument checks for the exported hurdle
 // negative-binomial fits. Without them a y of length 0 or an X_hurdle with fewer
 // rows than X read past the end of y / X_hurdle and returned a "converged" fit of
 // garbage. Named hnb_* because a unity build puts several kernels' anonymous

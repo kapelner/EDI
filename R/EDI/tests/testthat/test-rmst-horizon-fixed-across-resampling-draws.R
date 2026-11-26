@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-115: the default RMST horizon (min of the arms' max follow-up) was
+# v1.0.6-TODO-69: the default RMST horizon (min of the arms' max follow-up) was
 # recomputed in every randomization draw, so the null draws integrated to a different,
 # assignment-dependent tau than the observed statistic (fixture: observed 39 vs null
 # 162-180) and the randomization test had power below alpha at a strong effect. The

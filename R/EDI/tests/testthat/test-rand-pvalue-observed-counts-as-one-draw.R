@@ -76,7 +76,8 @@ test_that("the rules are exact: rejection probability <= alpha under exchangeabl
 })
 
 test_that("studentized and symmetric-percentile-t BRT p-values count the observed draw", {
-	brt = EDI:::InferenceRandBootstrap$private_methods$compute_two_sided_brt_pval_studentized
+	component = EDI:::inference_component_source_parts(EDI:::InferenceRandBootstrap)
+	brt = component$private$compute_two_sided_brt_pval_studentized
 	environment(brt) = asNamespace("EDI")
 	t0_b = c(-3, -2, -1, 0.5, 1, 2, 4, NA)        # 7 finite draws
 	se0_b = rep(1, length(t0_b))

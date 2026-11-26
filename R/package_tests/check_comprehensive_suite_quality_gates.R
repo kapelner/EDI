@@ -20,7 +20,7 @@ if (!dir.exists(file.path(repo_root, "EDI"))) {
 	repo_root = normalizePath(getwd(), mustWork = TRUE)
 }
 artifact = function(name) file.path(repo_root, "package_tests", name)
-# NA audit (v1.0.6-TODO-95): silent NA outputs fail the gate; see na_audit_gate.R.
+# NA audit (v1.0.6-TODO-54): silent NA outputs fail the gate; see na_audit_gate.R.
 source(artifact("na_audit_gate.R"), local = TRUE)
 
 gate_paths = list(
@@ -322,7 +322,7 @@ build_comprehensive_quality_gate_report = function(inputs) {
 	report
 }
 
-# NA audit rows (v1.0.6-TODO-95). inputs$na_digest is comprehensive_suite_na_audit.csv (built
+# NA audit rows (v1.0.6-TODO-54). inputs$na_digest is comprehensive_suite_na_audit.csv (built
 # from the gitignored per-response result CSVs by `Rscript na_audit_gate.R digest`);
 # inputs$na_allowlist is na_audit_allowlist.csv; inputs$open_todos the open release TODOs.
 comprehensive_na_audit_rows = function(inputs) {

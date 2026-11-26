@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-326: InferenceSurvivalDepCensTransformRegr's Bayesian bootstrap replaced each weighted draw with a
+# v1.0.6-TODO-176: InferenceSurvivalDepCensTransformRegr's Bayesian bootstrap replaced each weighted draw with a
 # weighted Cox fit, whose treatment coefficient is a log hazard ratio under independent censoring, while the class
 # estimates a log time ratio under dependent censoring. The joint likelihood takes no observation weights, so the
 # Bayesian-bootstrap methods are now unsupported like the class's jackknife and randomization methods: each warns

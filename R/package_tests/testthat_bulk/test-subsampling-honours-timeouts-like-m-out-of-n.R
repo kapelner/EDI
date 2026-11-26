@@ -1,4 +1,4 @@
-# v1.0.6-TODO-194: PRW subsampling CI / p-value setup had no deadline check, and its
+# v1.0.6-TODO-139: PRW subsampling CI / p-value setup had no deadline check, and its
 # centered pivot read the original estimate with error = function(e) NA_real_, so a
 # timeout or other control condition raised there became an NA result with reason
 # "subsampling_original_estimate_unavailable". The m-out-of-n siblings check the

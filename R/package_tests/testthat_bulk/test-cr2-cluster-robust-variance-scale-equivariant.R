@@ -1,4 +1,4 @@
-# v1.0.6-TODO-58: cluster_robust_cr2_variance() used an absolute .Machine$double.eps floor, so a
+# v1.0.6-TODO-22: cluster_robust_cr2_variance() used an absolute .Machine$double.eps floor, so a
 # continuous response in small units (y * 1e-8) was "not estimable" and InferenceContinOLS / Lin
 # silently fell back to the independent-subjects SE on a cluster design. The floor is now relative
 # to the scale of y, so the CR2 variance scales with y^2 and the df is unchanged.

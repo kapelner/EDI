@@ -337,7 +337,7 @@ KKWilcoxIVWCSource = list(
 		# randomization_test / randomization_bootstrap reach this hook on a
 		# sequential KK design (ordinary, m-out-of-n and subsampling bootstraps are
 		# unsupported there).
-		# v1.0.6-TODO-217: on a non-sequential matched design (DesignFixedBinaryMatch)
+		# v1.0.6-TODO-158: on a non-sequential matched design (DesignFixedBinaryMatch)
 		# the m-out-of-n bootstrap, subsampling and the jackknife distribution do
 		# reach this hook, and returned W statistics (replicate means 1.47 / 1.52 /
 		# 2.44 for an HL estimate of 0.63). Only the randomization operations use the

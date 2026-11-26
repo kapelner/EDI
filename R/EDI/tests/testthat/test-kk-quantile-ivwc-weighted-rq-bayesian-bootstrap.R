@@ -1,5 +1,5 @@
-# v1.0.6-TODO-235 (2): the KK quantile IVWC classes (InferenceContinKKQuantileRegrIVWC,
-# InferencePropKKQuantileRegrIVWC) get their Bayesian bootstrap back. v1.0.6-TODO-217 had
+# v1.0.6-TODO-169 (2): the KK quantile IVWC classes (InferenceContinKKQuantileRegrIVWC,
+# InferencePropKKQuantileRegrIVWC) get their Bayesian bootstrap back. v1.0.6-TODO-158 had
 # opted them out because a replicate fell through to a raw mean-difference fallback; each
 # replicate is now a weighted quantreg::rq() refit of both halves (matched-pair differences
 # and reservoir), with standard errors from the weighted fits, pooled by inverse variance.

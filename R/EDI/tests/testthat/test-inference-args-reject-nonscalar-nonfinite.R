@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-106 (audit of checkmate defaults beyond any.missing): the alpha,
+# v1.0.6-TODO-60 (audit of checkmate defaults beyond any.missing): the alpha,
 # delta, pval_epsilon, tau and acc asserts had no len = 1, so a length-2 alpha
 # gave a four-number "interval" and a length-2 delta a vector of p-values, and
 # delta had no finite = TRUE, so delta = Inf returned p = 0. The alpha upper bound
@@ -12,7 +12,7 @@ library(EDI)
 # a returned value.
 #
 # Same exclusions as that file: the classes' own overrides with no argument
-# check at all (v1.0.6-TODO-105) and the pairs in nsnf_unguarded below.
+# check at all (v1.0.7-TODO-45) and the pairs in nsnf_unguarded below.
 
 nsnf_fixtures = local({
 	cache = NULL
@@ -82,10 +82,10 @@ nsnf_shared_method_regex = paste0(
 	"asymp_log_rank_two_sided_pval_for_treatment_effect)(_generic)?$"
 )
 
-# Same as na_arg_unguarded in test-inference-args-reject-na.R (v1.0.6-TODO-105), plus
+# Same as na_arg_unguarded in test-inference-args-reject-na.R (v1.0.7-TODO-45), plus
 # InferenceIncidKKCondLogitOneLik's compute_rand_two_sided_pval override, which returns NA
 # before reaching the shared argument check when the fitted estimate is not finite (as on
-# this fixture); also v1.0.6-TODO-105.
+# this fixture); also v1.0.7-TODO-45.
 nsnf_unguarded = c(
 	"InferenceIncidKKCondLogitOneLik:compute_rand_two_sided_pval",
 	"InferenceIncidGCompRiskRatio:compute_subsampling_confidence_interval",
@@ -114,7 +114,7 @@ test_that("shared resampling / exact / likelihood-ratio entry points reject leng
 	skipped = character()
 	for (cn in nsnf_inference_classes()) {
 		inf = nsnf_build(cn)
-		# v1.0.6-TODO-181: a Suggests package the class needs is not installed
+		# v1.0.6-TODO-127: a Suggests package the class needs is not installed
 		if (is.null(inf) && length(pk <- inference_fixture_missing_packages(cn, nsnf_fixtures()))) {
 			skipped[cn] = paste(pk, collapse = ", ")
 			next

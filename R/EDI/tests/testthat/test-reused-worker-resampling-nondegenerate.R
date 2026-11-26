@@ -88,7 +88,7 @@ RESAMPLING_NONDEGENERATE_KNOWN_BROKEN = character(0)
 # Like the helper, the continuous, proportion and survival responses carry a
 # small seeded rnorm() term (drawn after the assignment, inside the caller's
 # seed scope); without it they were exact linear functions of w, x and z and
-# the v1.0.6-TODO-158 perfect-predictor check dropped x and z (v1.0.6-TODO-204).
+# the v1.0.6-TODO-108 perfect-predictor check dropped x and z (v1.0.6-TODO-145).
 resampling_nondegenerate_responses = function(response_type, w01, x){
 	n = length(w01)
 	linpred = -0.2 + 0.55 * w01 + 0.25 * x$x - 0.15 * x$z

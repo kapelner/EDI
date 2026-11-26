@@ -1,4 +1,4 @@
-# v1.0.6-TODO-138: when the hardened fit drops a covariate beyond the QR rank
+# v1.0.6-TODO-92: when the hardened fit drops a covariate beyond the QR rank
 # set (its full-rank fit diverged under separation, or was otherwise unusable)
 # and reports the reduced model, the class warns once per object with class
 # edi_covariate_dropped_warning (fields dropped, reason, diverged), never from

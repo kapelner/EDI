@@ -1,9 +1,9 @@
-# v1.0.6-TODO-351 (ds-save-load-44883784401-f3, ds-save-load-44883784401-f5): sequential designs with a
+# v1.0.6-TODO-219 (ds-save-load-44883784401-f3, ds-save-load-44883784401-f5): sequential designs with a
 # fixed n accepted subject n + 1 (t = n + 1, w grew, get_n() stayed n, inference ran on n + 1), and a
 # covariate value arriving as text warned once and retyped the stored column for every earlier subject, so
 # later assignments changed and the final analysis was NA. Subject n + 1 is now refused, and a type change
 # is coerced back to the stored type or refused (naming the column) when the value would be lost, with the
-# design left unchanged (the v1.0.6-TODO-316 rollback).
+# design left unchanged (the v1.0.6-TODO-196 rollback).
 
 test_that("the (n + 1)th subject is refused and t stays n", {
 	set.seed(1)

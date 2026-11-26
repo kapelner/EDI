@@ -6,7 +6,7 @@ library(EDI)
 # compute_estimate_with_bootstrap_weights() (weighted_weibull_bootstrap_surrogate_fit() assumes right-censoring),
 # compute_bayesian_bootstrap_two_sided_pval() (same reason), compute_lik_ratio_bartlett_approx_two_sided_pval()
 # (its parametric-bootstrap null simulator only knows how to re-censor against a single right-censoring
-# threshold), and (until the v1.0.6-TODO-143 follow-up lifted it) compute_rand_two_sided_pval() with a nonzero
+# threshold), and (until the v1.0.6-TODO-95 follow-up lifted it) compute_rand_two_sided_pval() with a nonzero
 # null shift, which now runs and shifts y_L / y_R with y. None of these four guards -- all reached only past a constant-weights
 # short-circuit or other setup -- had a test calling them; existing general-censoring coverage for this class
 # only exercises the ordinary estimate/asymp CI dispatch.
@@ -102,7 +102,7 @@ test_that("general censoring rejects parametric-bootstrap LR p-values and confid
 	)
 })
 
-# v1.0.6-TODO-143 follow-up (owner decision 2026-11-18): the nonzero-delta refusal was lifted; the
+# v1.0.6-TODO-95 follow-up (owner decision 2026-11-18): the nonzero-delta refusal was lifted; the
 # null shift now moves y_L / y_R with y (test-rand-test-and-ci-shift-censoring-bounds-under-null.R).
 test_that("general censoring runs compute_rand_two_sided_pval() at a nonzero delta as well as at delta = 0", {
 	des <- ic_fx()

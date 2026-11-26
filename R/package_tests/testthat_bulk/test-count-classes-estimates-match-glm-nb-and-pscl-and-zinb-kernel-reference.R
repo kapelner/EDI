@@ -95,7 +95,7 @@ test_that("with true excess zeros, fast_zinb_cpp equals pscl::zeroinfl(negbin): 
 # 2026-11-03: the asymptotic CI used to come back NA here (an SE gap at the zero-inflation boundary).
 # Since the Oct 2026 fast_zinb.cpp boundary fallbacks it is finite and, as it should be when the
 # zero-inflation part sits at its boundary, equals the NB Wald CI from MASS::glm.nb (~2e-4 apart).
-# v1.0.6-TODO-222 (2026-11-19; found under v1.1.0-TODO-217): that boundary fit was not the MLE. pscl::zeroinfl(negbin) has an interior
+# v1.0.6-TODO-163 (2026-11-19; found under v1.1.0-TODO-217): that boundary fit was not the MLE. pscl::zeroinfl(negbin) has an interior
 # fit with a lower negative log-likelihood (367.4735 vs glm.nb's 367.5391); fast_zinb_cpp_guarded() now
 # refits the spurious "NegBinNoZI" boundary fit and lands on pscl's MLE, so the estimate is checked against
 # pscl and the CI only for finiteness and containing the estimate.

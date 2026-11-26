@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-210 follow-up (owner 2026-11-19): run_all_inference(r = , B = ) pass the draw count
+# v1.0.6-TODO-151 follow-up (owner 2026-11-19): run_all_inference(r = , B = ) pass the draw count
 # to every randomization procedure (r) and every bootstrap procedure (B) under each method's own
 # argument name; NULL (default) leaves every call exactly as before.
 

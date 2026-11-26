@@ -56,7 +56,7 @@ ppo_vgam_reference <- function(y, w, x1, weights = NULL) {
 	# (alpha_j - beta x) convention EDI reports (TODO-107).
 	beta <- -VGAM::Coef(mod)[["treatment"]]
 	# The class publishes the OBSERVED-information SE at VGAM's estimate
-	# (v1.0.6-TODO-215 item 3, owner decision 2026-11-20); VGAM's own vcov is
+	# (v1.0.6-TODO-156 item 3, owner decision 2026-11-20); VGAM's own vcov is
 	# the expected information. ordinal::clm (same model, observed Hessian) is
 	# the independent reference for the SE.
 	se <- NA_real_

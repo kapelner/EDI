@@ -63,7 +63,7 @@ expect_true(identical(summarize_public_argument_invariants(name_fail), "failed:o
 skipped = evaluate_public_argument_invariants(NULL, "error", "no_unexpected_error;ci_length_2")
 expect_true(grepl("^failed:", summarize_public_argument_invariants(skipped)), "Unexpected error was not treated as invariant failure.")
 
-# Data-shape invariants (v1.0.6-TODO-97).
+# Data-shape invariants (v1.0.7-TODO-41).
 strong_missed = evaluate_public_argument_invariants(0.4, "ok", "pval_in_0_1;strong_effect_detected", list(effect = "strong"))
 expect_true(identical(summarize_public_argument_invariants(strong_missed), "failed:strong_effect_detected"), "A strong effect that was not rejected was not detected.")
 strong_found = evaluate_public_argument_invariants(0.001, "ok", "strong_effect_detected", list(effect = "strong"))

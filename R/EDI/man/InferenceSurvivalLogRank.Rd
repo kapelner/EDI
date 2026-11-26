@@ -255,7 +255,7 @@ design's imputed covariates.}
 normality of the martingale-residual mean-difference estimate.
 When the estimated standard error is unavailable the interval is \code{NA},
 with the reason recorded and an \code{edi_wald_unavailable_warning}; no
-bootstrap interval is substituted (v1.0.6-TODO-380; call
+bootstrap interval is substituted (v1.0.6-TODO-225; call
 \code{compute_bootstrap_confidence_interval()} for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -304,7 +304,7 @@ bootstrap interval is substituted (v1.0.6-TODO-380; call
   unavailable the p-value is \code{NA}, with the reason recorded under
   \code{procedure_failure_reason$rank_test} and an
   \code{edi_rank_test_unavailable_warning}; no bootstrap p-value is
-  substituted (v1.0.6-TODO-417; call \code{compute_bootstrap_two_sided_pval()}
+  substituted (v1.0.6-TODO-231; call \code{compute_bootstrap_two_sided_pval()}
   for one).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}

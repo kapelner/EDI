@@ -71,7 +71,7 @@ test_that("Newton polish is skipped when the tolerance already holds and never r
 	f <- f0; inf <- inf0; p <- p0
 	invisible(inf$compute_estimate())
 	diag <- p$cached_values$optimizer_diagnostics
-	# Before the v1.0.6-TODO-169 Newton-decrement finish in the shared L-BFGS
+	# Before the v1.0.6-TODO-117 Newton-decrement finish in the shared L-BFGS
 	# wrapper the selected L-BFGS point needed the polish here; that finish now
 	# meets the 1e-5 score threshold itself and the polish is skipped. Either
 	# way a polish that runs is accepted and the result is at the clmm optimum.
@@ -106,7 +106,7 @@ test_that("use_rcpp = FALSE fits via glmmTMB and disables likelihood tests", {
 	p <- inf$.__enclos_env__$private
 	expect_false(p$supports_likelihood_tests())
 	expect_null(p$get_likelihood_test_spec())
-	skip("v1.0.6-TODO-263: use_rcpp = FALSE calls glmmTMB::cumulative(), which glmmTMB (1.1.14) does not export, so every fit errors and the estimate is NA")
+	skip("v1.0.7-TODO-117: use_rcpp = FALSE calls glmmTMB::cumulative(), which glmmTMB (1.1.14) does not export, so every fit errors and the estimate is NA")
 	utils::capture.output(est <- suppressWarnings(suppressMessages(inf$compute_estimate())))
 	expect_true(is.finite(est))
 })

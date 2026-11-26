@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-151: the raw risk-ratio g-computation classes estimate RR (not log RR),
+# v1.0.6-TODO-102: the raw risk-ratio g-computation classes estimate RR (not log RR),
 # so the studentized bootstrap-randomization pivot (t - c) / se must be centered at
 # c = 1 under the default sharp null delta = 0; it was centered at 0. Their RD
 # siblings stay centered at 0. A nonzero delta on incidence is refused, as in

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-195 (3): a zero-truncated count density at y = 1 only increases as
+# v1.0.6-TODO-140 (3): a zero-truncated count density at y = 1 only increases as
 # the rate goes to 0, so when every positive count of one arm equals 1 the hurdle
 # count part has no finite treatment MLE (pscl::hurdle() "converges" to about -12
 # or +12 with a standard error in the hundreds; when every positive count is 1 the

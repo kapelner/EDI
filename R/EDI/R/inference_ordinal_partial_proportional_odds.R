@@ -119,12 +119,11 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 		#'   \code{$compute_estimate(estimate_only = TRUE)}. Otherwise refits with
 		#'   weights via the same backend cascade as the unweighted fit
 		#'   (\code{VGAM}/\code{ordinal}/\code{MASS::polr}, each weighted), and if
-		#'   \strong{all} of those fail, falls back further to a plain weighted
-		#'   binary-logistic surrogate fit
-		#'   (\code{weighted_ordinal_bootstrap_surrogate_fit(..., method =
-		#'   "logistic")}) that does not model the ordinal structure at all. Never
-		#'   computes a standard error on any weighted path (\code{s_beta_hat_T} is
-		#'   always \code{NA}), regardless of \code{estimate_only}.
+		#'   \strong{all} of those fail, tries a weighted proportional-odds
+		#'   surrogate (\code{MASS::polr} with a logistic link). If that fails,
+		#'   it fits weighted least squares on the numeric category codes
+		#'   (\code{stats::lm.wfit}). All weighted paths return \code{NA} for
+		#'   the standard error (\code{s_beta_hat_T}), regardless of \code{estimate_only}.
 		#' @param subject_or_block_weights Subject-, block-, cluster-, or matched-set
 		#'   bootstrap weights.
 		#' @param estimate_only Present for interface parity; this method never
@@ -622,7 +621,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 			)
 			# VGAM's vcov is the expected information (Fisher scoring). The
 			# published Wald SE is the observed information at VGAM's estimate,
-			# as for the fast solver and clm (v1.0.6-TODO-215 item 3, owner
+			# as for the fast solver and clm (v1.0.6-TODO-156 item 3, owner
 			# decision 2026-11-20). If the observed information is not positive
 			# definite (VGAM did not stop at a maximum) the SE is NA, and a
 			# caller that needs an SE falls through to clm.
@@ -812,7 +811,7 @@ InferenceOrdinalPartialProportionalOddsRegr = define_inference_class(
 
 # Observed or expected (Fisher) information of the partial proportional-odds
 # cumulative-logit model, in ordinal::clm's `nominal` parameterization
-# (v1.0.6-TODO-215 item 3):
+# (v1.0.6-TODO-156 item 3):
 #
 #   logit P(Y <= k | x) = alpha_k + x_np' gamma_k - x_par' beta,  k = 1..K-1,
 #
@@ -894,7 +893,7 @@ ordinal_partial_po_information = function(X_par, X_np, y, params, type = c("obse
 }
 
 # Treatment SE from the observed information of a VGAM::vglm(cumulative())
-# partial-PO fit, at VGAM's estimate (v1.0.6-TODO-215 item 3, owner decision
+# partial-PO fit, at VGAM's estimate (v1.0.6-TODO-156 item 3, owner decision
 # 2026-11-20). VGAM orders its coefficients as the K-1 intercepts, then each
 # term of `all_terms` in order: one coefficient for a parallel term, K-1 for a
 # nonparallel one; it models logit P(Y <= k) = a_k + b'x + g_k'x_np, so

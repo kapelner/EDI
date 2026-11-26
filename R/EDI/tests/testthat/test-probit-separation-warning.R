@@ -1,8 +1,8 @@
-# v1.0.6-TODO-119: InferenceIncidProbitRegr warns when fitted probabilities
+# v1.0.6-TODO-73: InferenceIncidProbitRegr warns when fitted probabilities
 # Phi(X b) are numerically 0 or 1 ((quasi-)complete separation), once per
 # object, never from resampling inner loops, and without changing any estimate.
 # Same classed warning (edi_logistic_separation_warning, link = "probit") as the
-# logistic classes of v1.0.6-TODO-109 (see test-logistic-separation-warning.R).
+# logistic classes of v1.0.6-TODO-63 (see test-logistic-separation-warning.R).
 context("probit separation warning")
 
 fx_sep_probit = function(separated = TRUE, seed = 1){

@@ -708,7 +708,7 @@ EDI_COMPONENT_SPECS = list(
 			"quantile_for_reservoir", "iqr_se", "extract_se_from_rq",
 			"compute_rand_pval_matched_pairs", "compute_rand_pval_reservoir",
 			"qr_intercept_pairs", "qr_trt_coef_reservoir",
-			# v1.0.6-TODO-235 (2): weighted rq refit for the Bayesian bootstrap.
+			# v1.0.6-TODO-169 (2): weighted rq refit for the Bayesian bootstrap.
 			"compute_weighted_estimate_ivwc"
 		),
 		# 2026-08-19 (fix_inference_hierarchy.md "Static Cleanup", "Ban semantic
@@ -3218,76 +3218,25 @@ ensure_inference_components_registered = function(component_names, ns = parent.f
 }
 
 component_body_references = function(component) {
-	refs = list(private = character(), self = character(), super = character())
-	collect_from_expr = function(expr) {
-		if (!is.call(expr) && !is.expression(expr)) return(invisible(NULL))
-		if (is.call(expr) &&
-				identical(as.character(expr[[1L]]), "$") &&
-				length(expr) >= 3L &&
-				is.symbol(expr[[2L]])) {
-			lhs = as.character(expr[[2L]])
-			if (lhs %in% names(refs)) {
-				refs[[lhs]] <<- c(refs[[lhs]], as.character(expr[[3L]])[1L])
-			}
-		}
-		for (i in seq_along(expr)) {
-			collect_from_expr(expr[[i]])
-		}
-		invisible(NULL)
-	}
-	for (slot in c("public", "private")) {
-		for (fn in component[[slot]]) {
-			if (is.function(fn)) collect_from_expr(body(fn))
-		}
-	}
-	lapply(refs, function(x) sort(unique(x)))
+	collect_component_body_references(component,
+		list(private = character(), self = character(), super = character()))
 }
 
 component_declared_reference_names = function(component) {
-	list(
-		private = sort(unique(c(
-			component$provides_private_methods,
-			component$owns_state,
-			component$requires_state,
-			component$requires_private_methods,
-			component$optional_private_methods,
-			component$forbidden_refs$private %||% character()
-		))),
-		self = sort(unique(c(
-			component$provides_public_methods,
-			component$requires_public_methods,
-			component$optional_public_methods,
-			component$forbidden_refs$self %||% character()
-		))),
-		super = sort(unique(c(
-			component$requires_super_methods,
-			component$forbidden_refs$super %||% character()
-		)))
-	)
+	declared = component_private_and_self_declarations(component, component$forbidden_refs)
+	declared$super = sort(unique(c(
+		component$requires_super_methods,
+		component$forbidden_refs$super %||% character()
+	)))
+	declared
 }
 
 validate_component_body_references = function(component) {
 	if (!isTRUE(is_lazy_inference_component(component))) {
 		component = complete_component_reference_contract(component)
 	}
-	refs = component_body_references(component)
-	declared = component_declared_reference_names(component)
-	offenders = character()
-	for (receiver in names(refs)) {
-		missing = setdiff(refs[[receiver]], declared[[receiver]])
-		if (length(missing) > 0L) {
-			offenders = c(offenders, sprintf(
-				"%s has undeclared %s reference(s): %s",
-				component$name,
-				receiver,
-				paste(missing, collapse = ", ")
-			))
-		}
-	}
-	if (length(offenders) > 0L) {
-		stop(paste(offenders, collapse = "\n"), call. = FALSE)
-	}
-	invisible(TRUE)
+	validate_component_references(component$name, component_body_references(component),
+		component_declared_reference_names(component))
 }
 
 validate_no_scaffold_effective_components = function(class_names = ls(EDI_INFERENCE_CLASS_REGISTRY)) {
@@ -3309,82 +3258,8 @@ validate_no_scaffold_effective_components = function(class_names = ls(EDI_INFERE
 }
 
 resolve_component_dependencies = function(component_names, satisfied_components = character()) {
-	duplicated_direct = sort(unique(component_names[duplicated(component_names)]))
-	if (length(duplicated_direct) > 0L) {
-		stop(sprintf(
-			"Duplicate direct component(s): %s",
-			paste(duplicated_direct, collapse = ", ")
-		), call. = FALSE)
-	}
-	component_registry_names = ls(EDI_INFERENCE_COMPONENTS)
-	unknown_components = setdiff(component_names, component_registry_names)
-	if (length(unknown_components) > 0L) {
-		stop(sprintf(
-			"Unknown component(s): %s",
-			paste(unknown_components, collapse = ", ")
-		), call. = FALSE)
-	}
-	scaffold_components = component_names[vapply(component_names, function(component_name) {
-		identical(get_inference_component(component_name)$status, "scaffold")
-	}, logical(1L))]
-	if (length(scaffold_components) > 0L) {
-		stop(sprintf(
-			"Scaffold component(s) cannot be resolved: %s",
-			paste(scaffold_components, collapse = ", ")
-		), call. = FALSE)
-	}
-
-	direct_dependency_hits = character()
-	for (component_name in component_names) {
-		deps = get_inference_component(component_name)$dependencies
-		direct_dependency_hits = c(direct_dependency_hits, intersect(component_names, deps))
-	}
-	if (length(direct_dependency_hits) > 0L) {
-		stop(sprintf(
-			"Direct component list duplicates transitive dependency component(s): %s",
-			paste(sort(unique(direct_dependency_hits)), collapse = ", ")
-		), call. = FALSE)
-	}
-
-	resolved = character()
-	visiting = character()
-	expanded_dependencies = character()
-
-	visit = function(component_name, path = character()) {
-		if (component_name %in% satisfied_components) return(invisible(NULL))
-		if (component_name %in% resolved) return(invisible(NULL))
-		if (component_name %in% visiting) {
-			cycle = c(path, component_name)
-			stop(sprintf(
-				"Component dependency cycle detected: %s",
-				paste(cycle, collapse = " -> ")
-			), call. = FALSE)
-		}
-		if (!(component_name %in% component_registry_names)) {
-			stop(sprintf("Unknown component(s): %s", component_name), call. = FALSE)
-		}
-		component = get_inference_component(component_name)
-		if (identical(component$status, "scaffold")) {
-			stop(sprintf(
-				"Scaffold component(s) cannot be resolved: %s",
-				component_name
-			), call. = FALSE)
-		}
-		visiting <<- c(visiting, component_name)
-		for (dep in component$dependencies) {
-			expanded_dependencies <<- c(expanded_dependencies, dep)
-			visit(dep, c(path, component_name))
-		}
-		visiting <<- setdiff(visiting, component_name)
-		resolved <<- c(resolved, component_name)
-		invisible(NULL)
-	}
-
-	for (component_name in component_names) {
-		visit(component_name)
-	}
-
-	resolved
+	resolve_registered_component_dependencies(component_names, satisfied_components,
+		EDI_INFERENCE_COMPONENTS, get_inference_component, "component")
 }
 
 normalise_inference_overrides = function(overrides = list()) {
@@ -3787,6 +3662,107 @@ define_inference_class = function(
 	# for classes not built with this factory.
 	generator$edi_declaration = list(metadata = metadata, components = as.character(components))
 	generator
+}
+
+define_incidence_likelihood_class = function(classname, likelihood_component, extra_private_overrides = character()) {
+	define_inference_class(
+		classname = classname,
+		inherit = Inference,
+		components = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			likelihood_component
+		),
+		metadata = list(likelihood_tier = "full"),
+		overrides = list(
+			public = c(
+				"compute_estimate", "compute_rand_two_sided_pval",
+				"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
+				"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
+			),
+			private = c(
+				"compute_treatment_estimate_during_randomization_inference",
+				"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
+				"generate_mod", "get_likelihood_test_spec",
+				"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
+				"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
+				"mark_jackknife_nonestimable_if_block_unsupported",
+				"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
+				"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
+				"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
+				"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
+				"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
+				"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
+				"get_complexity_tier", "supports_fisher_information",
+				extra_private_overrides
+			)
+		),
+		public = list(
+			compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
+		)
+	)
+}
+
+define_ordinal_cumulative_likelihood_class = function(classname, likelihood_component, complexity_override = character()) {
+	define_inference_class(
+		classname = classname,
+		inherit = Inference,
+		components = c(
+			"RandomizationCI",
+			"RandomizationBootstrapCI",
+			"BayesianBootstrap",
+			"Jackknife",
+			"ParametricLikelihoodBootstrap",
+			likelihood_component
+		),
+		public = list(
+			compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
+		),
+		metadata = list(
+			response_types = "ordinal",
+			likelihood_tier = "full"
+		),
+		overrides = list(
+			public = c(
+				"compute_rand_two_sided_pval",
+				"compute_asymp_confidence_interval",
+				"compute_asymp_two_sided_pval",
+				"compute_estimate",
+				"compute_estimate_with_bootstrap_weights",
+				"get_supported_testing_types", "set_testing_type"
+			),
+			private = c(
+				"resolve_jackknife_unit",
+				"jackknife_block_size_gt_one_unsupported",
+				"mark_jackknife_nonestimable_if_block_unsupported",
+				"supports_reusable_bootstrap_worker",
+				"create_bootstrap_worker_state",
+				"load_bootstrap_sample_into_worker",
+				"compute_bootstrap_worker_estimate",
+				"get_supported_testing_types_impl",
+				"supports_bartlett_likelihood_ratio_approx",
+				"get_bartlett_factor_approx",
+				"compute_treatment_estimate_during_randomization_inference",
+				"get_standard_error",
+				"get_degrees_of_freedom",
+				"make_warm_fit_null_wrapper",
+				"compute_likelihood_test_two_sided_pval",
+				"compute_score_two_sided_pval_impl",
+				"compute_gradient_two_sided_pval_impl",
+				"compute_lik_ratio_two_sided_pval_impl",
+				"get_likelihood_test_spec",
+				"supports_likelihood_tests",
+				"supports_fisher_information",
+				complexity_override,
+				"supports_lik_ratio_param_bootstrap",
+				"simulate_under_lik_null",
+				"generate_mod"
+			)
+		)
+	)
 }
 
 assert_valid_mixin_composition = function(target_name, mixin_names, public_overrides = character(), private_overrides = character()) {

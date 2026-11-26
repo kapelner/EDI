@@ -8,10 +8,10 @@
 # Where: R/EDI/R/inference_proportion_zero_one_inflated_beta.R:262 (kind: other_numerical).
 # On commit 0231668c948b this test failed with: Expected `abs(est_unit - est_full)` < 0.005. Actual
 # comparison: 0.029 >= 0.005 Difference: 0.024 >= 0
-# Tracked as v1.0.6-TODO-401; remove the skip() when it is fixed.
+# Tracked as v1.0.7-TODO-98; remove the skip() when it is fixed.
 
 test_that("ZOIB marginal mean diff under unit bootstrap weights matches the unweighted ML estimate", {
-	skip("v1.0.6-TODO-401: the weighted refit uses two binary logits instead of the softmax parameterization")
+	skip("v1.0.7-TODO-98: the weighted refit uses two binary logits instead of the softmax parameterization")
 		set.seed(11)
 		n = 400L
 		seq_des = DesignSeqOneByOneBernoulli$new(n = n, response_type = "proportion", verbose = FALSE)

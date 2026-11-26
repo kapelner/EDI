@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-290 (docs-scenarios sequential-designs F3): KK14 / KK21 / KK21stepwise accepted
+# v1.0.6-TODO-177 (docs-scenarios sequential-designs F3): KK14 / KK21 / KK21stepwise accepted
 # lambda and t_0_pct outside [0, 1] (and NA). KK14 then failed a third of the way into the trial with
 # "NaNs produced" from qf(), KK21 with "'probs' outside [0,1]", and t_0_pct = 1.5 never matched.
 

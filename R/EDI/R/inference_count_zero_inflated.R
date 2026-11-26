@@ -119,7 +119,7 @@
 #' parametric-bootstrap refit from a full-data fit whose zero part is on the
 #' ridge (a fitted zero-inflation logit of 10 or more in absolute value): such a
 #' refit could not move its zero part and stopped below the maximum, so it is
-#' cold-started like a fresh fit (v1.0.6-TODO-30, v1.0.6-TODO-152).
+#' cold-started like a fresh fit (v1.0.6-TODO-6, v1.0.6-TODO-103).
 #'
 #' \strong{Small samples with covariates in the zero-inflation formula.} At
 #' small \eqn{n} with continuous covariates in \code{model_formula_zero} (the
@@ -137,7 +137,7 @@
 #' different limits. In this setting use a treatment-only zero-inflation
 #' formula, \code{model_formula_zero = ~ 1} (the zero part always includes the
 #' treatment, so this fits an intercept and the treatment), and keep the
-#' covariates in the count part (v1.0.6-TODO-232).
+#' covariates in the count part (v1.0.6-TODO-166).
 #'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
@@ -236,76 +236,24 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 		#'   only the point estimate; used by randomization and bootstrap
 		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
-			private$shared(estimate_only = estimate_only)
-			estimand = self$get_estimand()
-			if (estimand %in% c("marginal_mean_diff", "marginal_ratio")) {
-				return(private$compute_marginal_estimand_estimate(estimand, estimate_only = estimate_only))
-			}
-			# 2026-08-23 (marginal_estimand_report.md TODO-5): re-derive the
-			# conditional beta_hat_T/s_beta_hat_T from the estimand-invariant
-			# private$cached_mod every call (same fix as ZOIB's TODO-4
-			# compute_estimate()) so switching the estimand back to
-			# "conditional" after a marginal computation doesn't return stale
-			# marginal numbers left in private$cached_values by shared()'s own
-			# short-circuit guard.
-			mod = private$cached_mod
-			if (!is.null(mod)) {
-				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
-				if (!estimate_only) {
-					ssq = mod$ssq_b_j
-					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					if (is.finite(ssq) && ssq > .Machine$double.eps) {
-						private$cached_values$s_beta_hat_T = sqrt(ssq)
-						private$clear_nonestimable_state()
-					} else {
-						private$cache_nonestimable_se("model_standard_error_unavailable")
-					}
-				}
-			}
-			private$cached_values$beta_hat_T
+			za_poisson_estimand_estimate(self, private, estimate_only)
 		},
 		#' @description Asymptotic confidence interval. Under the conditional
 		#'   estimand, the interval of the test chosen with \code{set_testing_type()}:
 		#'   score, gradient, likelihood-ratio and Bartlett-corrected
 		#'   likelihood-ratio give the same interval as the matching
 		#'   \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
-		#'   returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+		#'   returned Wald, v1.0.6-TODO-230); the default Wald interval is \code{NA},
 		#'   with the reason recorded and an \code{edi_wald_unavailable_warning}, when
 		#'   the model standard error is unavailable (no bootstrap is substituted,
-		#'   v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
+		#'   v1.0.6-TODO-225). Under a marginal estimand (Wald only), the
 		#'   delta-method interval computed by \code{compute_estimate()}. Calls
 		#'   \code{self$compute_estimate()} first (not \code{private$shared()}
 		#'   directly) so the estimand-aware cache is always current regardless
 		#'   of call order.
 		#' @param alpha The significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			self$compute_estimate(estimate_only = FALSE)
-			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_ci_from_s_and_df(alpha))
-				}
-				return(private$count_likelihood_missing_ci(alpha))
-			}
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) {
-				return(private$count_likelihood_missing_ci(alpha))
-			}
-			# v1.0.6-TODO-413: honor set_testing_type() (this always returned Wald).
-			if (!identical(private$testing_type, "wald")) {
-				return(za_count_asymp_by_testing_type(self, private, ci = TRUE, value = alpha))
-			}
-			se = private$get_standard_error()
-			if (is.finite(se) && se > 0) {
-				private$cached_values$s_beta_hat_T = se
-			}
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: a Wald request gets Wald or NA, never the bootstrap
-				# interval this used to substitute (see edi_wald_unavailable_na()).
-				return(edi_wald_unavailable_na(self, private, alpha = alpha))
-			}
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			za_poisson_estimand_ci(self, private, alpha)
 		},
 		#' @description Asymptotic two-sided p-value, dispatched exactly as
 		#'   \code{compute_asymp_confidence_interval()}; see that method's
@@ -313,30 +261,7 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 		#' @param delta The null treatment effect under the current estimand
 		#'   (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			self$compute_estimate(estimate_only = FALSE)
-			if (self$get_estimand() %in% c("marginal_mean_diff", "marginal_ratio")) {
-				if (is.finite(private$cached_values$s_beta_hat_T %||% NA_real_)) {
-					return(private$compute_z_or_t_two_sided_pval_from_s_and_df(delta))
-				}
-				return(NA_real_)
-			}
-			if (should_run_asserts()) {
-				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
-			}
-			if (private$mark_count_likelihood_block_asymp_nonestimable()) return(NA_real_)
-			# v1.0.6-TODO-413: see compute_asymp_confidence_interval().
-			if (!identical(private$testing_type, "wald")) {
-				return(za_count_asymp_by_testing_type(self, private, ci = FALSE, value = delta))
-			}
-			se = private$get_standard_error()
-			if (is.finite(se) && se > 0) {
-				private$cached_values$s_beta_hat_T = se
-			}
-			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
-				return(edi_wald_unavailable_na(self, private))
-			}
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			za_poisson_estimand_pval(self, private, delta)
 		}
 	),
 	private = list(
@@ -460,8 +385,8 @@ InferenceCountZeroInflatedPoisson = define_inference_class(
 #' kept. It never warm-starts a randomization, bootstrap or parametric-bootstrap
 #' refit from a full-data fit whose zero part is on the ridge (a fitted
 #' zero-inflation logit of 10 or more in absolute value): such a refit could not
-#' move its zero part, so it is cold-started like a fresh fit (v1.0.6-TODO-30,
-#' v1.0.6-TODO-152).
+#' move its zero part, so it is cold-started like a fresh fit (v1.0.6-TODO-6,
+#' v1.0.6-TODO-103).
 #'
 #' @references Lambert, D. (1992). "Zero-Inflated Poisson Regression, with an
 #'   Application to Defects in Manufacturing." \emph{Technometrics}, 34(1),
@@ -531,21 +456,7 @@ InferenceCountZeroInflatedNegBin = R6::R6Class("InferenceCountZeroInflatedNegBin
 			# Keep the point estimate when the native ZINB fit is usable but its
 			# guarded covariance is not. This mirrors the ZIP/Hurdle-Poisson
 			# wrappers and records typed SE nonestimability for the public API.
-			mod = private$cached_mod
-			if (!is.null(mod)) {
-				private$cached_values$beta_hat_T = as.numeric(mod$beta_hat_T %||% mod$params[2L])[1L]
-				if (!estimate_only) {
-					ssq = mod$ssq_b_j
-					ssq = if (length(ssq) >= 1L) as.numeric(ssq)[1L] else NA_real_
-					if (is.finite(ssq) && ssq > .Machine$double.eps) {
-						private$cached_values$s_beta_hat_T = sqrt(ssq)
-						private$clear_nonestimable_state()
-					} else {
-						private$cache_nonestimable_se("model_standard_error_unavailable")
-					}
-				}
-			}
-			private$cached_values$beta_hat_T
+			za_cached_conditional_estimate(private, estimate_only)
 		}
 	),
 	private = list(

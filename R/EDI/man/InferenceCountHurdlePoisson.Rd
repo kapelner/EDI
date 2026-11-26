@@ -47,12 +47,23 @@ available under a marginal estimand.
 
 \strong{Omitted covariates.} When covariates that drive the outcome are
 left out of the formula (for example \code{~ 1}), the zero-truncated
-Poisson count part is overdispersed, so the model-based score, gradient and
-likelihood-ratio tests can reject a true null up to about 8.5\% of the time
-at a nominal 5\% level, even at n = 1000. This is model misspecification,
-so it does not go away with more data. The Wald test, which uses a sandwich
-covariance, stays calibrated in this setting: prefer it, adjust for the
-prognostic covariates, or use
+Poisson count part is overdispersed, so the model-based information is too
+large and the model-based score, gradient and likelihood-ratio tests reject
+a true null too often: about 16-17\% of the time at a nominal 5\% level in
+the calibration study's design (sandwich variance about twice the model
+variance), at n = 50, 200 and 1000 alike, and less on designs that balance
+the covariates. This is model misspecification, so it does not go away with
+more data. \code{set_likelihood_test_variance("robust")} recalibrates the
+three tests and their intervals by the sandwich variance at the
+null-restricted fit (Kent 1982; Boos 1992), which held them at about 4-7\%
+on that design with \code{~ 1} and with the covariates. These robust tests
+are this class's default (v1.1.0-TODO-174, owner decision 2026-11-26); at
+n = 50 some robust likelihood-ratio and gradient intervals fall back to
+Wald, so prefer the score interval there.
+\code{set_likelihood_test_variance("model")} restores the model-based
+tests. The Wald test, which uses a sandwich covariance, is also
+calibrated in this setting. Otherwise adjust for the prognostic covariates,
+or use
 \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
 which models the overdispersion.
 
@@ -87,7 +98,7 @@ of about \eqn{\pm 12} with a standard error in the hundreds). The estimate is
 then \code{NA} (reason \code{"hurdle_count_mle_not_finite"}) with one warning of class
 \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
 \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
-keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+keep that pattern are \code{NA} too (v1.0.6-TODO-140).
 
 \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
 part is separated (a fitted probability of a zero is numerically 0 or 1, or
@@ -98,7 +109,7 @@ so the count-part treatment estimate does not depend on the hurdle part and is
 kept. Unlike a zero-inflation part, a hurdle part has no benign "no
 inflation" case (its probabilities model the observed zeros), so this is
 always the warning. Randomization and bootstrap refits are never warm-started from a
-full-data hurdle part on such a ridge (v1.0.6-TODO-30, v1.0.6-TODO-152).
+full-data hurdle part on such a ridge (v1.0.6-TODO-6, v1.0.6-TODO-103).
 }
 \section{Small-sample behaviour}{
 
@@ -177,6 +188,12 @@ Mullahy, J. (1986). "Specification and Testing of Some
   Modified Count Data Models." \emph{Journal of Econometrics}, 33(3),
   341-365, \doi{10.1016/0304-4076(86)90002-3}, for the hurdle count-model
   framework.
+
+  Kent, J. T. (1982). "Robust properties of likelihood ratio tests."
+  \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}, and Boos,
+  D. D. (1992). "On generalized score tests." \emph{The American
+  Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}, for
+  the robust tests of \code{set_likelihood_test_variance("robust")}.
 
 [Fisher1935] Fisher, R. A. (1935). \emph{The Design of Experiments}. Oliver and Boyd.
 
@@ -280,6 +297,7 @@ Mullahy, J. (1986). "Specification and Testing of Some
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_information_source_used()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_diagnostics()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_last_param_bootstrap_estimate_diagnostics()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_mod()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_ci_types()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$get_supported_bayesian_bootstrap_pval_types()</code></li>
@@ -293,6 +311,7 @@ Mullahy, J. (1986). "Specification and Testing of Some
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_b_subsampling()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$select_optimal_m_out_of_n_bootstrap()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_information_preference()</code></li>
+  <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_likelihood_test_variance()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$set_testing_type()</code></li>
   <li><code>InferenceCountZeroAugmentedPoissonAbstract$supports_rand_pval_for_incidence()</code></li>
 </ul>
@@ -405,10 +424,10 @@ resampling paths.}
   score, gradient, likelihood-ratio and Bartlett-corrected
   likelihood-ratio give the same interval as the matching
   \code{compute_<type>_confidence_interval()} (before 1.0.6 every type
-  returned Wald, v1.0.6-TODO-413); the default Wald interval is \code{NA},
+  returned Wald, v1.0.6-TODO-230); the default Wald interval is \code{NA},
   with the reason recorded and an \code{edi_wald_unavailable_warning}, when
   the model standard error is unavailable (no bootstrap is substituted,
-  v1.0.6-TODO-380). Under a marginal estimand (Wald only), the
+  v1.0.6-TODO-225). Under a marginal estimand (Wald only), the
   delta-method interval computed by \code{compute_estimate()}. Calls
   \code{self$compute_estimate()} first (not \code{private$shared()}
   directly) so the estimand-aware cache is always current regardless

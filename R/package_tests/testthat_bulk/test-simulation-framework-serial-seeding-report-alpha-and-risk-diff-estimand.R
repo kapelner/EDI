@@ -1,9 +1,9 @@
-# v1.0.6-TODO-354 (ds-simulation-framework-44883784401-f4/-f5): the serial SimulationFramework loop seeded
+# v1.0.6-TODO-221 (ds-simulation-framework-44883784401-f4/-f5): the serial SimulationFramework loop seeded
 # once for the whole run while the fork / mirai paths seed replication i with seed + i, so results depended
 # on num_cores and a resumed run (continue_from_last_result_row) replayed the first replications' data.
-# v1.0.6-TODO-356 (ds-simulation-framework-44883784401-f9): SimulationFrameworkReport$new(sim, alpha = a)
+# v1.0.6-TODO-222 (ds-simulation-framework-44883784401-f9): SimulationFrameworkReport$new(sim, alpha = a)
 # tested coverage of intervals built at the framework's alpha against 1 - a.
-# v1.0.6-TODO-357 (ds-simulation-framework-44883784401-f10): InferenceIncidGCompRiskDiff (and
+# v1.0.6-TODO-223 (ds-simulation-framework-44883784401-f10): InferenceIncidGCompRiskDiff (and
 # InferenceIncidBinomialIdentityRiskDiff) were scored against the logit-scale betaT instead of the risk
 # difference.
 

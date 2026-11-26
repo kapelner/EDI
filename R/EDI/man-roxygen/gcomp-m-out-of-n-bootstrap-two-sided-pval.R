@@ -1,5 +1,5 @@
 #' @description Computes an m-out-of-n bootstrap two-sided p-value for the treatment effect.
-#'   For the risk ratio the p-value is symmetric (v1.0.6-TODO-230): the share of usable
+#'   For the risk ratio the p-value is symmetric (v1.0.6-TODO-164): the share of usable
 #'   pivot draws \eqn{\sqrt{m}(\log\widehat{RR}^* - \log\widehat{RR})} at least as large in absolute value
 #'   as \eqn{\sqrt{n}(\log\widehat{RR} - \log\delta)}, floored at \eqn{1/B}, because the small-sample
 #'   law of \eqn{\log\widehat{RR}^*} is skewed toward the observed effect and the equal-tailed rule doubled
@@ -24,3 +24,7 @@
 #'   draws concentrate in the data sets with an extreme estimate (at 0.95 up to 29\% of small
 #'   null data sets were \code{NA}). See \strong{Subsampling and
 #'   m-out-of-n} in \code{\link[EDI:InferenceIncidGCompRiskRatio]{InferenceIncidGCompRiskRatio}}.
+#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples: \code{FALSE}
+#'   (default) keeps the design's original imputation in every resample; \code{TRUE} re-runs
+#'   the missing-data step on each resample. See
+#'   \code{InferenceNonParamBootstrap$compute_bootstrap_confidence_interval}.

@@ -192,7 +192,7 @@ ContinKKRobustRegrIVWCSource = list(
 			# (start_with_ols) were below rlm's own default of 20, and M-estimation
 			# with the MAD scale re-estimated every iteration needed up to 26
 			# iterations on a 20-subject reservoir with outliers, so rlm stopped
-			# unconverged and the fit came back NA (v1.0.6-TODO-50).
+			# unconverged and the fit came back NA (v1.0.6-TODO-15).
 			maxit = private$rlm_maxit
 			if (is.null(maxit)) maxit = 100L
 			acc = private$rlm_acc
@@ -207,43 +207,12 @@ ContinKKRobustRegrIVWCSource = list(
 				grepl("alternation limit reached", msg, fixed = TRUE)
 		},
 		shared = function(estimate_only = FALSE){
-			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
-			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			if (is.null(private$cached_values$KKstats)){
-				private$compute_basic_match_data()
-			}
-			KKstats = private$cached_values$KKstats
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			if (m > 0){
-				# IVWC needs the component variance to combine a point-only fit too.
-				# The outer caller still suppresses only the final combined SE.
-				private$robust_for_matched_pairs(estimate_only = FALSE)
-			}
-			beta_m = private$cached_values$beta_T_matched
-			ssq_m  = private$cached_values$ssq_beta_T_matched
-			m_ok   = !is.null(beta_m) && is.finite(beta_m) && !is.null(ssq_m) && is.finite(ssq_m) && ssq_m > 0
-			if (nRT > 0 && nRC > 0){
-				private$robust_for_reservoir(estimate_only = FALSE)
-			}
-			beta_r = private$cached_values$beta_T_reservoir
-			ssq_r  = private$cached_values$ssq_beta_T_reservoir
-			r_ok   = !is.null(beta_r) && is.finite(beta_r) && !is.null(ssq_r) && is.finite(ssq_r) && ssq_r > 0
-			if (m_ok && r_ok){
-				w_star = ssq_r / (ssq_r + ssq_m)
-				private$cached_values$beta_hat_T   = w_star * beta_m + (1 - w_star) * beta_r
-				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_m * ssq_r / (ssq_m + ssq_r))
-			} else if (m_ok){
-				private$cached_values$beta_hat_T   = beta_m
-				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_m)
-			} else if (r_ok){
-				private$cached_values$beta_hat_T   = beta_r
-				if (!estimate_only) private$cached_values$s_beta_hat_T = sqrt(ssq_r)
-			} else {
-				private$cached_values$beta_hat_T   = NA_real_
-				if (!estimate_only) private$cached_values$s_beta_hat_T = NA_real_
-			}
+			if (kk_ivwc_cache_is_current(private, estimate_only)) return(invisible(NULL))
+			KKstats = kk_ivwc_match_stats(private)
+			fit_and_pool_kk_ivwc_halves(private, KKstats,
+				private$robust_for_matched_pairs(estimate_only = FALSE),
+				private$robust_for_reservoir(estimate_only = FALSE),
+				cache_se = !estimate_only)
 		},
 		# estimate_only = TRUE forces "M" (fast, no LQS phase) for the point estimate.
 		fit_rlm_with_treatment = function(X, y, j_treat, estimate_only = FALSE){
@@ -279,7 +248,7 @@ ContinKKRobustRegrIVWCSource = list(
 				)
 				if (is.null(fit)) return(NULL)
 				# Same rule as the MASS::rlm path below: a fit that has not converged
-				# within maxit is nonestimable (v1.0.6-TODO-50).
+				# within maxit is nonestimable (v1.0.6-TODO-15).
 				if (!isTRUE(fit$converged)) return(NULL)
 				coef_vec = as.numeric(fit$coefficients)
 				if (length(coef_vec) < j_treat || !is.finite(coef_vec[j_treat])) return(NULL)
@@ -466,7 +435,7 @@ InferenceContinKKRobustRegrIVWC = define_inference_class(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval
 	),
 	private = list(
-		# v1.0.6-TODO-217: no Bayesian bootstrap. Without a weighted refit of this
+		# v1.0.6-TODO-158: no Bayesian bootstrap. Without a weighted refit of this
 		# estimator the replicate fell through to the KK compound's generic
 		# mean-difference fallback, a different estimator from compute_estimate();
 		# its MM-estimator fits have no weighted refit here.

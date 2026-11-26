@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-165 (follow-up of v1.0.6-TODO-136 / -145): the randomization-bootstrap CI's own NA
+# v1.0.6-TODO-113 (follow-up of v1.0.6-TODO-90 / v1.0.6-TODO-97): the randomization-bootstrap CI's own NA
 # returns (every missing_ci() reason, including rand_bootstrap_ci_bisection_failed and
 # rand_bootstrap_ci_closed_form_unavailable) and the Bayesian-bootstrap BCa p-value's
 # bayesian_bootstrap_bca_pvalue_unavailable used to return a silent NA. Each now warns once

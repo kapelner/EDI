@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-219: seeded InferenceSuite$run_all_inference() runs on real forked
+# v1.0.6-TODO-160: seeded InferenceSuite$run_all_inference() runs on real forked
 # workers (num_cores = 2, one parallel::mcparallel() child per task) are
 # reproducible and equal the sequential run. Before, each child reseeded itself
 # from the clock and PID, so bootstrap and randomization p-values changed run to

@@ -6,6 +6,7 @@
 #include <RcppEigen.h>
 #endif
 #include "internal_fn_decls.h"
+#include "gee_grouped_fit.h"
 #include <cmath>
 #include <vector>
 #include <string>
@@ -17,19 +18,6 @@ using namespace Rcpp;
 using namespace Eigen;
 
 enum class GEEFamily { GAUSSIAN, BINOMIAL, POISSON };
-
-struct GEEResult {
-    VectorXd beta;
-    double alpha;
-    MatrixXd vcov;
-    double quasi_loglik;
-    VectorXd score;
-    MatrixXd bread;
-    bool converged;
-    int niter;
-    bool hit_iteration_cap;
-    double gradient_norm;
-};
 
 inline double gee_variance(double mu, GEEFamily family) {
     if (family == GEEFamily::BINOMIAL) return std::max(mu * (1.0 - mu), 1e-10);
@@ -302,7 +290,67 @@ GEEResult gee_pairs_singletons_cpp_impl(const Eigen::Ref<const MatrixXd>& X,
     return {beta, alpha, BI * Meat * BI, quasi_loglik, ScoreFinal, Bread, converged, std::min(maxit, iter + 1), hit_iteration_cap, last_grad_norm};
 }
 
+GEEResult fit_gee_pairs_singletons_grouped(
+    const Eigen::Ref<const Eigen::MatrixXd>& X,
+    const Eigen::Ref<const Eigen::VectorXd>& y,
+    const Eigen::Ref<const Eigen::VectorXi>& group_id,
+    const std::string& family_str, const double* weights,
+    std::optional<Eigen::VectorXd> warm_start_beta,
+    std::optional<Eigen::MatrixXd> warm_start_fisher_info, int maxit, double tol) {
+    // The legacy parser falls back to Gaussian. Validation is tracked in TODO-43.
+    GEEFamily family = GEEFamily::GAUSSIAN;
+    if (family_str == "binomial") family = GEEFamily::BINOMIAL;
+    else if (family_str == "poisson") family = GEEFamily::POISSON;
+
+    const int n = static_cast<int>(y.size());
+    std::vector<int> order(n);
+    for (int i = 0; i < n; ++i) order[i] = i;
+    std::sort(order.begin(), order.end(), [&](int a, int b) { return group_id[a] < group_id[b]; });
+
+    MatrixXd sorted_X(n, X.cols());
+    VectorXd sorted_y(n), sorted_weights(weights ? n : 0);
+    std::vector<int> group_start, group_size;
+    for (int i = 0; i < n; ++i) {
+        sorted_X.row(i) = X.row(order[i]);
+        sorted_y[i] = y[order[i]];
+        if (weights) sorted_weights[i] = weights[order[i]];
+        if (i == 0 || group_id[order[i]] != group_id[order[i - 1]]) {
+            group_start.push_back(i);
+            group_size.push_back(1);
+        } else {
+            ++group_size.back();
+        }
+    }
+    return gee_pairs_singletons_cpp_impl(
+        sorted_X, sorted_y, group_start, group_size, family, sorted_weights,
+        std::move(warm_start_beta), std::move(warm_start_fisher_info), maxit, tol);
+}
+
 #ifndef EDI_CORE_ONLY
+static List run_gee_pairs_singletons_r(const Eigen::Map<Eigen::MatrixXd>& X,
+                                      const Eigen::Map<const Eigen::VectorXd>& y,
+                                      const Eigen::Map<const Eigen::VectorXi>& group_id,
+                                      const std::string& family_str, const double* weights,
+                                      Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta,
+                                      Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info,
+                                      int maxit, double tol) {
+    const GEEResult res = fit_gee_pairs_singletons_grouped(
+        X, y, group_id, family_str, weights,
+        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
+        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info), maxit, tol);
+    return edi::to_rcpp_list(edi::ResultMap()
+        .set("beta", res.beta)
+        .set("alpha", res.alpha)
+        .set("vcov", res.vcov)
+        .set("quasi_loglik", res.quasi_loglik)
+        .set("score", res.score)
+        .set("fisher_information", res.bread)
+        .set("converged", res.converged)
+        .set("niter", res.niter)
+        .set("hit_iteration_cap", res.hit_iteration_cap)
+        .set("gradient_norm", res.gradient_norm));
+}
+
 // [[Rcpp::export]]
 List gee_pairs_singletons_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y_r, SEXP group_id_r, std::string family_str,
                                        SEXP weights_r,
@@ -319,35 +367,8 @@ List gee_pairs_singletons_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEX
     if (weights.size() != y.size()) {
         stop("weights must have length equal to length(y)");
     }
-    GEEFamily family = GEEFamily::GAUSSIAN;
-    if (family_str == "binomial") family = GEEFamily::BINOMIAL;
-    else if (family_str == "poisson") family = GEEFamily::POISSON;
-    int n = (int)y.size(); std::vector<int> ord(n); for(int i=0; i<n; i++) ord[i] = i;
-    std::sort(ord.begin(), ord.end(), [&](int a, int b){ return group_id[a] < group_id[b]; });
-    MatrixXd X_s(n, X.cols()); VectorXd y_s(n), w_s(n);
-    for(int i=0; i<n; i++) { X_s.row(i) = X.row(ord[i]); y_s[i] = y[ord[i]]; w_s[i] = weights[ord[i]]; }
-    std::vector<int> grp_start, grp_size; int prev = -1;
-    for(int i=0; i<n; i++) {
-        int g = group_id[ord[i]];
-        if (g != prev) { grp_start.push_back(i); grp_size.push_back(1); prev = g; }
-        else grp_size.back()++;
-    }
-    GEEResult res = gee_pairs_singletons_cpp_impl(
-        X_s, y_s, grp_start, grp_size, family, w_s,
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        maxit, tol);
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("beta", res.beta)
-        .set("alpha", res.alpha)
-        .set("vcov", res.vcov)
-        .set("quasi_loglik", res.quasi_loglik)
-        .set("score", res.score)
-        .set("fisher_information", res.bread)
-        .set("converged", res.converged)
-        .set("niter", res.niter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm));
+    return run_gee_pairs_singletons_r(X, y, group_id, family_str, weights.data(),
+                                     warm_start_beta, warm_start_fisher_info, maxit, tol);
 }
 
 // [[Rcpp::export]]
@@ -360,34 +381,7 @@ List gee_pairs_singletons_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y_r, SE
     Eigen::Map<const Eigen::VectorXd> y(y_vec.begin(), y_vec.size());
     Eigen::Map<const Eigen::VectorXi> group_id(group_id_int.begin(), group_id_int.size());
 
-    GEEFamily family = GEEFamily::GAUSSIAN;
-    if (family_str == "binomial") family = GEEFamily::BINOMIAL;
-    else if (family_str == "poisson") family = GEEFamily::POISSON;
-    int n = (int)y.size(); std::vector<int> ord(n); for(int i=0; i<n; i++) ord[i] = i;
-    std::sort(ord.begin(), ord.end(), [&](int a, int b){ return group_id[a] < group_id[b]; });
-    MatrixXd X_s(n, X.cols()); VectorXd y_s(n);
-    for(int i=0; i<n; i++) { X_s.row(i) = X.row(ord[i]); y_s[i] = y[ord[i]]; }
-    std::vector<int> grp_start, grp_size; int prev = -1;
-    for(int i=0; i<n; i++) {
-        int g = group_id[ord[i]];
-        if (g != prev) { grp_start.push_back(i); grp_size.push_back(1); prev = g; }
-        else grp_size.back()++;
-    }
-    GEEResult res = gee_pairs_singletons_cpp_impl(
-        X_s, y_s, grp_start, grp_size, family, VectorXd(),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        maxit, tol);
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("beta", res.beta)
-        .set("alpha", res.alpha)
-        .set("vcov", res.vcov)
-        .set("quasi_loglik", res.quasi_loglik)
-        .set("score", res.score)
-        .set("fisher_information", res.bread)
-        .set("converged", res.converged)
-        .set("niter", res.niter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm));
+    return run_gee_pairs_singletons_r(X, y, group_id, family_str, nullptr,
+                                     warm_start_beta, warm_start_fisher_info, maxit, tol);
 }
 #endif // EDI_CORE_ONLY

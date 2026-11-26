@@ -1,4 +1,4 @@
-# v1.0.6-TODO-180: under left-/interval-censoring several survival classes fit through a
+# v1.0.6-TODO-126: under left-/interval-censoring several survival classes fit through a
 # Suggests package (interval for KMDiff, RestrictedMeanDiff, LogRank and GehanWilcox;
 # icenReg for CoxPHRegr) and stop with "Package 'X' is required for <class>" when it is
 # absent. The R-devel valgrind and ASAN/UBSAN runners install only EDI's hard

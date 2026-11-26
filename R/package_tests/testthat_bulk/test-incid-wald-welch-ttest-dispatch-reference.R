@@ -115,6 +115,6 @@ test_that("InferenceIncidWald with an empty treatment or control arm is non-esti
 		expect_true(all(is.na(inf$compute_asymp_confidence_interval())), info = lab)
 		expect_true(is.na(inf$compute_asymp_two_sided_pval()), info = lab)
 	}
-	skip("v1.0.6-TODO-259: InferenceIncidWald returns NA for an empty arm but never sets is_nonestimable()/a reason")
+	skip("v1.0.7-TODO-113: InferenceIncidWald returns NA for an empty arm but never sets is_nonestimable()/a reason")
 	for (inf in infs) expect_true(inf$is_nonestimable("estimate"))
 })

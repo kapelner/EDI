@@ -1,4 +1,4 @@
-# v1.0.6-TODO-118: InferenceIncidKKGEE under (quasi-)complete separation used to
+# v1.0.6-TODO-72: InferenceIncidKKGEE under (quasi-)complete separation used to
 # return estimate ~50 with a collapsed sandwich SE and asymptotic p = 0, silently.
 # Now the logit-link KK GEE classes warn once (edi_logistic_separation_warning)
 # and return NA for the asymptotic p-value and CI; the estimate is unchanged.

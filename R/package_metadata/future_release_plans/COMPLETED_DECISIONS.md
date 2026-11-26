@@ -12,7 +12,7 @@ added. Before reopening or re-arguing a choice, check this file. Order: releases
 TODO numbers highest first (table and sections alike). Rule: see "Owner decisions: `PENDING_DECISIONS.md`,
 `COMPLETED_DECISIONS.md` and `DISMISSED_DECISIONS.md`" in the repo's `CLAUDE.md`.
 
-Last updated 2026-11-25.
+Last updated 2026-11-26.
 
 ## Summary
 
@@ -26,6 +26,7 @@ Last updated 2026-11-25.
 | [DECISION-v1.2.0-TODO-207](#DECISION-v1.2.0-TODO-207) | [v1.2.0-TODO-207](release_v1_2_0.md) | randomization p-values: (b+1)/(B+1) per tail, two-sided doubled and capped at 1 | 2026-11-23 |
 | [DECISION-v1.2.0-TODO-36](#DECISION-v1.2.0-TODO-36) | [v1.2.0-TODO-36](release_v1_2_0.md) | calibration campaigns on free GitHub-hosted runners only | undated |
 | [DECISION-v1.2.0-TODO-31](#DECISION-v1.2.0-TODO-31) | [v1.2.0-TODO-31](release_v1_2_0.md) | D1 (b): also accept Eigen-typed source strings (additive); Eigen-only deferred to v2.0.0-TODO-7b | 2026-10-13 |
+| [DECISION-v1.1.0-TODO-272](#DECISION-v1.1.0-TODO-272) | [v1.1.0-TODO-272](release_v1_1_0.md) | (b) paired-override rules run in pre-push too (and in the weekly audit) | 2026-11-26 |
 | [DECISION-v1.1.0-TODO-269](#DECISION-v1.1.0-TODO-269) | [v1.1.0-TODO-269](release_v1_1_0.md) | (d) cap slow-list classes only (300 s / 300 replicates), on now | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-267b](#DECISION-v1.1.0-TODO-267b) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) + (d): no randomization CI for the KK CLMM classes; their randomization p-value refuses `delta != 0` | 2026-11-24 |
 | [DECISION-v1.1.0-TODO-267](#DECISION-v1.1.0-TODO-267) | [v1.1.0-TODO-267](release_v1_1_0.md) | (a) opt-in score-at-the-null statistic via `compute_rand_two_sided_pval(type = "score")` on the KK CLMM classes; default unchanged | 2026-11-24 |
@@ -46,6 +47,8 @@ Last updated 2026-11-25.
 | [DECISION-v1.1.0-TODO-48](#DECISION-v1.1.0-TODO-48) | [v1.1.0-TODO-48](release_v1_1_0.md) | portable build by default everywhere; `EDI_PORTABLE=0` opt-in | 2026-10-14 |
 | [DECISION-v1.1.0-TODO-15c](#DECISION-v1.1.0-TODO-15c) | [v1.1.0-TODO-15c](release_v1_1_0.md) | full hard `dead` -> `uncensored` rename, no compat alias | 2026-08-19 |
 | [DECISION-v1.1.0-TODO-1a](#DECISION-v1.1.0-TODO-1a) | [v1.1.0-TODO-1](release_v1_1_0.md) | Cox-family randomization CI: refuse, like the stratified class | 2026-09-06 |
+| [DECISION-v1.0.7-TODO-190](#DECISION-v1.0.7-TODO-190) | [v1.0.7-TODO-190](release_v1_0_7.md#todo-190) | new bootstrap flag `reimpute_missing_vals_each_resample`, default FALSE (resamples keep the original imputation) | 2026-11-26 |
+| [DECISION-v1.0.7-TODO-102](#DECISION-v1.0.7-TODO-102) | [v1.0.7-TODO-102](release_v1_0_7.md#todo-102) | trials above 5,000 rows subsampled to 2,000; control vs first other arm; percentile bootstrap; explained NAs are nonestimable | 2026-11-26 |
 | [DECISION-v1.0.6-TODO-429](#DECISION-v1.0.6-TODO-429) | [v1.0.7-TODO-179](release_v1_0_7.md#todo-179) | StereotypeLogit asymp_ci / asymp_pval become known failures of the worker-count sweep (reported, not asserted); cause still open | 2026-11-25 |
 | [DECISION-v1.0.6-TODO-427](#DECISION-v1.0.6-TODO-427) | [v1.0.6-TODO-234](release_v1_0_6.md#todo-234) | accept both benchmark slowdowns (OrderedProbit fit, OLS rand p-value) and allowlist the rows | 2026-11-24 |
 | [DECISION-v1.0.6-TODO-410](#DECISION-v1.0.6-TODO-410) | [v1.0.6-TODO-228](release_v1_0_6.md#todo-228) | keep the L-BFGS Newton finish everywhere, accept the 1.3x-3x cost, allowlist the slowed benchmark rows (confirmed after a same-day revision was withdrawn) | 2026-11-23 |
@@ -324,6 +327,39 @@ Last updated 2026-11-25.
 - **Rejected:** (a) the per-call adapter; (c) Eigen-only, deferred to `release_v2_0_0.md → TODO-7b` (a 1.x warning on Rcpp-typed sources pointing at the Eigen form is the deprecation path).
 
 ## v1.1.0
+
+<a id="DECISION-v1.1.0-TODO-272"></a>
+### DECISION-v1.1.0-TODO-272: Run the class-architecture paired-override rules in pre-push too, or only in the weekly audit?
+
+- **TODO:** [v1.1.0-TODO-272](release_v1_1_0.md): **Weekly class-architecture audit: inheritance, components, mixins
+  and overrides.** Plan: `../new_feature_plans/v1_1_0/class_architecture_audit.md`.
+- **Context:** the paired-override check (a class overrides one method of a coupled pair, such as the randomization
+  statistic, and inherits the other, such as `compute_bootstrap_worker_estimate`: the 2026-10-12 KK Wilcox bug) is
+  deterministic and needs no Claude. Its rules live in `R/package_metadata/audits/class_architecture_rules.yml`. The
+  other checks in the plan are improvement suggestions, not gates, and stay weekly either way.
+- **Options:** (a) weekly audit only: a new violation is reported within a week as a decision on the audit issue;
+  pre-push unchanged. (b) also a testthat structural test in `R/EDI/tests/testthat` that reads the hand-kept pairs
+  from the rules file (not the mined ones, which are statistical) and fails on a violation: caught before the push,
+  at the cost of one more pre-push file (it would introspect already-constructed generators, likely a few seconds;
+  measure in Phase 0). The hook is meant to stay lean.
+- **Recommendation (agent):** (a) until Phase 4's first-month review shows whether the hand-kept pairs ever fire; then
+  revisit (b).
+- **Raised:** 2026-11-26, by the agent that wrote the plan, at the owner's request.
+- **Evidence (2026-11-26, agent):** a prototype over the installed EDI found 167 generators; the check itself takes
+  0.013 s per rule, and forcing the lazy-loaded generators about 2.5 s (the test file runs in 3.8 s including R
+  startup). The one hand-kept pair flagged 4 classes (`InferenceAbstractKKModifiedPoisson`,
+  `InferenceIncidKKModifiedPoisson`, `InferenceIncidGCompAbstract`, `InferenceIncidKKGCompAbstract`); all inherit a
+  worker hook that calls `compute_bootstrap_worker_estimate_via_compute_treatment_estimate()`, so none is a bug. The
+  rule therefore accepts an inherited coupled method that calls the statistic or a listed delegate helper.
+- **Ruling:** (b), owner, 2026-11-26: add the paired-override rules to pre-push. Done:
+  `R/EDI/tests/testthat/test-class-architecture-paired-overrides.R` reads the hand-kept pairs from
+  `R/EDI/tests/testthat/class_architecture_paired_overrides.csv` (one row, the KK Wilcox pair) and fails on a class
+  that redefines the statistic while inheriting a coupled method that does not compute it; a fixture test checks the
+  rule flags that shape. Passes on the current tree (0 violations). The weekly audit reads the same CSV.
+- **Why:** No reason recorded.
+- **Rejected:** (a) weekly audit only.
+- **Revisit if:** the test's run time grows past a few seconds, or a rule row turns out to need the mined
+  (statistical) pairs rather than hand-kept ones.
 
 <a id="DECISION-v1.1.0-TODO-269"></a>
 ### DECISION-v1.1.0-TODO-269: Calibration planner: turn the slow-unit replicate cap on (threshold, replicates), and from the running campaign or the next?
@@ -699,6 +735,40 @@ Last updated 2026-11-25.
 - **Ruling:** (a) refuse, like the stratified class; implemented the same day (see v1.1.0-TODO-17x), 2026-09-06, owner (user decision)
 - **Why:** No reason recorded.
 - **Rejected:** (b) a corrected inversion. (A second item, the null construction, was withdrawn 2026-09-05: the code already uses impute-then-permute, verified by test.)
+
+## v1.0.7
+
+<a id="DECISION-v1.0.7-TODO-190"></a>
+### DECISION-v1.0.7-TODO-190: Bootstrap resamples with missing covariates: keep the original imputation, or re-impute each resample?
+
+- **TODO:** [v1.0.7-TODO-190](release_v1_0_7.md#todo-190): **Every rank-deficient bootstrap draw re-runs the random-forest covariate imputation.**
+- **Question:** a rank-deficient bootstrap draw re-ran `missRanger` on the resample (~125 s per draw on `opt`), while
+  full-rank draws kept the original imputed values. Which is intended?
+- **Options on the table:** (a) every resample keeps the original imputation (the cheap fix); (b) re-impute every
+  resample on purpose (the bootstrap then carries imputation uncertainty, at the imputation's cost per draw).
+- **Ruling:** 2026-11-26, owner: both, as a flag on the base bootstrap function, `reimpute_missing_vals_each_resample`,
+  default `FALSE` (= (a)); `TRUE` re-imputes every resample.
+- **Why:** No reason recorded.
+- **Rejected:** keeping today's mix (re-imputation on rank-deficient draws only).
+
+<a id="DECISION-v1.0.7-TODO-102"></a>
+### DECISION-v1.0.7-TODO-102: Real-data crash corpus: keep the four case-construction choices the first build made?
+
+- **TODO:** [v1.0.7-TODO-102](release_v1_0_7.md#todo-102): **Real-data crash corpus: a push-triggered CI job that runs every applicable inference class on every catalog trial and counts errors, non-convergence and NAs.**
+- **Question:** the catalog names the treatment and outcome columns but not how to code a multi-arm trial or how big a
+  case may get; the first build (`R/package_tests/real_data_catalog.R`, `real_data_crash_corpus.R`) made four choices
+  that shape the baseline.
+- **Options on the table:** for each, (a) keep as built or (b) the alternative: (1) subsample trials above 5,000 rows to
+  5,000 vs no cap; (2) control vs the first other arm (other arms dropped) vs pooling every non-control arm; (3) the
+  percentile bootstrap CI at B = 49 vs the class default (BCa, which refuses at that B); (4) an NA that EDI explains
+  with a warning counts as `nonestimable` vs every NA is `na`.
+- **Ruling:** 2026-11-26, owner: (1) amended: trials above 5,000 rows are subsampled to 2,000 (per arm, seeded;
+  `--subsample-above 5000 --n-max 2000`), trials up to 5,000 rows stay whole; (2), (3) and (4) kept as built.
+- **Why:** No reason recorded.
+- **Rejected:** no cap; a 5,000-row cap; pooling the non-control arms; the BCa default at crash-test B; counting
+  explained NAs as `na`.
+- **Evidence at the time:** first full run 2026-11-26: 161 trials, 2,371 cases; 450 explained NAs, 299 silent NAs, 107
+  timed-out cases, 0 errors.
 
 ## v1.0.6
 

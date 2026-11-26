@@ -10,7 +10,7 @@ library(EDI)
 # (DesignSeqOneByOne* and its many concrete subclasses) being some of the most heavily tested classes in
 # the whole suite -- every existing fixture consistently supplies the same covariate types across all
 # subjects, so this drift-detection warning was never triggered.
-# v1.0.6-TODO-351 (2026-11-24): the warning is gone. Retyping the stored column for every earlier subject
+# v1.0.6-TODO-219 (2026-11-24): the warning is gone. Retyping the stored column for every earlier subject
 # changed later assignments and broke the analysis, so a changed type is now coerced back to the stored
 # type, and a value that cannot be converted is refused with an error naming the column.
 

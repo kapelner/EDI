@@ -22,7 +22,7 @@ ExactZhangIncidenceSource = list(
 		# Computes the exact-Zhang estimate. Documented via @R6method
 		# below (see InferenceIncidExactZhang$compute_estimate).
 		compute_estimate = function(estimate_only = FALSE){
-			# Pooled table over all subjects, as documented (v1.0.6-TODO-147); the
+			# Pooled table over all subjects, as documented (v1.0.6-TODO-99); the
 			# reservoir-only table gave 0 whenever every subject was matched.
 			zhang_incid_treatment_estimate(zhang_get_pooled_table(self))
 		},
@@ -83,27 +83,14 @@ ExactZhangIncidenceSource = list(
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
-			switch(type,
-				Zhang = zhang_ci_exact_combined(
-					self,
-					alpha = alpha,
-					pval_epsilon = args_for_type[[type]]$pval_epsilon,
-					combination_method = args_for_type[[type]]$combination_method
-				)
-			)
+			zhang_exact_ci_by_type(self, type, alpha, args_for_type)
 		},
 		compute_exact_two_sided_pval_for_treatment_effect_by_type = function(type, delta, args_for_type){
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				private$assert_exact_inference_params(type, args_for_type)
 			}
-			switch(type,
-				Zhang = zhang_pval_exact_combined(
-					self,
-					delta_0 = delta,
-					combination_method = args_for_type[[type]]$combination_method
-				)
-			)
+			zhang_exact_pval_by_type(self, type, delta, args_for_type)
 		}
 	)
 )

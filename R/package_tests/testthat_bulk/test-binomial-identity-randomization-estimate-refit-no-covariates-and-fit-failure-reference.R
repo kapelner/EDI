@@ -12,7 +12,7 @@ library(EDI)
 #   3. With no covariates selected (model_formula = ~1), X = cbind(1, w) rather than
 #      cbind(1, treatment = w, X_cov).
 #   4. A fitter failure (res NULL or non-finite res$b[2]) returns NA.
-# v1.0.6-TODO-205: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
+# v1.0.6-TODO-146: the method now returns compute_estimate(estimate_only = TRUE), the statistic the
 # reusable randomization worker uses, instead of its own warm-started refit. A draw loader resets the
 # fit caches (reset_reused_worker_private_caches()) before asking for the statistic, so the tests that
 # change w or the fitter clear them the same way.

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1 this
 # seed formed more pairs, so the matched set {2, 17} (fold 14), whose deletion
 # removes the treated arm's only event, no longer existed. With two covariates

@@ -87,7 +87,7 @@ DesignSeqOneByOneiBCRD = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			# v1.0.6-TODO-187: n is required (owner decision 2026-11-19). Checked even with
+			# v1.0.6-TODO-133: n is required (owner decision 2026-11-19). Checked even with
 			# edi.run_asserts off: the assignment rule and the randomization redraw both
 			# balance toward n, so there is nothing correct to do without it.
 			if (is.null(n)) {
@@ -118,7 +118,7 @@ DesignSeqOneByOneiBCRD = define_design_class(
 		#'
 		#' @return 	The treatment assignment (0 or 1) for the next subject.
 		assign_wt = function(){
-			# n is always set (the constructor requires it, v1.0.6-TODO-187).
+			# n is always set (the constructor requires it, v1.0.6-TODO-133).
 			nT = sum(private$w == 1, na.rm = TRUE)
 			nC = sum(private$w == 0, na.rm = TRUE)
 			nT_rem = round(private$n * private$prob_T) - nT
@@ -132,11 +132,11 @@ DesignSeqOneByOneiBCRD = define_design_class(
 	),
 	private = list(
 		draw_ws_raw = function(r = 100){
-			# v1.0.6-TODO-183: one row per enrolled subject (t), like every other
+			# v1.0.6-TODO-129: one row per enrolled subject (t), like every other
 			# sequential design. The rule balances toward the planned n, so draw full
 			# n-subject sequences and keep their first t rows (the law of the subjects
 			# enrolled so far); a no-op once the trial is complete.
-			# v1.0.6-TODO-213: pass the realized treated count, not prob_T. assign_wt()
+			# v1.0.6-TODO-154: pass the realized treated count, not prob_T. assign_wt()
 			# targets R's round(n * prob_T) (half to even) but the kernel rounds with
 			# std::round (half away from zero), so at a .5 tie (n = 21, prob_T = 0.5)
 			# every redraw had one more treated subject than the trial. Handing the

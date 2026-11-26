@@ -26,14 +26,14 @@ of the design's randomization structure:
     units, one subject grouped by its stratum (\code{"observation_within_block"})
     instead: with few blocks in a stratum the permuted-block jackknife-Wald test
     rejected a true null too often (about 0.06 at a nominal 0.05 with 3-9 blocks in
-    the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.6-TODO-270);
+    the smallest stratum, against 0.05-0.055 deleting single subjects; v1.0.7-TODO-122);
   \item \code{\link[EDI:DesignFixedBlocking]{DesignFixedBlocking}}: one subject,
     grouped by its stratum (\code{"observation_within_block"});
   \item \code{\link[EDI:ObservationalDesignBlocks]{ObservationalDesignBlocks}}: one whole
     block (\code{"block"}, right for matched sets and clusters) when there are at least
     5 blocks; with fewer, one subject grouped by its block as a stratum
     (\code{"observation_within_block"}), since leave-one-block-out would have too few
-    units (v1.0.6-TODO-231);
+    units (v1.0.6-TODO-165);
   \item other blocking designs: one whole block (\code{"block"});
   \item all other designs: one subject (\code{"observation"}).
 }
@@ -77,7 +77,7 @@ rescaling does not carry it over: on the rescaled refits the formula equals the
 ordinary unstratified bias \eqn{(N - 1)(\bar\theta - \hat\theta)}, which also counts the
 spread of the outcome between strata. For a linear estimator (a difference in means)
 both are 0; for a nonlinear one with strongly different strata the bias correction can
-be too large (v1.0.6-TODO-231). The jackknife-Wald test and interval are centred at the
+be too large (v1.0.6-TODO-165). The jackknife-Wald test and interval are centred at the
 bias-corrected estimate.
 The strata are fixed by the design and treatment is randomized within them, so only
 the within-stratum spread of the replicates enters the variance. A stratum with a
@@ -87,14 +87,14 @@ the jackknife standard error. The reference distribution is the normal for the
 unstratified units and, since EDI 1.0.6, the t distribution with
 \eqn{\sum_h (n_h - 1)} degrees of freedom (the degrees of freedom of the stratified
 variance) for the stratified units \code{"permuted_block"} and
-\code{"observation_within_block"} (v1.0.6-TODO-231: on SPBR with about 31 degrees of
+\code{"observation_within_block"} (v1.0.6-TODO-165: on SPBR with about 31 degrees of
 freedom the normal-reference 95\% interval covered 0.930 and the t interval 0.943).
 They are \code{NA} when the variance has fewer than 4 degrees of freedom
 (\eqn{G - 1}, or \eqn{\sum_h (n_h - 1)} for the stratified units).
 
 Before EDI 1.0.6 the automatic unit on SPBR and \code{DesignFixedBlocking} was the
 block, which on these designs is the stratum, so a replicate deleted a whole stratum
-and the jackknife had only 2-4 units (v1.0.6-TODO-4).
+and the jackknife had only 2-4 units (v1.0.6-TODO-1).
 
 \strong{BCa acceleration.} The BCa bootstrap interval and p-value of the nonparametric
 bootstrap take their acceleration from the same jackknife. On the stratified units it is

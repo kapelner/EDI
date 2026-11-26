@@ -15,7 +15,7 @@ library(EDI)
 # Extreme bootstrap weights put nearly all weight on the two most extreme-leverage rows (opposite
 # responses, opposite ends of a wide covariate range), so the full-model weighted kernel fails to
 # converge (verified directly below: fit$converged == FALSE). Until 2026-11-18 every hardened
-# column subset failed too; since v1.0.6-TODO-142 pulls infeasible starts into the mean support,
+# column subset failed too; since v1.0.7-TODO-47 pulls infeasible starts into the mean support,
 # hardening drops x1 and converges to the correct boundary MLE (y == w in this fixture, so the risk
 # difference is 1), checked by the last test below. The nonestimable branch is therefore driven by
 # mocking the identity-binomial kernels to return a non-converged fit. Since
@@ -90,7 +90,7 @@ test_that("the same extreme weights genuinely fail to converge at the underlying
 	expect_false(isTRUE(priv$is_identity_binomial_fit_reasonable(fit, X_full, 2L)))
 })
 
-test_that("with the real kernels, hardening drops x1 and the extreme-weight refit reaches the boundary MLE (v1.0.6-TODO-142)", {
+test_that("with the real kernels, hardening drops x1 and the extreme-weight refit reaches the boundary MLE (v1.0.7-TODO-47)", {
 	f <- binomial_identity_extreme_fixture()
 	est <- suppressWarnings(
 		f$inf$compute_estimate_with_bootstrap_weights(extreme_weights(f$n), estimate_only = TRUE),

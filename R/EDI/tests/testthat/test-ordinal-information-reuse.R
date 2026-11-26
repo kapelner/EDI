@@ -8,7 +8,7 @@ test_that("ordinal information outputs and variance use the same Hessian", {
 	latent <- drop(X %*% c(0.5, -0.3, 0.2)) + stats::rlogis(n)
 	y <- as.numeric(cut(latent, breaks = c(-Inf, -1, 0, 1, Inf)))
 
-	# v1.0.6-TODO-215 item (2): the kernels no longer return the observed
+	# v1.0.6-TODO-156 item (2): the kernels no longer return the observed
 	# Hessian under the name `fisher_information`; it is `observed_information`
 	# (= `information`) only.
 	fit <- fast_ordinal_regression_cpp(X, y)

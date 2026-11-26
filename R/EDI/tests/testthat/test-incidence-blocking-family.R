@@ -32,7 +32,7 @@ test_that("blocked incidence inference works for CMH and Extended Robins", {
 })
 
 test_that("jackknife for blocking designs uses leave-one-block-out resampling", {
-	# 5 blocks (was 3): since v1.0.6-TODO-135 a jackknife with fewer than 5 deletion units is NA
+	# 5 blocks (was 3): since v1.0.6-TODO-89 a jackknife with fewer than 5 deletion units is NA
 	# with a warning (test-jackknife-too-few-deletion-units-na-warns.R); 5 is the smallest
 	# count for which the manual leave-one-block-out formula is still checked here.
 	des <- DesignFixedBlocking$new(
@@ -71,7 +71,7 @@ test_that("jackknife for blocking designs uses leave-one-block-out resampling", 
 	manual_est <- n_blocks * full_est - (n_blocks - 1) * jack_bar
 	manual_se <- sqrt(((n_blocks - 1) / n_blocks) * sum((jack_vals - jack_bar)^2))
 
-	# v1.0.6-TODO-4 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
+	# v1.0.6-TODO-1 (5bdb9dfb): the automatic unit on DesignFixedBlocking is now one subject within
 	# its stratum, so leave-one-block-out is asked for explicitly.
 	expect_equal(inf_cmh$compute_jackknife_estimate(unit = "block"), manual_est, tolerance = 1e-12)
 	expect_equal(inf_cmh$compute_jackknife_std_error(unit = "block"), manual_se, tolerance = 1e-12)

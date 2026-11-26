@@ -1,10 +1,10 @@
-# v1.0.6-TODO-30 and v1.0.6-TODO-152 (2026-11-19): the zero-inflation part of a
+# v1.0.6-TODO-6 and v1.0.6-TODO-103 (2026-11-19): the zero-inflation part of a
 # zero-augmented Poisson fit often has no finite maximum (it runs off along a
 # flat ridge, e.g. zero intercept -23.8 and zero treatment +23.8).
 # * TODO-30: a replicate warm-started from such a full-data fit cannot move its
 #   zero part, so every ZIP randomization replicate differed from a fresh fit on
 #   the same data (by up to 0.84), and the bootstrap-randomization reusable worker
-#   differed from its slow path (v1.0.6-TODO-208 (3)). A warm start whose zero
+#   differed from its slow path (v1.0.6-TODO-149 (3)). A warm start whose zero
 #   part is on the ridge is now dropped (cold start).
 # * TODO-152: the default start can stop at an interior local maximum; each ZIP
 #   fit also runs L-BFGS from pscl::zeroinfl()'s start and keeps the lower
@@ -88,7 +88,7 @@ test_that("ZIP bootstrap replicates equal fresh fits on the ridge repro", {
 
 test_that("ZIP bootstrap-randomization reusable worker equals the slow path when the zero part is saturated", {
 	skip_on_cran()
-	# v1.0.6-TODO-208 (3) repro: plain Poisson data, so the full-data zero part
+	# v1.0.6-TODO-149 (3) repro: plain Poisson data, so the full-data zero part
 	# is saturated (zero intercept ~ -234.6).
 	for (estimand in c("conditional", "marginal_mean_diff")) {
 		n = 80L
@@ -201,7 +201,7 @@ test_that("on data with a well-identified zero part the guarded fit is the ungua
 	expect_false(zero_augmented_warm_start_on_ridge(ctx$Xzi, plain$params, ncol(ctx$X)))
 })
 
-# v1.0.6-TODO-218 (1), owner 2026-11-19: data with no excess zeros push the
+# v1.0.6-TODO-159 (1), owner 2026-11-19: data with no excess zeros push the
 # zero-inflation part only toward "no inflation"; that is reported with a
 # message of class edi_no_zero_inflation_message, not the separation warning.
 za_conditions = function(expr) {
@@ -285,7 +285,7 @@ test_that("a subject pushed to a structural zero keeps the separation warning", 
 })
 
 test_that("InferenceCountHurdleNegBin flags a separated hurdle part like InferenceCountHurdlePoisson", {
-	# v1.0.6-TODO-218 (2): HurdleNegBin fits its hurdle part separately (own C++
+	# v1.0.6-TODO-159 (2): HurdleNegBin fits its hurdle part separately (own C++
 	# path) and had no separation flag. Zeros exactly where x1 < 0: the hurdle
 	# logistic part is separated; both hurdle classes warn (never the
 	# no-zero-inflation message) and keep the count-part treatment estimate.

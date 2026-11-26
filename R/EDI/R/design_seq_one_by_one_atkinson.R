@@ -113,7 +113,7 @@ DesignSeqOneByOneAtkinson = define_design_class(
 	),
 	private = list(
 		draw_ws_raw = function(r = 100){
-			# v1.0.6-TODO-129: a reusable bootstrap worker clears private$X (and marks it
+			# v1.0.6-TODO-83: a reusable bootstrap worker clears private$X (and marks it
 			# stale) on a rank-deficient resample; rebuild it from Ximp instead of
 			# erroring on NULL. A no-op on a completed design.
 			private$ensure_model_matrix_current()

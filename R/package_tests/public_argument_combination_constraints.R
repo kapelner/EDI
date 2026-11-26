@@ -377,7 +377,7 @@ example_constraint_cases = function() {
 }
 
 # ---------------------------------------------------------------------------------------------
-# Data-shape cell constraints (v1.0.6-TODO-97). A cell is one row of the data-shape covering array
+# Data-shape cell constraints (v1.0.7-TODO-41). A cell is one row of the data-shape covering array
 # (design, response_type, sample_size, group_sizes, censoring, missing_covariate, effect,
 # inference_class). Vectorized over a data.frame of cells; returns "" for a legal cell, else why not.
 # inference_classes_by_response maps each response type to the inference classes drawn for it, and

@@ -44,9 +44,9 @@ test_that("compute_bootstrap_confidence_interval_basic() retains a finite basic 
 	f <- dc_fx(); set.seed(3); d <- rnorm(300, 0, 0.3)
 	f <- stub_draws(f, d)
 	# est = 3 puts the basic interval (2 * est - quantiles, about [5.4, 6.5]) inside the
-	# +-10 link-scale cap that v1.0.6-TODO-160 added for log-ratio estimands (this class
+	# +-10 link-scale cap that v1.0.6-TODO-109 added for log-ratio estimands (this class
 	# reports a log time ratio). est = 5 gave about [9.4, 10.5], which the cap now rejects
-	# as extreme, so the class fell back to a percentile interval (v1.0.6-TODO-176).
+	# as extreme, so the class fell back to a percentile interval (v1.0.6-TODO-122).
 	f <- set_state(f, est = 3, se = NA_real_)
 	direct <- f$inf$compute_bootstrap_confidence_interval(alpha = 0.05, B = 300, type = "basic", min_number_usable_samples = 10, show_progress = FALSE)
 	expect_false(direct[1] <= 3 && 3 <= direct[2])                                      # sanity: direct interval genuinely excludes est = 3

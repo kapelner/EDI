@@ -18,7 +18,7 @@
 #'   \code{InferenceIncidLogBinomial}, \code{InferenceCountPoisson}): minimum fraction of the
 #'   \code{B} subsamples that must be usable (not degenerate, fit not failed). Below it the method
 #'   returns \code{NA} with reason \code{"subsampling_too_few_usable_draws_fraction"} and one
-#'   \code{edi_procedure_na_warning}. Default 0.8 (v1.0.6-TODO-230 / 269). Other classes ignore it.
+#'   \code{edi_procedure_na_warning}. Default 0.8 (v1.0.6-TODO-164 / 269). Other classes ignore it.
 #'
 #' @details The default \code{b = NULL} follows the intermediate-sequence
 #'   convention from the Politis/Romano/Wolf subsampling literature:

@@ -36,7 +36,7 @@ test_that("censoring bounds still work normally on a survival response_type (gua
 	expect_no_error(des$add_one_subject_response(1, y_L = 1, y_R = 2))
 })
 
-# v1.0.6-TODO-78 (3dabce47): with n = NULL an arrived subject's response may come in any order
+# v1.0.6-TODO-40 (3dabce47): with n = NULL an arrived subject's response may come in any order
 # (y is padded with NA); only a subject that has not arrived yet is refused.
 test_that("for a non-fixed-sample-size design, an arrived subject's response may skip ahead; one not yet arrived is rejected", {
 	des <- DesignSeqOneByOneBernoulli$new(n = NULL, response_type = "continuous", verbose = FALSE)

@@ -222,7 +222,7 @@ add_bounded_response_to_design = function(des, t, bounds) {
 # Inference classes whose estimand is the difference in mean responses (a risk
 # difference for incidence), so SimulationFramework scores them against the
 # simulated mean-difference ATE rather than the model-scale betaT.
-# v1.0.6-TODO-357 (2026-11-24): InferenceIncidGCompRiskDiff and
+# v1.0.6-TODO-223 (2026-11-24): InferenceIncidGCompRiskDiff and
 # InferenceIncidBinomialIdentityRiskDiff were missing, so they were scored
 # against the logit-scale betaT (coverage 0, wrong MSE).
 EDI_SIM_MEAN_DIFF_INFERENCE_CLASSES = c(
@@ -1938,7 +1938,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           next
         }
 
-        # v1.0.6-TODO-354: seed replication `rep` with seed + rep, as the fork path does
+        # v1.0.6-TODO-221: seed replication `rep` with seed + rep, as the fork path does
         # (fork_rep_worker_fn: one set.seed() per rep, then its cells in order). The serial
         # loop used to seed once for the whole run, so results depended on num_cores and a
         # resumed run (continue_from_last_result_row) replayed the first reps' data.
@@ -2165,7 +2165,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
     .parse_inference_classes_and_params = function(spec, eval_env) {
       private$.parse_class_spec("inference", spec, eval_env)
     },
-    # One parser for both class specs (v1.0.6-TODO-193); kind is "design" or
+    # One parser for both class specs (v1.0.7-TODO-54); kind is "design" or
     # "inference". Only inference constructor arguments are checked against
     # initialize() here (.validate_r6_init_args()); design parameters are
     # combined with response_type and n later.
@@ -3374,7 +3374,7 @@ SimulationFramework = R6::R6Class("SimulationFramework",
           }
           # One inference call of the given type: errors become an error record
           # (handle_error() returns a fatal result to propagate when the run
-          # stops on error) or the type's NA fallback (v1.0.6-TODO-193).
+          # stops on error) or the type's NA fallback (v1.0.7-TODO-54).
           call_inference = function(type, method, args, na_value) {
             tryCatch(do.call(inf_obj[[method]], args), error = function(e) {
               fatal = handle_error(make_error(

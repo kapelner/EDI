@@ -12,7 +12,7 @@ make_ordinal_data <- function(n, p, K, seed = 42) {
     # The all-ones column only generates the data: the thresholds alpha_j absorb
     # it (alpha_j + phi_j * b0), so passing it to the kernel leaves a flat
     # direction, the Hessian is singular at every point, and whether the
-    # v1.0.6-TODO-169 Newton-decrement rule can judge the fit (and so
+    # v1.0.6-TODO-117 Newton-decrement rule can judge the fit (and so
     # `converged`) depends on platform rounding (CI run 44749244495: FALSE on
     # the ubuntu/windows legs, TRUE on a local x86 build).
     # InferenceOrdinalStereotypeLogit drops it too

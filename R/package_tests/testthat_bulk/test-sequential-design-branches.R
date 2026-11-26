@@ -57,7 +57,7 @@ test_that("random-block design refills and consumes balanced blocks", {
 	)
 	draw = c(des$assign_wt(), des$assign_wt())
 	expect_equal(sort(draw), c(0, 1))
-	# v1.0.6-TODO-350: the queues are a list keyed "s:<stratum>"
+	# v1.0.6-TODO-218: the queues are a list keyed "s:<stratum>"
 	expect_true("s:overall" %in% names(private_env(des)$strata_states))
 	expect_length(private_env(des)$strata_states[["s:overall"]], 0L)
 
@@ -138,7 +138,7 @@ test_that("rerandomization validates modes and computes both objectives", {
 	p$S_inv = diag(2)
 	expect_equal(p$compute_obj(X, w), sum((colMeans(X[w == 1, ]) - colMeans(X[w == 0, ]))^2))
 	p$objective = "abs_sum_diff"
-	# standardized by each covariate's SD, as on the C++ paths (v1.0.6-TODO-70)
+	# standardized by each covariate's SD, as on the C++ paths (v1.0.6-TODO-33)
 	expect_equal(p$compute_obj(X, w), sum(abs(colMeans(X[w == 1, ]) - colMeans(X[w == 0, ])) / apply(X, 2, sd)))
 	p$objective = "unsupported"
 	expect_error(p$compute_obj(X, w), "Unsupported objective")

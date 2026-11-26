@@ -67,7 +67,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 				...
 			) {
 			super$initialize(response_type, prob_T, include_is_missing_as_a_new_feature, n, verbose, missingness_method, design_formula, seed = seed, ...)
-			# v1.0.6-TODO-177: no set.seed() here any more. A seeded sequential design
+			# v1.0.6-TODO-123: no set.seed() here any more. A seeded sequential design
 			# seeds each assignment from (seed, t) inside add_one_subject_to_experiment_and_assign(),
 			# so construction leaves the caller's stream alone.
 			private$equal_block_sizes = FALSE
@@ -77,7 +77,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @param x_new A data frame with one row representing the new subject's covariates.
 		#' @param allow_new_cols Allow new features in the new subject's covariates.
 		add_one_subject = function(x_new, allow_new_cols = TRUE){
-			# v1.0.6-TODO-351: a fixed-n design takes exactly n subjects. Subject n + 1 used to be
+			# v1.0.6-TODO-219: a fixed-n design takes exactly n subjects. Subject n + 1 used to be
 			# accepted (t = n + 1, w grew, get_n() stayed n). Always enforced.
 			if (isTRUE(private$fixed_sample) && private$t >= private$n) {
 				stop(class(self)[1L], ": all n = ", private$n, " subjects have already been added; ",
@@ -152,7 +152,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 					# Type checks describe attributes by name, even when the incoming
 					# subject supplies the established columns in a different order.
 					xnew_data_types = xnew_data_types[colnames_Xraw]
-					# v1.0.6-TODO-351: a value whose type differs from the stored column's (a number
+					# v1.0.6-TODO-219: a value whose type differs from the stored column's (a number
 					# arriving as text, say) used to warn and then retype the stored column for every
 					# earlier subject. It is now coerced back to the stored type, and refused, naming
 					# the column, when that coercion loses the value. Always enforced.
@@ -245,13 +245,13 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 		#' @return The treatment assignment as \{0,1\} (1 = treated, 0 = control).
 		add_one_subject_to_experiment_and_assign = function(x_new){
 			private$check_version_compat()
-			# v1.0.6-TODO-316: if adding the row or assigning it fails, roll the design back so a
+			# v1.0.6-TODO-196: if adding the row or assigning it fails, roll the design back so a
 			# refused subject is not left enrolled with w = NA (t advanced, row stored).
 			state_before = private$snapshot_subject_state(x_new)
 			assigned = FALSE
 			on.exit(if (!assigned) private$restore_subject_state(state_before), add = TRUE)
 			self$add_one_subject(x_new)
-			# v1.0.6-TODO-177: with a seed, subject t's draw comes from (seed, t) with the
+			# v1.0.6-TODO-123: with a seed, subject t's draw comes from (seed, t) with the
 			# session's RNG state saved and restored, so it does not depend on anything
 			# else drawn in the session (or on a saveRDS()/readRDS() in between). Only this
 			# entry point is seeded: the replays inside draw_ws_raw() call assign_wt()
@@ -296,7 +296,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	),
 	private = list(
 		equal_block_sizes = FALSE,
-		# v1.0.6-TODO-351: coerce one new subject's value to the type its column was stored with,
+		# v1.0.6-TODO-219: coerce one new subject's value to the type its column was stored with,
 		# or stop naming the column when the value would be lost (non-missing in, NA out).
 		coerce_new_value_to_stored_type = function(value, stored_type, new_type, col){
 			to_number = function(v) if (is.logical(v) || is.numeric(v)) as.numeric(v) else suppressWarnings(as.numeric(as.character(v)))
@@ -322,11 +322,11 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			}
 			coerced
 		},
-		# v1.0.6-TODO-177: evaluate `expr` (a promise, forced after seeding) under
+		# v1.0.6-TODO-123: evaluate `expr` (a promise, forced after seeding) under
 		# set.seed() of the seed derived from this design's seed and `key` (a subject
 		# index, or "redraw"), with the session's .Random.seed -- or its absence --
 		# saved before and restored after, even if `expr` errors.
-		# v1.0.6-TODO-316: the private fields as they were before a subject was added. R values
+		# v1.0.6-TODO-196: the private fields as they were before a subject was added. R values
 		# are copy-on-modify, so this keeps references, not copies. The one in-place mutation on
 		# the add path that a later rollback could see is a new column added to Xraw by reference
 		# (allow_new_cols), so Xraw is deep-copied only when x_new's columns differ. In-place row
@@ -364,14 +364,14 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 			expr
 		},
 		draw_ws_raw = function(r = 100){
-			# v1.0.6-TODO-42: the replay below rebuilds private$w subject by subject (the
+			# v1.0.6-TODO-8: the replay below rebuilds private$w subject by subject (the
 			# assign_wt() rules read the running w), so put the realized allocation back
 			# afterwards, even if a replay errors. Without this a redraw on a live design
 			# (e.g. InferenceIncidCMH's SE path on an Urn design) left the last replayed
 			# vector in place of the subjects' real assignments.
 			w_realized = private$w
 			on.exit(private$w <- w_realized, add = TRUE)
-			# v1.0.6-TODO-183: advance private$t through the replay so an assign_wt() /
+			# v1.0.6-TODO-129: advance private$t through the replay so an assign_wt() /
 			# custom assignment_rule() that reads t (or subject t's row) sees the subject
 			# being replayed, not the last enrolled one; restore it afterwards.
 			t_enrolled = private$t
@@ -394,7 +394,7 @@ DesignSeqOneByOne = R6::R6Class("DesignSeqOneByOne",
 	)
 )
 
-# v1.0.6-TODO-177: deterministic seed in [0, 2^31 - 1) for one seeded draw of a
+# v1.0.6-TODO-123: deterministic seed in [0, 2^31 - 1) for one seeded draw of a
 # sequential design, from the design's seed and a key (the subject index t, or
 # "redraw"): seed per draw index, the rule EDI already uses so results do not depend
 # on the thread count. Same polynomial string hash as comprehensive_tests.R's

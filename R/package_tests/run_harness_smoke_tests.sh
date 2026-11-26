@@ -4,7 +4,7 @@
 # check converges, so the committed CSVs these read are settled).
 #
 # These went unrun from about 2026-10 to 2026-11-15 and rotted while the harness drifted
-# from EDI (lazy-component stubs hid most argument contracts; release_v1_0_6.md TODO-23).
+# from EDI (lazy-component stubs hid most argument contracts; release_v1_0_7.md TODO-18).
 #
 # Skipped by default, because the hook already runs the comprehensive suite's smoke tier
 # and they take ~200 s each: smoke_test_run_comprehensive_suite.R and

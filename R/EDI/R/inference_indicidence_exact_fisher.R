@@ -35,24 +35,10 @@ ExactFisherIncidenceSource = list(
 			type
 		},
 		normalize_exact_inference_args = function(type, args_for_type = NULL){
-			if (should_run_asserts()) {
-				assertChoice(type, c("Fisher"))
-				assertList(args_for_type, null.ok = TRUE)
-			}
-			utils::modifyList(setNames(list(list()), type), if (is.null(args_for_type)) list() else args_for_type)
+			edi_exact_incidence_args(type, args_for_type, "Fisher")
 		},
 		assert_exact_inference_params = function(type, args_for_type){
-			if (should_run_asserts()) {
-				assertChoice(type, c("Fisher"))
-				assertList(args_for_type)
-				if (!(type %in% names(args_for_type))) stop("args_for_type must contain a list for ", type)
-			}
-			args = args_for_type[[type]]
-			if (should_run_asserts()) {
-				assertList(args)
-				assertResponseType(private$des_obj$get_response_type(), "incidence")
-				assertNoCensoring(private$any_censoring)
-			}
+			args = edi_validate_exact_incidence_args(private, type, args_for_type, "Fisher")
 			if (should_run_asserts()) {
 				if (!private$design_supports_exact_fisher()) {
 					stop("Fisher exact inference requires iBCRD, blocking, or matching designs.")
@@ -123,7 +109,7 @@ ExactFisherIncidenceSource = list(
 			# exact p-value and CI do not use this estimate and stay available.
 			if (!is.finite(est)) {
 				private$cache_nonestimable_estimate("exact_fisher_conditional_mle_infinite")
-				# v1.0.6-TODO-306: say so (once per object) instead of a bare NA.
+				# v1.0.6-TODO-191: say so (once per object) instead of a bare NA.
 				if (!isTRUE(private$cached_values$exact_fisher_inf_warned)) {
 					private$cached_values$exact_fisher_inf_warned = TRUE
 					y = private$y; w = private$w

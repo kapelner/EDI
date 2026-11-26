@@ -154,7 +154,7 @@ cluster_robust_cr2_variance = function(X, y, coef_hat, cluster, j) {
 	ssq = as.numeric(vcov[j, j])
 	# Not estimable when the variance is at the floating-point noise floor of the fit (a perfect fit, whose
 	# residuals are rounding error). The floor is relative to the scale of y and the fitted values, so the
-	# variance stays equivariant under rescaling y (v1.0.6-TODO-58: the old absolute .Machine$double.eps
+	# variance stays equivariant under rescaling y (v1.0.6-TODO-22: the old absolute .Machine$double.eps
 	# floor called y * 1e-8 not estimable). Rounding error in each residual is about eps * max|y|, and the
 	# CR2 sandwich of residuals bounded by r has variance at most about n * r^2 * (X'X)^{-1}_jj.
 	fit_scale = max(abs(y), abs(y - e))
@@ -212,7 +212,7 @@ edi_warn_cluster_independence_once = function(self, private, family = c("wald", 
 	} else {
 		"likelihood-based (score, gradient, likelihood-ratio, Bartlett, parametric-bootstrap) tests and intervals"
 	}
-	# Suggest only the procedures this class supports (v1.0.6-TODO-125: RMST, LogRank etc.
+	# Suggest only the procedures this class supports (v1.0.6-TODO-79: RMST, LogRank etc.
 	# refuse compute_rand_confidence_interval()).
 	has = function(cap) isTRUE(tryCatch(self$supports(cap)[[1L]], error = function(e) FALSE))
 	alternatives = c(
@@ -451,7 +451,7 @@ edi_warn_ci_wald_fallback_once = function(self, private, testing_type, reason) {
 #' \code{na.rm = TRUE} would drop them. Never changes any returned value.
 #' Silent while a resampling operation is active.
 #'
-#' v1.0.6-TODO-214: \code{compute_rand_bootstrap_two_sided_pval()} (default
+#' v1.0.6-TODO-155: \code{compute_rand_bootstrap_two_sided_pval()} (default
 #' \code{na.rm = TRUE}) uses it too when called with \code{na.rm = FALSE}
 #' (\code{rand_bootstrap = TRUE}: its own once-per-object flag and wording, as
 #' na.rm = FALSE is not its default). The optional logical \code{valid} (one
@@ -506,11 +506,11 @@ edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, al
 	}
 	if (!grepl("adjustment_on_boundary$", as.character(reason)[1L])) return(invisible(FALSE))
 	ledger = private$cached_values$bca_boundary_warned
-	# The CI and the p-value each warn once (v1.0.6-TODO-114); the CI keeps its original key.
+	# The CI and the p-value each warn once (v1.0.6-TODO-68); the CI keeps its original key.
 	key = paste0(type, if (!identical(what, "interval")) paste0("/", what), ":", reason)
 	if (is.character(ledger) && key %in% ledger) return(invisible(FALSE))
 	private$cached_values$bca_boundary_warned = c(if (is.character(ledger)) ledger, key)
-	# v1.0.6-TODO-92: "increase B" is advice only when B is below the recommended 501. At
+	# v1.0.6-TODO-51: "increase B" is advice only when B is below the recommended 501. At
 	# B >= 501 the boundary comes from the data (an extreme bias correction or acceleration),
 	# not from too few order statistics, so recommending the B just used is wrong.
 	advice = if (B < 501) {
@@ -534,7 +534,7 @@ edi_warn_bca_boundary_once = function(self, private, B, type = "bca", reason, al
 }
 
 #' Warn once per object when a BCa CI or p-value is NA because the bias correction or
-#' acceleration is unstable (v1.0.6-TODO-116)
+#' acceleration is unstable (v1.0.6-TODO-70)
 #'
 #' \code{bca_ci_core()} / \code{bca_pval_core()} return NA with a reason ending in
 #' \code{unstable_bias_or_acceleration} when \eqn{|z_0| > 2.5}, \eqn{|a| > 1}, either is
@@ -634,7 +634,7 @@ edi_warn_binomial_mle_boundary_once = function(self, private, X_fit, b, link = c
 }
 
 #' Number of subjects whose fitted logistic probability is numerically 0 or 1
-#' (v1.0.6-TODO-109)
+#' (v1.0.6-TODO-63)
 #'
 #' Counts rows of \code{X_fit} with fitted probability
 #' \eqn{\mathrm{plogis}(X\beta)} below \code{eps} or above \code{1 - eps},
@@ -645,7 +645,7 @@ edi_warn_binomial_mle_boundary_once = function(self, private, X_fit, b, link = c
 #' .Machine$double.eps}, but the EDI fitters stop earlier (a fit separated on
 #' treatment alone ends near \eqn{|X\beta| \approx 23}), so a looser edge is
 #' used. Returns \code{NA_integer_} when the linear predictor cannot be formed.
-#' \code{link = "probit"} (v1.0.6-TODO-119) uses \eqn{\Phi(X\beta)} instead,
+#' \code{link = "probit"} (v1.0.6-TODO-73) uses \eqn{\Phi(X\beta)} instead,
 #' i.e. \eqn{|X\beta| \ge \Phi^{-1}(1 - eps)} (about 5.6 at the default; a
 #' probit fit separated on treatment alone ends near \eqn{|X\beta| \approx 7}).
 #'
@@ -661,7 +661,7 @@ edi_logistic_n_fitted_extreme = function(X_fit, b, eps = 1e-8, link = c("logit",
 }
 
 #' Exact check for (quasi-)complete separation of binary or fractional data
-#' (v1.0.6-TODO-274)
+#' (v1.0.6-TODO-173)
 #'
 #' \code{edi_logistic_n_fitted_extreme()} is a screen, not a test: one
 #' high-leverage subject can have a fitted probability within 1e-8 of 0 or 1
@@ -726,7 +726,7 @@ edi_binary_data_separated = function(X, y, tol = 1e-7) {
 }
 
 #' Warn once per object when a logistic fit shows (quasi-)complete separation
-#' (v1.0.6-TODO-109)
+#' (v1.0.6-TODO-63)
 #'
 #' Called right after a full-data logistic fit is accepted. If any fitted
 #' probability is numerically 0 or 1 (see
@@ -739,9 +739,9 @@ edi_binary_data_separated = function(X, y, tol = 1e-7) {
 #' \code{n}) at most once per inference object. Never changes any returned
 #' value. Silent while a resampling operation is active, so resampling inner
 #' loops never repeat it. \code{advice}, when given, replaces the default
-#' "Consider ..." sentence (v1.0.6-TODO-118: the KK GEE classes, which have no
+#' "Consider ..." sentence (v1.0.6-TODO-72: the KK GEE classes, which have no
 #' likelihood-ratio test and return NA Wald results under separation).
-#' \code{link = "probit"} (v1.0.6-TODO-119, \code{InferenceIncidProbitRegr})
+#' \code{link = "probit"} (v1.0.6-TODO-73, \code{InferenceIncidProbitRegr})
 #' checks \eqn{\Phi(X\beta)} instead; the warning keeps the class
 #' \code{edi_logistic_separation_warning} for every binary link (one class to
 #' catch or suppress) and carries the link in its \code{link} field.
@@ -775,7 +775,7 @@ edi_warn_logistic_separation_once = function(self, private, X_fit, b, eps = 1e-8
 }
 
 #' Warn once per object when the hardened refit drops a covariate
-#' (v1.0.6-TODO-138)
+#' (v1.0.6-TODO-92)
 #'
 #' The hardened fitting paths (\code{fit_with_hardened_qr_column_dropping()}
 #' and the g-computation drop loops) first drop columns that are linearly
@@ -796,7 +796,7 @@ edi_warn_logistic_separation_once = function(self, private, X_fit, b, eps = 1e-8
 #' class's fit checks for another reason, e.g. no usable standard error),
 #' \code{"treatment_only_fallback"} (every covariate was dropped after the
 #' covariate-adjusted fit failed), or \code{"aliased_on_positive_rows"}
-#' (zero-augmented count classes, v1.0.6-TODO-195: count-part covariates
+#' (zero-augmented count classes, v1.0.6-TODO-140: count-part covariates
 #' aliased on the rows with a positive count, dropped as \code{glm} drops
 #' aliased columns). Emits one classed warning
 #' \code{edi_covariate_dropped_warning} (fields \code{dropped}, \code{reason},
@@ -841,7 +841,7 @@ edi_warn_covariate_dropped_once = function(self, private, dropped, reason = c("c
 	invisible(TRUE)
 }
 
-#' Covariate-drop warning for the g-computation drop loops (v1.0.6-TODO-138)
+#' Covariate-drop warning for the g-computation drop loops (v1.0.6-TODO-92)
 #'
 #' \code{fit} is the accepted fit from a g-computation
 #' \code{fit_*_with_sandwich()} loop, which records the QR-rank column names
@@ -868,7 +868,7 @@ edi_warn_gcomp_covariate_drop = function(self, private, X_full, fit, treatment_o
 	edi_warn_covariate_dropped_once(self, private, dropped, cls$reason, cls$diverged)
 }
 
-#' Reason and diverged columns for a hardened drop (v1.0.6-TODO-138)
+#' Reason and diverged columns for a hardened drop (v1.0.6-TODO-92)
 #'
 #' Reads the coefficients of the rejected full-rank fit (\code{b},
 #' \code{coefficients}, \code{beta} or \code{coef}) and reports
@@ -912,7 +912,7 @@ edi_resampling_procedure_for_reason = function(reason) {
 	if (is.na(reason)) return(NULL)
 	# Before the primary-fit rule: "lik_ratio_bootstrap_ci_pval_at_estimate_unavailable" is the
 	# LR-bootstrap p-value failing at a finite estimate (the CI returns early on a non-finite
-	# one), a failure of the interval, not of the primary fit (v1.0.6-TODO-210).
+	# one), a failure of the interval, not of the primary fit (v1.0.6-TODO-151).
 	if (grepl("^lik_ratio_bootstrap_ci_", reason)) return("lik_ratio_bootstrap_ci")
 	if (grepl("(^|_)(estimate|original_standard_error)_unavailable$", reason)) return(NULL)
 	if (grepl("^rand_bootstrap_ci_", reason)) return("rand_bootstrap_ci")
@@ -1013,7 +1013,7 @@ edi_clear_procedure_failure = function(private, procedure) {
 }
 
 #' Warn that a public method is returning NA for a recorded reason
-#' (v1.0.6-TODO-113, the v1.0.6-TODO-95 rule)
+#' (v1.0.6-TODO-67, the v1.0.6-TODO-54 rule)
 #'
 #' Call it right where a public method records a reason
 #' (\code{cache_procedure_failure()} / \code{edi_record_procedure_failure()})
@@ -1044,7 +1044,7 @@ edi_warn_procedure_na = function(self, private, procedure, reason, detail = NULL
 }
 
 #' The NA a Wald confidence interval or p-value returns when its standard
-#' error is unavailable (v1.0.6-TODO-380)
+#' error is unavailable (v1.0.6-TODO-225)
 #'
 #' "If the user wants wald, we should always give wald": a Wald path whose
 #' standard error is missing returns \code{NA}, never another procedure (several
@@ -1056,9 +1056,10 @@ edi_warn_procedure_na = function(self, private, procedure, reason, detail = NULL
 #'
 #' @keywords internal
 #' @noRd
-edi_wald_unavailable_na = function(self, private, alpha = NULL, reason = "wald_standard_error_unavailable") {
+edi_wald_unavailable_na = function(self, private, alpha = NULL, reason = "wald_standard_error_unavailable", once = TRUE) {
 	private$cache_procedure_failure("wald", reason)
-	if (!isTRUE(private$cached_values$wald_unavailable_warned)) {
+	# once = FALSE (v1.0.7-TODO-181): warn on every call that returns this NA, so a second call is not silent.
+	if (!isTRUE(once) || !isTRUE(private$cached_values$wald_unavailable_warned)) {
 		warned = edi_warn_procedure_na(self, private,
 			procedure = "the Wald confidence interval / p-value",
 			reason = reason,
@@ -1076,7 +1077,7 @@ edi_wald_unavailable_na = function(self, private, alpha = NULL, reason = "wald_s
 }
 
 #' The NA an asymptotic rank-test p-value returns when its null variance or
-#' p-value is unavailable (v1.0.6-TODO-417)
+#' p-value is unavailable (v1.0.6-TODO-231)
 #'
 #' Sibling of \code{edi_wald_unavailable_na()} for the rank tests (log-rank,
 #' Gehan-Wilcoxon) per DECISION-v1.0.6-TODO-380d: the asymptotic p-value is
@@ -1101,6 +1102,39 @@ edi_rank_test_unavailable_na = function(self, private, reason = "rank_test_asymp
 		if (isTRUE(warned)) private$cached_values$rank_test_unavailable_warned = TRUE
 	}
 	NA_real_
+}
+
+#' The NA a point estimate returns when the fit cannot produce one
+#' (v1.0.7-TODO-181)
+#'
+#' Sibling of \code{edi_wald_unavailable_na()} for \code{compute_estimate()}:
+#' warns on every call (class \code{edi_estimate_unavailable_warning}, also an
+#' \code{edi_procedure_na_warning}; silent inside resampling) with the reason
+#' the fit recorded, and returns \code{NA_real_}. Found by the real-data crash
+#' corpus: on trials of 4 to 20 subjects the linear and quantile classes
+#' returned a silent \code{NA}.
+#'
+#' @keywords internal
+#' @noRd
+edi_estimate_unavailable_na = function(self, private, reason = NULL, detail = NULL) {
+	reason = reason %||% private$cached_values$nonestimable_reason %||% "estimate_unavailable"
+	edi_warn_procedure_na(self, private, procedure = "estimate", reason = reason, detail = detail,
+		warning_class = "edi_estimate_unavailable_warning")
+	NA_real_
+}
+
+#' Why a Wald standard error is unavailable (v1.0.7-TODO-181): the fit's
+#' recorded non-estimable reason, else no residual degrees of freedom, else the
+#' generic \code{"wald_standard_error_unavailable"}.
+#'
+#' @keywords internal
+#' @noRd
+edi_wald_se_na_reason = function(private) {
+	cv = private$cached_values
+	if (!is.finite(cv$beta_hat_T %||% NA_real_) && length(cv$nonestimable_reason)) return(cv$nonestimable_reason)
+	df = cv$df
+	if (length(df) == 1L && is.finite(df) && df <= 0) return("no_residual_degrees_of_freedom")
+	"wald_standard_error_unavailable"
 }
 
 #' Has a procedure already recorded a failure reason? (TODO-116)

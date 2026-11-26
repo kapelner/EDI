@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-117: interval::ictest() orders a two-level group by first
+# v1.0.6-TODO-71: interval::ictest() orders a two-level group by first
 # appearance, so its estimate/Z are "arm in row 1 minus the other arm". On
 # interval-censored data InferenceSurvivalLogRank used them unoriented, so the
 # point estimate's sign depended on which arm subject 1 was in, and bootstrap

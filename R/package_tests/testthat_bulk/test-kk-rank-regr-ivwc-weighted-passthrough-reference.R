@@ -16,7 +16,7 @@ library(EDI)
 # internals) and independently recomputing the weighted-combination formula
 # from scratch.
 
-# v1.0.6-TODO-217 (2026-11-19): that fallback averaged raw survival times
+# v1.0.6-TODO-158 (2026-11-19): that fallback averaged raw survival times
 # (replicates near 2.3 for an estimate of 0.94 on one fixture), not this
 # log-time-ratio estimator, and is gone. The class now reruns both aftsrr fits
 # with the draw's case weights (weights = ), each with its ISMB variance, and
@@ -25,7 +25,7 @@ library(EDI)
 # equation is deterministic; only the ISMB variance is a seeded Monte Carlo)
 # and the pooling against the halves' recorded variances.
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
 # this seed formed 8 pairs, not the 4 pairs + 16 reservoir subjects (20 blocks)
 # the tests below are written for. With two covariates the F(2, .) cutoff near

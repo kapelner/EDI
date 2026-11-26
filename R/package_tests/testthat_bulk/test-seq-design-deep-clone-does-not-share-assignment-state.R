@@ -1,4 +1,4 @@
-# v1.0.6-TODO-350 (ds-save-load-44883784401-f2): clone(deep = TRUE) of DesignSeqOneByOneSPBR,
+# v1.0.6-TODO-218 (ds-save-load-44883784401-f2): clone(deep = TRUE) of DesignSeqOneByOneSPBR,
 # DesignSeqOneByOneRandomBlockSize and DesignSeqOneByOnePocockSimon shared per-stratum state with the
 # original. SPBR / RandomBlockSize kept their block queues in an environment (copied by reference), and
 # PocockSimon's running counts matrix is updated in place by pocock_simon_assign_and_update_cpp(), so

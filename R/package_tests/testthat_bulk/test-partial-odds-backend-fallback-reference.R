@@ -124,7 +124,7 @@ test_that("with VGAM and ordinal both unavailable, a parallel fit silently falls
 
 # docs-claims audit, finding docs-claims-d38c37c85: when every weighted backend fails, the weighted
 # refit falls back to weighted_ordinal_bootstrap_surrogate_fit(..., method = "logistic").
-test_that("weighted refit falls back to the logistic surrogate when every weighted backend fails, with NA SE", {
+test_that("weighted refit falls back to weighted proportional odds with NA SE", {
   fixture <- partial_odds_fallback_fixture()
   p <- fixture$private
   unlockBinding("fit_polr_weighted", p)
@@ -134,14 +134,14 @@ test_that("weighted refit falls back to the logistic surrogate when every weight
   weights <- sample(1:4, 40L, replace = TRUE)
   got <- fixture$inf$compute_estimate_with_bootstrap_weights(weights)
   y <- c(rep(1:3, c(5, 10, 5)), rep(1:3, c(2, 8, 10)))
-  sur <- weighted_ordinal_bootstrap_surrogate_fit(
-    X = cbind(treatment = rep(c(0, 1), each = 20L)), y = y, row_weights = weights, method = "logistic")
-  expect_equal(got, sur$beta_hat)
+  treatment <- rep(c(0, 1), each = 20L)
+  dat <- data.frame(y = ordered(y), treatment = treatment, weight = weights / mean(weights))
+  ref <- suppressWarnings(MASS::polr(y ~ treatment, data = dat, weights = weight, method = "logistic",
+    control = list(reltol = 1e-10)))
+  expect_equal(got, unname(coef(ref)[["treatment"]]), tolerance = 1e-5)
   expect_true(is.finite(got))
   expect_true(is.na(p$last_weighted_refit$s_beta_hat_T))
-  # The docs call this surrogate a "plain weighted binary-logistic surrogate fit ... that does not
-  # model the ordinal structure at all", but weighted_ordinal_bootstrap_surrogate_fit(method =
-  # "logistic") is a weighted MASS::polr proportional-odds fit (fit_type "polr_logistic").
-  skip("v1.0.6-TODO-256: surrogate is weighted polr (proportional odds), not a binary-logistic fit as documented")
-  expect_false(startsWith(sur$fit_type, "polr"))
+  sur <- EDI:::weighted_ordinal_bootstrap_surrogate_fit(
+    X = cbind(treatment = treatment), y = y, row_weights = weights, method = "logistic")
+  expect_identical(sur$fit_type, "polr_logistic")
 })

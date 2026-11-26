@@ -1,4 +1,4 @@
-# v1.0.6-TODO-109: InferenceIncidLogRegr (and the logistic g-computation classes)
+# v1.0.6-TODO-63: InferenceIncidLogRegr (and the logistic g-computation classes)
 # warn when fitted probabilities are numerically 0 or 1 ((quasi-)complete
 # separation), once per object, never from resampling inner loops, and without
 # changing any estimate.

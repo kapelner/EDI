@@ -8,7 +8,7 @@
 # On commit 48765322fe90 this test failed with: Expected `as.numeric(kfit$b)` to equal
 # `unname(stats::coef(ref0))`. Differences: 2/2 mismatches (average diff: 5.29) [1] 0 - 9.938 ==
 # -9.938 [2] 0 - 0.651 == -0.651
-# Tracked as v1.0.6-TODO-394; skip removed 2026-11-23 (kernel zero-start retry + fit_ok converged check).
+# Tracked as v1.0.6-TODO-199; skip removed 2026-11-23 (kernel zero-start retry + fit_ok converged check).
 
 test_that("Poisson estimate matches glm for large counts under the default zero cold start", {
 		set.seed(1)

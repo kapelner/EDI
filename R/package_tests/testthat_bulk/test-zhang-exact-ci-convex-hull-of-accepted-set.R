@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-233: the combined exact p-value of InferenceIncidExactZhang is not monotone in the log
+# v1.0.6-TODO-167: the combined exact p-value of InferenceIncidExactZhang is not monotone in the log
 # odds ratio (each component is a two-sided "minimum likelihood" exact p-value that jumps where
 # another outcome ties the observed one), so the set of accepted values can have gaps. The bisection
 # used to return only the piece around its starting point (8 of 323 random KK CIs). The CI is now the

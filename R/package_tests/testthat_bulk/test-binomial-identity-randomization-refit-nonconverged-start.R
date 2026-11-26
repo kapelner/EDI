@@ -9,7 +9,7 @@
 # Where: R/EDI/R/inference_incidence_binomial_identity.R:172 (kind: converged_unchecked).
 # On commit 48765322fe90 this test failed with: Expected `is.na(est) || abs(est - ref) < 0.001` to be
 # TRUE. Differences: `actual`: FALSE `expected`: TRUE
-# v1.0.6-TODO-205 fixed this: the method now returns compute_estimate(estimate_only = TRUE), whose
+# v1.0.6-TODO-146 fixed this: the method now returns compute_estimate(estimate_only = TRUE), whose
 # fit refits cold when the warm-started fit stalls and rejects a non-converged fit.
 
 test_that("identity-binomial randomization refit does not return a non-converged warm start as the estimate", {

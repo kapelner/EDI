@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-302 (docs-scenarios clusters-blocking F7): on this blocked-cluster trial the prepivoted,
+# v1.0.6-TODO-189 (docs-scenarios clusters-blocking F7): on this blocked-cluster trial the prepivoted,
 # double-bootstrap and calibrated bootstrap CIs returned c(NA, NA) with only "bootstrap_ci_unavailable"
 # while the percentile CI was finite. Verified already fixed on HEAD 2026-11-21; this pins the
 # prepivoted type (the double-bootstrap and calibrated types share its inner bootstrap and are slower).

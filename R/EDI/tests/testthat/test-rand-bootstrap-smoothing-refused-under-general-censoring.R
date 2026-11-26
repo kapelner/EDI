@@ -1,4 +1,4 @@
-# v1.0.6-TODO-146: the smoothed bootstrap randomization test added its kernel noise to y only.
+# v1.0.6-TODO-98: the smoothed bootstrap randomization test added its kernel noise to y only.
 # Under left-/interval-censoring a censored subject's y is NA, so the noise never reached the
 # censored subjects (y_L / y_R stayed put), the bandwidth came from the exact times alone (a
 # fallback of 1.0 raw time units when every subject is censored), and on mixed data Weibull's
@@ -78,7 +78,7 @@ test_that("right-censored survival data still smooth, and unsmoothed BRT under i
 		expect_true(is.numeric(pv) && length(pv) == 1L, info = cls)
 	}
 	des_i = brt_smooth_censoring_design(kind = "mixed")
-	skip_if_not_installed("interval")  # LogRank's interval-censored fit (v1.0.6-TODO-180)
+	skip_if_not_installed("interval")  # LogRank's interval-censored fit (v1.0.6-TODO-126)
 	inf = suppressWarnings(InferenceSurvivalLogRank$new(des_i, verbose = FALSE))
 	set.seed(1)
 	pv = suppressWarnings(inf$compute_rand_bootstrap_two_sided_pval(B = 11, type = "percentile", show_progress = FALSE))

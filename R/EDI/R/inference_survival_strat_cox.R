@@ -237,15 +237,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_confidence_interval_impl(alpha),
-				score = private$compute_score_confidence_interval_impl(alpha),
-				gradient = private$compute_gradient_confidence_interval_impl(alpha),
-				lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha)
-			)
+			edi_likelihood_asymp_ci(private, alpha, private$compute_wald_confidence_interval_impl(alpha), unsupported = NULL)
 		},
 		#' @description Computes an asymptotic two-sided p-value using the configured likelihood-backed test.
 		#' @param delta Null treatment effect to test against. Default 0.
@@ -259,15 +251,7 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
-			switch(
-				private$testing_type,
-				wald = private$compute_wald_two_sided_pval_impl(delta),
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta)
-			)
+			edi_likelihood_asymp_pval(private, delta, private$compute_wald_two_sided_pval_impl(delta), unsupported = NULL)
 		},
 		#' @description Recomputes the stratified Cox PH treatment estimate under
 		#'   Bayesian-bootstrap weights.
@@ -647,60 +631,21 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			
 			if (length(informative_rows) >= 4){
 				if (private$use_rcpp){
-					p_fit = ncol(private$strat_cox_X_fit_cache)
-					fit = NULL
-					if (!is.null(private$strat_cox_data_cache)) {
-						fit = tryCatch(
-							fast_coxph_regression_prebuilt_cpp(
-								private$strat_cox_data_cache,
-								estimate_only = estimate_only,
-								warm_start_beta = private$get_fit_warm_start_for_length("params", p_fit),
-								warm_start_fisher_info = private$get_fit_warm_start_fisher(p_fit),
-								smart_cold_start = private$smart_cold_start_default %||% FALSE,
-								optimization_alg = "newton_raphson"
-							),
-							error = function(e) NULL
-						)
-					}
+					fit = strat_cox_fit_prebuilt(private, estimate_only)
 					if (!is.null(fit) && isTRUE(fit$converged)){
-						private$cached_mod = fit
-						private$set_fit_warm_start(as.numeric(fit$coefficients %||% fit$b), "params", fisher = fit$fisher_information, force_pd = TRUE)
-						if (!estimate_only) {
-							private$cached_values$likelihood_test_context = list(
-								X = private$strat_cox_X_fit_cache, y = private$strat_cox_y_cache,
-								dead = private$strat_cox_dead_cache, strata = private$strat_cox_strata_sub_cache,
-								stratified = TRUE, j_treat = 1L,
-								full_neg_loglik = fit$neg_ll %||% fit$neg_log_lik
-							)
-						}
-						return(private$format_rcpp_output(fit))
+						return(strat_cox_cache_native_fit(private, fit, estimate_only, TRUE,
+							private$strat_cox_X_fit_cache, private$strat_cox_y_cache, private$strat_cox_dead_cache, private$strat_cox_strata_sub_cache))
 					}
 					# Fallback: old per-call path (C++ prebuilt failed)
 					res = private$fit_rcpp_stratified(informative_rows, X_linear, strata_info$strata_id, estimate_only = estimate_only)
 					if (!is.null(res) && isTRUE(res$fit$converged)){
-						private$cached_mod = res$fit
-						private$set_fit_warm_start(as.numeric(res$fit$coefficients %||% res$fit$b), "params", fisher = res$fit$fisher_information, force_pd = TRUE)
-						if (!estimate_only) {
-							private$cached_values$likelihood_test_context = list(
-								X = res$X, y = res$y, dead = res$dead, strata = res$strata,
-								stratified = TRUE, j_treat = 1L,
-								full_neg_loglik = res$fit$neg_ll %||% res$fit$neg_log_lik
-							)
-						}
-						return(private$format_rcpp_output(res$fit))
+						return(strat_cox_cache_native_fit(private, res$fit, estimate_only, TRUE,
+							res$X, res$y, res$dead, res$strata))
 					}
 					res = private$fit_rcpp_unstratified(informative_rows, X_linear, estimate_only = estimate_only)
 					if (!is.null(res) && isTRUE(res$fit$converged)){
-						private$cached_mod = res$fit
-						private$set_fit_warm_start(as.numeric(res$fit$coefficients %||% res$fit$b), "params", fisher = res$fit$fisher_information, force_pd = TRUE)
-						if (!estimate_only) {
-							private$cached_values$likelihood_test_context = list(
-								X = res$X, y = res$y, dead = res$dead, strata = res$strata,
-								stratified = FALSE, j_treat = 1L,
-								full_neg_loglik = res$fit$neg_ll %||% res$fit$neg_log_lik
-							)
-						}
-						return(private$format_rcpp_output(res$fit))
+						return(strat_cox_cache_native_fit(private, res$fit, estimate_only, FALSE,
+							res$X, res$y, res$dead, res$strata))
 					}
 				} else {
 					colnames(X_linear) = paste0("x", seq_len(ncol(X_linear)))
@@ -747,46 +692,15 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 			}
 			all_rows = seq_len(length(private$y))
 			if (private$use_rcpp){
-				p_fit = ncol(private$strat_cox_X_fit_cache)
-				fit = NULL
-				if (!is.null(private$strat_cox_data_cache)) {
-					fit = tryCatch(
-						fast_coxph_regression_prebuilt_cpp(
-							private$strat_cox_data_cache,
-							estimate_only = estimate_only,
-							warm_start_beta = private$get_fit_warm_start_for_length("params", p_fit),
-							warm_start_fisher_info = private$get_fit_warm_start_fisher(p_fit),
-							smart_cold_start = private$smart_cold_start_default %||% FALSE,
-							optimization_alg = "newton_raphson"
-						),
-						error = function(e) NULL
-					)
-				}
+				fit = strat_cox_fit_prebuilt(private, estimate_only)
 				if (!is.null(fit) && isTRUE(fit$converged)){
-					private$cached_mod = fit
-					private$set_fit_warm_start(as.numeric(fit$coefficients %||% fit$b), "params", fisher = fit$fisher_information, force_pd = TRUE)
-					if (!estimate_only) {
-						private$cached_values$likelihood_test_context = list(
-							X = private$strat_cox_X_fit_cache, y = private$strat_cox_y_cache,
-							dead = private$strat_cox_dead_cache, strata = NULL,
-							stratified = FALSE, j_treat = 1L,
-							full_neg_loglik = fit$neg_ll %||% fit$neg_log_lik
-						)
-					}
-					return(private$format_rcpp_output(fit))
+					return(strat_cox_cache_native_fit(private, fit, estimate_only, FALSE,
+						private$strat_cox_X_fit_cache, private$strat_cox_y_cache, private$strat_cox_dead_cache, NULL))
 				}
 				res = private$fit_rcpp_unstratified(all_rows, X_linear, estimate_only = estimate_only)
 				if (!is.null(res) && isTRUE(res$fit$converged)){
-					private$cached_mod = res$fit
-					private$set_fit_warm_start(as.numeric(res$fit$coefficients %||% res$fit$b), "params", fisher = res$fit$fisher_information, force_pd = TRUE)
-					if (!estimate_only) {
-						private$cached_values$likelihood_test_context = list(
-							X = res$X, y = res$y, dead = res$dead, strata = NULL,
-							stratified = FALSE, j_treat = 1L,
-							full_neg_loglik = res$fit$neg_ll %||% res$fit$neg_log_lik
-						)
-					}
-					return(private$format_rcpp_output(res$fit))
+					return(strat_cox_cache_native_fit(private, res$fit, estimate_only, FALSE,
+						res$X, res$y, res$dead, NULL))
 				}
 			} else {
 				colnames(X_linear) = paste0("x", seq_len(ncol(X_linear)))
@@ -942,3 +856,32 @@ InferenceSurvivalStratCoxPHRegr = define_inference_class(
 		)
 	)
 )
+
+strat_cox_fit_prebuilt = function(private, estimate_only) {
+	p_fit = ncol(private$strat_cox_X_fit_cache)
+	if (is.null(private$strat_cox_data_cache)) return(NULL)
+	tryCatch(
+		fast_coxph_regression_prebuilt_cpp(
+			private$strat_cox_data_cache,
+			estimate_only = estimate_only,
+			warm_start_beta = private$get_fit_warm_start_for_length("params", p_fit),
+			warm_start_fisher_info = private$get_fit_warm_start_fisher(p_fit),
+			smart_cold_start = private$smart_cold_start_default %||% FALSE,
+			optimization_alg = "newton_raphson"
+		),
+		error = function(e) NULL
+	)
+}
+
+strat_cox_cache_native_fit = function(private, fit, estimate_only, stratified, X, y, dead, strata) {
+	private$cached_mod = fit
+	private$set_fit_warm_start(as.numeric(fit$coefficients %||% fit$b), "params",
+		fisher = fit$fisher_information, force_pd = TRUE)
+	if (!estimate_only) {
+		private$cached_values$likelihood_test_context = list(
+			X = X, y = y, dead = dead, strata = strata, stratified = stratified, j_treat = 1L,
+			full_neg_loglik = fit$neg_ll %||% fit$neg_log_lik
+		)
+	}
+	private$format_rcpp_output(fit)
+}

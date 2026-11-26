@@ -34,6 +34,11 @@ information, as \code{glm()} reports for these non-canonical links.
 Efron, B., and Hinkley, D. V. (1978). "Assessing the accuracy
 of the maximum likelihood estimator: Observed versus expected Fisher
 information." \emph{Biometrika}, 65(3), 457-483. \doi{10.1093/biomet/65.3.457}
+
+Kent, J. T. (1982). "Robust properties of likelihood ratio
+  tests." \emph{Biometrika}, 69(1), 19-27, \doi{10.1093/biomet/69.1.19}.
+  Boos, D. D. (1992). "On generalized score tests." \emph{The American
+  Statistician}, 46(4), 327-333, \doi{10.1080/00031305.1992.10475921}.
 }
 \keyword{internal}
 \section{Super classes}{
@@ -48,6 +53,8 @@ information." \emph{Biometrika}, 65(3), 457-483. \doi{10.1093/biomet/65.3.457}
     \item \href{#method-InferenceAsympLik-set_information_preference}{\code{InferenceAsympLik$set_information_preference()}}
     \item \href{#method-InferenceAsympLik-get_testing_type}{\code{InferenceAsympLik$get_testing_type()}}
     \item \href{#method-InferenceAsympLik-get_information_preference}{\code{InferenceAsympLik$get_information_preference()}}
+    \item \href{#method-InferenceAsympLik-set_likelihood_test_variance}{\code{InferenceAsympLik$set_likelihood_test_variance()}}
+    \item \href{#method-InferenceAsympLik-get_likelihood_test_variance}{\code{InferenceAsympLik$get_likelihood_test_variance()}}
     \item \href{#method-InferenceAsympLik-get_information_source_used}{\code{InferenceAsympLik$get_information_source_used()}}
     \item \href{#method-InferenceAsympLik-get_supported_testing_types}{\code{InferenceAsympLik$get_supported_testing_types()}}
     \item \href{#method-InferenceAsympLik-get_supported_information_preferences}{\code{InferenceAsympLik$get_supported_information_preferences()}}
@@ -322,6 +329,66 @@ the types in its \code{get_supported_testing_types()}.}
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{InferenceAsympLik$get_information_preference()}
+    \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAsympLik-set_likelihood_test_variance"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAsympLik-set_likelihood_test_variance}{}}}
+\subsection{\code{InferenceAsympLik$set_likelihood_test_variance()}}{
+  Sets the variance the score, gradient and likelihood-ratio
+  tests (p-values and the confidence intervals that invert them) are
+  calibrated with. \code{"model"} (the default) uses the model-based
+  information and is valid when the model is correctly specified.
+  \code{"robust"} uses the misspecification-robust (sandwich) variance
+  of the tested coefficient, \eqn{V = A^{-1} B A^{-1}} with \eqn{A} the
+  information and \eqn{B} the summed outer products of the per-subject
+  score contributions (with an HC1-type \eqn{n / (n - k)} small-sample
+  factor), evaluated at the null-restricted fit: the score test becomes
+  the generalized score test \eqn{((A^{-1} U)_j)^2 / V_{jj}} (Kent 1982;
+  Boos 1992), and the likelihood-ratio and gradient statistics are
+  multiplied by \eqn{(A^{-1})_{jj} / V_{jj}}, the scalar case of Kent's
+  (1982) adjusted likelihood-ratio statistic. Under correct
+  specification the factor tends to 1, so the robust tests agree with
+  the model-based ones asymptotically. The robust statistics are
+  bounded as the null value moves away from the estimate, so on small
+  samples a robust likelihood-ratio or gradient interval may not be
+  obtainable by inversion; it then falls back to the Wald interval with
+  an \code{edi_lik_test_wald_fallback} warning. The Wald test and the
+  Bartlett-corrected likelihood-ratio tests are not affected. Only
+  classes listed below support \code{"robust"}; the others accept
+  \code{"model"} only. Supported: \code{InferenceCountHurdlePoisson},
+  \code{InferenceCountZeroInflatedPoisson} (v1.1.0-TODO-174).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAsympLik$set_likelihood_test_variance(
+  likelihood_test_variance = c("model", "robust")
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{likelihood_test_variance}}{One of \code{"model"} or \code{"robust"}.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The inference object, invisibly.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-InferenceAsympLik-get_likelihood_test_variance"></a>}}
+\if{latex}{\out{\hypertarget{method-InferenceAsympLik-get_likelihood_test_variance}{}}}
+\subsection{\code{InferenceAsympLik$get_likelihood_test_variance()}}{
+  Gets the variance the score, gradient and likelihood-ratio
+  tests are calibrated with (\code{"model"} or \code{"robust"}); see
+  \code{set_likelihood_test_variance()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{InferenceAsympLik$get_likelihood_test_variance()}
     \if{html}{\out{</div>}}
   }
 }

@@ -123,7 +123,10 @@ InferenceContinLin = define_inference_class(
 		#'   resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			est = private$cached_values$beta_hat_T
+			# v1.0.7-TODO-181: say why instead of a silent NA (warns on every call, silent in resampling).
+			if (!isTRUE(estimate_only) && length(est) == 1L && !is.finite(est)) return(lin_estimate_unavailable_na(self, private))
+			est
 		},
 		#' @description Refits Lin's model with subject/block-level weights applied
 		#'   to a weighted least-squares fit (\code{stats::lm.wfit}) — Bayesian-bootstrap
@@ -142,69 +145,8 @@ InferenceContinLin = define_inference_class(
 			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
 			X_full = private$build_lin_design_matrix()
 			reduced = private$reduce_design_matrix_preserving_treatment(X_full)
-			X_fit = reduced$X
-			j_treat = reduced$j_treat
-			keep = is.finite(row_weights) & row_weights > 0 & is.finite(private$y)
-			if (is.null(X_fit) || !is.finite(j_treat) || !any(keep)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			w_eff = as.numeric(row_weights[keep])
-			X_sub = X_fit[keep, , drop = FALSE]
-			y_sub = as.numeric(private$y[keep])
-			# Positive weights preserve rank under sqrt-weight scaling. Use the
-			# existing native OLS solve for full-rank draws; retain lm.wfit's alias
-			# behavior and retry path whenever the native route is inapplicable.
-			sqrt_w = sqrt(w_eff)
-			X_weighted = X_sub * sqrt_w
-			y_weighted = y_sub * sqrt_w
-			beta_native = tryCatch({
-				if (ncol(X_weighted) > 0L && qr(X_weighted)$rank == ncol(X_weighted)) {
-					fit_native = fast_ols_cpp(X_weighted, y_weighted)
-					beta = as.numeric(fit_native$b)
-					if (length(beta) == ncol(X_sub) && all(is.finite(beta))) beta else NULL
-				} else {
-					NULL
-				}
-			}, error = function(e) NULL)
-			fit = NULL
-			if (is.null(beta_native)) {
-				fit = tryCatch(
-					stats::lm.wfit(x = X_sub, y = y_sub, w = w_eff),
-					error = function(e) NULL
-				)
-			}
-			coef_hat = if (!is.null(beta_native)) {
-				beta_native
-			} else if (!is.null(fit)) {
-				as.numeric(stats::coef(fit))
-			} else {
-				numeric(0)
-			}
-			if (length(coef_hat) < j_treat || !is.finite(coef_hat[j_treat])) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = coef_hat[j_treat]
-			if (!estimate_only) {
-				df = sum(keep) - length(coef_hat)
-				se = if (df > 0L) {
-					residuals = if (!is.null(beta_native)) y_sub - as.vector(X_sub %*% beta_native) else fit$residuals
-					sigma2_w = sum(w_eff * residuals^2) / df
-					var_j = tryCatch(solve(crossprod(X_sub * sqrt(w_eff)))[j_treat, j_treat], error = function(e) NA_real_)
-					if (is.finite(var_j) && var_j > 0) sqrt(sigma2_w * var_j) else NA_real_
-				} else NA_real_
-				private$cached_values$s_beta_hat_T = if (is.finite(se) && se > 0) se else NA_real_
-				private$cached_values$df = df
-			} else {
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-			}
-			private$cached_values$beta_hat_T
+			weighted_linear_bootstrap_estimate(private, reduced$X, reduced$j_treat, row_weights,
+				estimate_only, as.vector, validate_design = TRUE)
 		},
 		#' @description Wald confidence interval for \eqn{\beta_T} using the HC2
 		#'   heteroskedasticity-robust standard error
@@ -219,7 +161,12 @@ InferenceContinLin = define_inference_class(
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
 			private$shared()
-			private$compute_z_or_t_ci_from_s_and_df(alpha)
+			ci = private$compute_z_or_t_ci_from_s_and_df(alpha)
+			# v1.0.7-TODO-181: an unavailable estimate or HC2 standard error is NA with a warning.
+			if (any(!is.finite(ci))) {
+				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = edi_wald_se_na_reason(private), once = FALSE))
+			}
+			ci
 		},
 		#' @description Two-sided Wald test of \eqn{H_0: \beta_T = \code{delta}}
 		#'   using the HC2 heteroskedasticity-robust standard error; see
@@ -232,7 +179,11 @@ InferenceContinLin = define_inference_class(
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
 			private$shared()
-			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			pval = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			if (!is.finite(pval)) {
+				return(edi_wald_unavailable_na(self, private, reason = edi_wald_se_na_reason(private), once = FALSE))
+			}
+			pval
 		}
 	),
 	private = list(
@@ -307,7 +258,7 @@ InferenceContinLin = define_inference_class(
 		},
 		get_centered_covariates = function(){
 			des_priv = private$des_obj_priv_int
-			# get_X(), not private$X (v1.0.6-TODO-108): a reusable bootstrap/jackknife worker
+			# get_X(), not private$X (v1.0.6-TODO-62): a reusable bootstrap/jackknife worker
 			# sets private$X = NULL on a rank-deficient draw (e.g. leave-one-block-out on a
 			# DesignFixedBlocking whose design_formula names the strata column) so the matrix
 			# is rebuilt; as.matrix(NULL) errored and every such replicate was a silent NA.
@@ -446,21 +397,8 @@ InferenceContinLin = define_inference_class(
 			mod_boot = stats::lm.fit(X_fit, y_sim)
 			full_fit_boot = list(b = as.numeric(mod_boot$coefficients))
 
-			list(
-				full_fit = full_fit_boot,
-				fit_null = function(d, start = NULL){
-					y_null = y_sim - as.numeric(X_fit[, j] * d)
-					res = stats::lm.fit(X_fit[, -j, drop = FALSE], y_null)
-					b_full = numeric(ncol(X_fit))
-					b_full[j] = d
-					b_full[-j] = as.numeric(res$coefficients)
-					list(b = b_full, rss = sum((y_null - as.numeric(X_fit[, -j, drop = FALSE] %*% res$coefficients))^2))
-				},
-				neg_loglik = function(fit){
-					rss_fit = if (!is.null(fit$rss)) fit$rss else sum((y_sim - as.numeric(X_fit %*% as.numeric(fit$b)))^2)
-					0.5 * rss_fit / sig2
-				}
-			)
+			linear_bootstrap_likelihood_spec(X_fit, y_sim, j, full_fit_boot, sig2,
+				linear_lm_coefficients)
 		},
 		get_likelihood_test_spec = function(){
 			private$shared(estimate_only = FALSE)
@@ -472,29 +410,22 @@ InferenceContinLin = define_inference_class(
 			b_full = as.numeric(private$cached_mod$b)
 			rss_full = sum((y - X_fit %*% b_full)^2)
 			sig2 = rss_full / (length(y) - ncol(X_fit))
-			list(
-				X = X_fit,
-				y = y,
-				j = j_treat,
-				full_fit = private$cached_mod,
-				fit_null = function(delta, start = NULL){
-					y_null = y - as.numeric(X_fit[, j_treat] * delta)
-					res = stats::lm.fit(X_fit[, -j_treat, drop = FALSE], y_null)
-					b_full = numeric(ncol(X_fit))
-					b_full[j_treat] = delta
-					b_full[-j_treat] = as.numeric(res$coefficients)
-					list(b = b_full, rss = sum((y_null - as.numeric(X_fit[, -j_treat, drop = FALSE] %*% res$coefficients))^2))
-				},
-				score = function(fit){
-					as.numeric(t(X_fit) %*% (y - X_fit %*% as.numeric(fit$b)) / sig2)
-				},
-				observed_information = function(fit) (t(X_fit) %*% X_fit) / sig2,
-				fisher_information   = function(fit) (t(X_fit) %*% X_fit) / sig2,
-				neg_loglik = function(fit){
-					if (!is.null(fit$rss)) return(0.5 * fit$rss / sig2)
-					0.5 * sum((y - as.numeric(X_fit %*% as.numeric(fit$b)))^2) / sig2
-				}
-			)
+			linear_likelihood_test_spec(X_fit, y, j_treat, private$cached_mod, sig2,
+				linear_lm_coefficients)
 		}
 	)
 )
+
+# v1.0.7-TODO-181: the NA InferenceContinLin$compute_estimate() returns, with the reason the
+# fit recorded (every call; silent inside resampling).
+lin_estimate_unavailable_na = function(self, private) {
+	reason = private$cached_values$nonestimable_reason %||% "linear_model_coefficients_unavailable"
+	detail = switch(reason,
+		linear_model_design_unusable = paste0(
+			"After collinear columns are dropped, Lin's model (intercept, treatment, the centered covariates and ",
+			"their interactions with treatment) has at least as many columns as there are subjects (n = ",
+			length(private$y), "), so it has no residual degrees of freedom. Use fewer covariates (model_formula) ",
+			"or a class without the interactions, e.g. InferenceContinOLS."),
+		NULL)
+	edi_estimate_unavailable_na(self, private, reason = reason, detail = detail)
+}

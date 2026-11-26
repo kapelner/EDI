@@ -16,7 +16,7 @@
 #' \eqn{\hat V_2 = \hat p_T(1 - \hat p_T)/n_T + \hat p_C(1 - \hat p_C)/n_C}. These
 #' are the simple asymptotic variances of Newcombe (1998), not his Wilson-score
 #' (Method 10) intervals; whether to implement the real Newcombe/Wilson
-#' intervals for the components is open (see v1.0.6-TODO-228). The two estimates are combined by inverse-variance
+#' intervals for the components is open (see v1.0.7-TODO-64). The two estimates are combined by inverse-variance
 #' weighting, \eqn{\hat\theta = w_1 \hat\theta_1 + w_2 \hat\theta_2}, \eqn{w_j =
 #' (1/\hat V_j) / \sum_k (1/\hat V_k)}, with variance
 #' \eqn{\hat V_1 \hat V_2 / (\hat V_1 + \hat V_2)}, the IVWC framework used
@@ -128,7 +128,7 @@ KKNewcombeRiskDiffIVWCSource = list(
 			if (!is.finite(p_t) || !is.finite(p_c)) return(NA_real_)
 			p_t - p_c
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate, formerly the KK compound's
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate, formerly the KK compound's
 		# generic fallback (pair differences and reservoir means pooled with the
 		# observed data's w_star, read from a KKstats field this class does not
 		# set). Same estimator as shared_combined(): the weighted matched-pair risk

@@ -1,12 +1,12 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-316 (docs-scenarios missing-data F3): a refused
+# v1.0.6-TODO-196 (docs-scenarios missing-data F3): a refused
 # add_one_subject_to_experiment_and_assign() used to leave the subject enrolled
 # (t advanced, row stored, w = NA), so every retry added another unassigned
 # subject. The call now rolls the design back when the add or the assignment
 # fails. The KK n = NULL failure at the 5th assignment
-# (ds-sequential-designs-44358267779-f2, v1.0.6-TODO-76) left the same
+# (ds-sequential-designs-44358267779-f2, v1.0.6-TODO-38) left the same
 # half-added subject.
 
 seq_rollback_state = function(d) {

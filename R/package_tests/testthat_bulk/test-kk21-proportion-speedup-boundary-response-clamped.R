@@ -1,4 +1,4 @@
-# v1.0.6-TODO-60: with proportion_use_speedup = TRUE (the default), KK21's compute_weights took
+# v1.0.6-TODO-24: with proportion_use_speedup = TRUE (the default), KK21's compute_weights took
 # log(ys / (1 - ys)) unclamped, so one response of exactly 0 or 1 made every per-covariate
 # t-statistic non-finite and the kernel returned machine epsilon for every covariate (matching
 # silently became unweighted). The first fix clamped to machine epsilon, which turned a 0/1 into a

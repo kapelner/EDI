@@ -1,8 +1,8 @@
 """Input checks for the edi_kernels wrappers (private; numpy only).
 
-v1.0.6-TODO-101. The pybind11 bindings in ``_core`` convert argument types but
+v1.0.6-TODO-59. The pybind11 bindings in ``_core`` convert argument types but
 check nothing else, so a 1/2-coded treatment vector, a NaN in ``y`` or arrays of
-different lengths went straight into the C++ solvers (v1.0.6-TODO-86: silent
+different lengths went straight into the C++ solvers (v1.0.6-TODO-47: silent
 ``nan`` results and a sign-flipped log-rank estimate). The R package never hits
 this because checkmate runs first. This module is the Python counterpart:
 
@@ -13,7 +13,7 @@ this because checkmate runs first. This module is the Python counterpart:
 * ``set_checks()`` / ``get_checks()``, mirroring R's ``should_run_asserts()``.
   Turning checks off skips only the convenience rules (finite values, ranges,
   choices, counts). The rules that guard correctness, a 0/1 treatment or event
-  vector and matching lengths, always run (the rule v1.0.6-TODO-100 sets for R);
+  vector and matching lengths, always run (the rule v1.0.6-TODO-58 sets for R);
 * ``wrap_kernel()``, which ``__init__.py`` uses to put a thin checking wrapper
   around every ``_core`` function.
 """
@@ -473,7 +473,7 @@ def wrap_kernel(fn: _F) -> _F:
     """Return ``fn`` behind a checking wrapper with the same name, docstring and (static) type.
 
     Kernels listed in ``edi_kernels._variance.POST`` also get their variance outputs filled in
-    from the returned information matrix after the call (v1.0.6-TODO-87).
+    from the returned information matrix after the call (v1.0.6-TODO-48).
     """
     from ._variance import POST
 

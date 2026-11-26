@@ -23,7 +23,7 @@ name: audit (reusable)
 # the r6_inherited_documentation_display option, default "grouped" ("+ inherited public methods
 # from <Class>" per ancestor). Upstream 9a82bf42 reports the same version, 8.0.0.9000
 # (Config/roxygen2/version in R/EDI/DESCRIPTION), but writes one flat "Inherited methods" list
-# and rewrote 152 of 369 Rd files on the runner (v1.0.6-TODO-66, issue #21). When you upgrade
+# and rewrote 152 of 369 Rd files on the runner (v1.0.6-TODO-30, issue #21). When you upgrade
 # roxygen2 locally and re-document, move this pin to that exact commit; the finish job warns when
 # the installed version differs from DESCRIPTION or the installed RemoteSha from this SHA.
 env:

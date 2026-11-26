@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-216: when the combined (matched pairs + reservoir) exact test rejects every log odds
+# v1.0.6-TODO-157: when the combined (matched pairs + reservoir) exact test rejects every log odds
 # ratio, InferenceIncidExactZhang's exact CI used to collapse onto the rejected maximiser of the
 # combined p-value, giving a "CI" of width ~1e-6 (comprehensive_tests KK21stepwise `~.`, pima,
 # beta_T 0.5: rep 6 [0.1933261, 0.1933269], rep 14 [-0.2623787, -0.2623780]). The fixtures below

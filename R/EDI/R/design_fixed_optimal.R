@@ -679,7 +679,7 @@ DesignFixedOptimal = define_design_class(
 	)
 )
 
-# v1.0.6-TODO-297: the solvers minimize f(w) = 4 (Xc'w)' S^-1 (Xc'w) / n^2 ("mahal_dist") or
+# v1.0.6-TODO-184: the solvers minimize f(w) = 4 (Xc'w)' S^-1 (Xc'w) / n^2 ("mahal_dist") or
 # (2/n) sum_j |Xstd_j'w| ("abs_sum_diff"; helper_optimal_milp_solvers.R). With n_T treated,
 # Xc'w = (n_T n_C / n)(xbar_T - xbar_C), so the user-scale M(w) is f * n^4 / (4 n_T^2 n_C^2) and
 # f * n^2 / (2 n_T n_C). Other objectives are returned unchanged.

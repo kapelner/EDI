@@ -216,6 +216,22 @@ skipped.
    against *your own* §2.3 baseline, not the committed numbers from someone
    else's machine. If you intentionally changed performance, commit the
    regenerated reports.
+
+   **Design balance on real trials** (designs only, optional locally). A
+   weekly CI benchmark (`.github/workflows/design-balance-real-data.yml`,
+   v1.0.7-TODO-103) re-assigns the patients of the catalog's real trials
+   with every design and publishes how well each balances their covariates
+   at `benchmarks/design-balance/` on the site. It runs only in weeks when
+   a design file (`R/EDI/R/design_*.R`) or a design kernel it lists changed.
+   If you add a design kernel, add it to that list. The `kernels` job checks
+   this with `python3 .github/scripts/check_design_balance_kernels.py`. It is
+   a benchmark, not a gate; to look at your change's effect before pushing:
+   ```sh
+   Rscript R/benchmark/design_balance_real_data.R --datasets cgd,lalonde.exp \
+     --designs DesignFixedBernoulli,<YourDesign> --draws 5 --report /tmp/balance
+   ```
+   `--report` writes `index.html` and `summary.csv`. Smaller is better in
+   every metric.
 5. **`fast_roxygenize` once more — zero errors, zero warnings.** Steps 3–4
    can regenerate files; this confirms the docs are still consistent with
    the final tree.

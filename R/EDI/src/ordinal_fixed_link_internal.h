@@ -2,12 +2,12 @@
 #define EDI_ORDINAL_FIXED_LINK_INTERNAL_H
 
 // Shared fit + vcov pipeline for the fixed-link cumulative ordinal kernels
-// (cauchit, cloglog, probit). v1.0.6-TODO-193 (code-duplication audit
+// (cauchit, cloglog, probit). v1.0.7-TODO-54 (code-duplication audit
 // families dup-5997356561a2 and dup-b84f50f38a71): the three *_internal
 // functions and their score / Hessian exports were near-identical copies.
 //
-// The v1.0.6-TODO-193 merge kept the places where the three copies had
-// drifted apart as FixedLinkFitSpec policy flags. v1.0.6-TODO-203 replaced
+// The v1.0.7-TODO-54 merge kept the places where the three copies had
+// drifted apart as FixedLinkFitSpec policy flags. v1.0.6-TODO-144 replaced
 // them with one behavior for all three links:
 //   * inputs (warm_start_fisher_info, fixed_idx / fixed_values,
 //     warm_start_params) are validated before any early return (cauchit used
@@ -46,6 +46,19 @@
 
 namespace edi_ordinal {
 
+template <Link link>
+class UnweightedOrdinalRegression : public FixedOrdinalRegression {
+public:
+    UnweightedOrdinalRegression(const Eigen::Ref<const Eigen::MatrixXd>& X,
+                                const Eigen::Ref<const Eigen::VectorXd>& y) :
+        FixedOrdinalRegression(X, y, link, -1.0) {}
+
+    static std::vector<double> init_levels(const Eigen::Ref<const Eigen::VectorXd>& y) {
+        return edi_ordinal::init_levels(y);
+    }
+};
+
+
 struct FixedLinkFitSpec {
     Link link;
     // Legacy cold-start threshold k (0-based) out of K levels.
@@ -76,7 +89,7 @@ edi::ResultMap fixed_link_ordinal_internal(
     const int n_alpha = K > 1 ? K - 1 : 0;
     const int n_params = n_alpha + p;
 
-    // v1.0.6-TODO-203: validate every input first, then the K < 2 early return.
+    // v1.0.6-TODO-144: validate every input first, then the K < 2 early return.
     require_square_matrix(warm_start_fisher_info, n_params, "warm_start_fisher_info");
     FixedParamSpec fixed_spec = make_fixed_param_spec(n_params, fixed_idx, fixed_values);
     if (warm_start_params.has_value() && warm_start_params->size() != n_params)
@@ -175,7 +188,7 @@ edi::ResultMap fixed_link_ordinal_internal(
 #ifndef EDI_CORE_ONLY
 // The *_with_var_cpp exports' result: degenerate y (the fit is an empty
 // ResultMap) gives list(b = NA, ssq_b_2 = NA) for all three links
-// (v1.0.6-TODO-203).
+// (v1.0.6-TODO-144).
 inline Rcpp::List fixed_link_ordinal_with_var_list(const edi::ResultMap& res) {
     if (res.entries().empty())
         return edi::to_rcpp_list(edi::ResultMap().set("b", NA_REAL).set("ssq_b_2", NA_REAL));

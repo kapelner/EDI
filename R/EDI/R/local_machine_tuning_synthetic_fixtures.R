@@ -70,8 +70,8 @@ inference_migration_add_subjects = function(des, x) {
 #'   assignment so \code{w} is unchanged. Without it each was an exact linear
 #'   function of \code{w}, \code{x} and \code{z} (the continuous recipe's
 #'   \code{seq(-0.3, 0.3)} term is collinear with \code{x}), so the
-#'   v1.0.6-TODO-158 perfect-predictor check dropped the covariates in every
-#'   caller's constructor (v1.0.6-TODO-204). The draws happen inside the local
+#'   v1.0.6-TODO-108 perfect-predictor check dropped the covariates in every
+#'   caller's constructor (v1.0.6-TODO-145). The draws happen inside the local
 #'   seed scope, so the caller's RNG stream is untouched.
 #' @return A completed `DesignSeqOneByOneBernoulli` with every subject
 #'   assigned and responded.

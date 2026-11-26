@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-44: missingness_method = "impute" imputes from the baseline covariates only.
+# v1.0.6-TODO-9: missingness_method = "impute" imputes from the baseline covariates only.
 # It used to add the response as a predictor. Treated subjects have shifted responses, so the
 # imputed covariate then carried part of the treatment effect, and adjusting for it biased the
 # estimate toward 0 (n = 200, 30% of x missing, true effect 1: mean estimate 0.90, 95% CI

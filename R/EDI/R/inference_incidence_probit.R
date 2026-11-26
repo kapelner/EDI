@@ -286,7 +286,7 @@ IncidenceProbitLikelihoodSource = list(
 					X = attempt$X,
 					j_treat = match(2L, attempt$keep)
 				)
-				# v1.0.6-TODO-119: warn (once per object, silent in resampling)
+				# v1.0.6-TODO-73: warn (once per object, silent in resampling)
 				# when fitted probabilities Phi(X b) are numerically 0 or 1, i.e.
 				# (quasi-)complete separation. Warning only, no numeric change.
 				edi_warn_logistic_separation_once(self, private, attempt$X, attempt$fit$b, link = "probit")
@@ -372,43 +372,8 @@ IncidenceProbitLikelihoodSource = list(
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @eval rd_small_sample_section("InferenceIncidProbitRegr")
 #' @export
-InferenceIncidProbitRegr = define_inference_class(
-	classname = "InferenceIncidProbitRegr",
-	inherit = Inference,
-	components = c(
-		"RandomizationCI",
-		"RandomizationBootstrapCI",
-		"BayesianBootstrap",
-		"Jackknife",
-		"ParametricLikelihoodBootstrap",
-		"IncidenceProbitLikelihood"
-	),
-	metadata = list(likelihood_tier = "full"),
-	overrides = list(
-		public = c(
-			"compute_estimate", "compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
-		),
-		private = c(
-			"compute_treatment_estimate_during_randomization_inference",
-			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
-			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
-			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
-			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "supports_fisher_information"
-		)
-	),
-	public = list(
-		compute_rand_two_sided_pval = InferenceRandCI$public_methods$compute_rand_two_sided_pval
-	)
+InferenceIncidProbitRegr = define_incidence_likelihood_class(
+	"InferenceIncidProbitRegr", "IncidenceProbitLikelihood"
 )
 
 

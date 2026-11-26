@@ -273,7 +273,7 @@ void bind_count(py::module_& m) {
             X, y, warm_start_params, smart_cold_start, maxit, eps_g,
             fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info, estimate_only,
             weights.has_value() ? &(*weights) : nullptr);
-        // v1.0.6-TODO-188: fast_neg_bin_internal never fills res.mu or
+        // v1.0.6-TODO-134: fast_neg_bin_internal never fills res.mu or
         // res.neg_ll; it stores the (weighted) log-likelihood -fit.value in
         // res.sigma2_hat, which R's fast_neg_bin*_cpp return as $logLik.
         // R returns no fitted means, so mu here is exp(X b), the NB2 mean at

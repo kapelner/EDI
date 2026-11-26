@@ -1,4 +1,4 @@
-# v1.0.6-TODO-116: when the BCa bias correction or acceleration is unstable (|z0| > 2.5, |a| > 1,
+# v1.0.6-TODO-70: when the BCa bias correction or acceleration is unstable (|z0| > 2.5, |a| > 1,
 # non-finite, or a zero BCa denominator) the BCa interval and p-value are NA. That NA used to be
 # silent; it now raises one edi_bootstrap_bca_unstable_warning per object (separately for the
 # interval and the p-value) suggesting type = "percentile", and never inside resampling.

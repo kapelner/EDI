@@ -161,7 +161,7 @@ test_that("Pocock-Simon preallocates rows, registers levels incrementally, and d
 	# later arrival. This guards against re-keying all prior subjects; it does
 	# not bound named-map lookup cost as the number of distinct levels grows.
 	expect_identical(sum(level_key_input_lengths), 18L)
-	# v1.0.6-TODO-177 (2026-11-19): seeded sequential designs now draw subject t's
+	# v1.0.6-TODO-123 (2026-11-19): seeded sequential designs now draw subject t's
 	# assignment from (seed, t); re-pinned from c(1, 0, 0, 1, 0, 1, 0, 0).
 	expect_identical(w, c(0, 1, 0, 1, 0, 0, 1, 1))
 	expect_equal(des$get_X_raw(), data.table::as.data.table(X))

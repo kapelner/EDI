@@ -291,6 +291,33 @@ Eigen::MatrixXd get_adjacent_category_logit_hessian_cpp(const Eigen::Map<Eigen::
     return -fun.hessian(params);
 }
 
+
+static LikelihoodFitResult fit_adjacent_category_logit_from_r(
+    const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, int maxit, double tol,
+    bool smart_cold_start, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx,
+    Rcpp::Nullable<Rcpp::NumericVector> fixed_values, const std::string& optimization_alg,
+    Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info,
+    Rcpp::Nullable<Rcpp::NumericVector> warm_start_params,
+    Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta,
+    int& K, std::vector<int>& y_mapped) {
+    NumericVector y_r(y);
+    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
+    const auto levels = get_levels(y_vec);
+    K = levels.size();
+    if (K < 2) {
+        stop("Adjacent-category logits require at least two observed outcome categories.");
+    }
+    y_mapped = map_y_to_1K(y_vec, levels);
+    return fast_adjacent_category_logit_internal(
+        X, y_mapped, K, maxit, tol, smart_cold_start,
+        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
+        nullable_to_optional<Eigen::VectorXd>(fixed_values),
+        optimization_alg,
+        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
+        nullable_to_optional<Eigen::VectorXd>(warm_start_params),
+        nullable_to_optional<Eigen::VectorXd>(warm_start_beta));
+}
+
 //' Fast Adjacent-Category Logit Regression, Direct MLE (C++ Backend)
 //'
 //' Fits the adjacent-category logit ordinal regression model
@@ -391,28 +418,11 @@ Eigen::MatrixXd get_adjacent_category_logit_hessian_cpp(const Eigen::Map<Eigen::
 //' @keywords internal
 // [[Rcpp::export]]
 List fast_adjacent_category_logit_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, int maxit = 100, double tol = 1e-8, bool smart_cold_start = true, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "lbfgs", Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-    
-
-    
-
-    std::vector<double> levels = get_levels(y_vec_coerced);
-    int K = levels.size();
-    if (K < 2) {
-        stop("Adjacent-category logits require at least two observed outcome categories.");
-    }
-    std::vector<int> y_mapped = map_y_to_1K(y_vec_coerced, levels);
-
-    LikelihoodFitResult fit = fast_adjacent_category_logit_internal(
-        X, y_mapped, K, maxit, tol, smart_cold_start,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_params),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta));
+    int K;
+    std::vector<int> y_mapped;
+    const auto fit = fit_adjacent_category_logit_from_r(X, y, maxit, tol, smart_cold_start,
+        fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
+        warm_start_params, warm_start_beta, K, y_mapped);
 
     return edi::to_rcpp_list(edi::ResultMap()
         .set("b", fit.params.tail(X.cols()))
@@ -487,29 +497,14 @@ List fast_adjacent_category_logit_with_var_cpp( const Eigen::Map<Eigen::MatrixXd
 		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericVector> warm_start_params = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue) {
-
-    // See fast_logistic_regression_with_var_cpp for why y is coerced here
-    // rather than taken as a direct Eigen::Map.
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-    std::vector<double> levels = get_levels(y_vec);
-    int K = levels.size();
-    if (K < 2) {
-        stop("Adjacent-category logits require at least two observed outcome categories.");
-    }
-    std::vector<int> y_mapped = map_y_to_1K(y_vec, levels);
-    int n_alpha = K - 1;
-    int p = X.cols();
-    int n_par = n_alpha + p;
-
-    LikelihoodFitResult fit = fast_adjacent_category_logit_internal(
-        X, y_mapped, K, maxit, tol, smart_cold_start,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_params),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta));
+    int K;
+    std::vector<int> y_mapped;
+    const auto fit = fit_adjacent_category_logit_from_r(X, y, maxit, tol, smart_cold_start,
+        fixed_idx, fixed_values, optimization_alg, warm_start_fisher_info,
+        warm_start_params, warm_start_beta, K, y_mapped);
+    const int n_alpha = K - 1;
+    const int p = X.cols();
+    const int n_par = n_alpha + p;
 
     AdjacentCategoryLogitNegLogLik fun(X, y_mapped, K);
     FixedParamSpec fixed_spec = make_fixed_param_spec(

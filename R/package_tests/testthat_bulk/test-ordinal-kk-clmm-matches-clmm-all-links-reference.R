@@ -18,10 +18,10 @@ Fc <- list(logit = plogis, probit = pnorm, cauchit = pcauchy, cloglog = function
 # 8e-6, probit 6e-6, cloglog 3.6e-4, cauchit 2.5e-4 (one cauchit cell excluded below); sigma_b = 1.2:
 # logit 3.2e-4, probit 1.0e-3, cloglog 1.7e-2 (n = 60, reference sigma 2.0: quadrature gap),
 # cauchit 1.7e-2.
-# 2026-11-17, after the v1.0.6-TODO-45 KK14 matching fix changed the matches: cloglog n = 60,
+# 2026-11-17, after the v1.0.6-TODO-10 KK14 matching fix changed the matches: cloglog n = 60,
 # sigma_b = 1.2 seeds 2 and 3 gave |EDI - clmm| = 0.039 and 0.021 at fitted sigma 2.1 to 2.6, and the
 # tolerance was loosened to 5e-2.
-# v1.0.6-TODO-48 (owner ruling 2026-11-24): that was EDI's error. Under the exact marginal likelihood
+# v1.0.6-TODO-13 (owner ruling 2026-11-24): that was EDI's error. Under the exact marginal likelihood
 # (integrate(), rel.tol 1e-12) clmm's parameters were better in both cells (nll 72.0694 vs EDI 72.1193;
 # 61.7877 vs 61.8786): EDI maximized a 20-node non-adaptive Gauss-Hermite approximation. The KK CLMM
 # classes now use 60 nodes (KK_CLMM_N_GH) and land on clmm's optimum (0.7752 vs 0.7755; 0.2799 vs
@@ -63,7 +63,7 @@ test_that("KK CLMM classes match ordinal::clmm (correctly named link) on all fou
 		# Cauchit cells are skipped only where clmm itself fails: it errors (above; 4 of 12 cells on this
 		# machine, 2026-11-24) or does not reach a stationary point. (An older skip for cells where EDI's
 		# nll beat clmm's by > 1e-2 -- cauchit n = 60, sigma_b = 0.6, seed 1, EDI better by 0.18 at
-		# 20 nodes -- no longer fires at 60 nodes and was removed for v1.0.6-TODO-48.)
+		# 20 nodes -- no longer fires at 60 nodes and was removed for v1.0.6-TODO-13.)
 		# Cells where clmm did not reach a stationary point. Cauchit n = 200, sigma_b = 1.2,
 		# seed 2 (2026-11-17): nlminb errors on one machine and on another (CI) returns treatment 0.31,
 		# sigma 1.46; refitting with ucminf reaches the same point with an Inf gradient, while EDI's

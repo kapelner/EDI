@@ -42,25 +42,8 @@ InferenceOrdinalAdjCatLogitRegr = R6::R6Class("InferenceOrdinalAdjCatLogitRegr",
 		# @param estimate_only Present for interface parity; this method never
 		#   computes variance components regardless of its value.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
-			X_fit = private$build_design_matrix()
-			if (!is.null(private$best_Xmm_colnames)) {
-				keep = c("treatment", intersect(private$best_Xmm_colnames, colnames(X_fit)))
-				X_fit = X_fit[, keep, drop = FALSE]
-			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "logistic")
-			if (is.null(fit) || !is.finite(fit$beta_hat)) {
-				private$cached_values$beta_hat_T = NA_real_
-				private$cached_values$s_beta_hat_T = NA_real_
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
-			private$cached_values$summary_table = NULL
-			private$cached_values$beta_hat_T
+			ordinal_surrogate_estimate_with_bootstrap_weights(private, subject_or_block_weights,
+				method = "logistic", colnames_field = "best_Xmm_colnames")
 		}
 	),
 	private = list(

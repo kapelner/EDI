@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-270 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and DesignSeqOneByOneRandomBlockSize the
+# v1.0.7-TODO-122 (owner decision 2026-11-20): on DesignSeqOneByOneSPBR and DesignSeqOneByOneRandomBlockSize the
 # automatic jackknife unit is the permuted block only when every stratum holds at least
 # EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM (10; owner decision 2026-11-20, first 5) permuted-block units; with fewer in any stratum it is one
 # subject within its stratum ("observation_within_block", Wolter 2007, Sec. 4.5). With 3-4 blocks in the smallest

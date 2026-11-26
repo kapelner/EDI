@@ -2,10 +2,10 @@
 # This is separate from the proportion helper: incidence's delta=0.5 runner
 # call is deliberately retained as an attempted row, and current public R
 # methods reject it for every statistic form, custom R/C++ included
-# (v1.0.6-TODO-81/110).
+# (v1.0.6-TODO-42 / v1.0.6-TODO-64).
 # Two runner branches feed it: the plain rand family
 # (compute_rand_two_sided_pval and its delta=0.5 variant) and, since
-# v1.0.6-TODO-81/110, the rand_custom family on a standalone
+# v1.0.6-TODO-42 / v1.0.6-TODO-64, the rand_custom family on a standalone
 # InferenceRandCustom (compute_rand_two_sided_pval(custom) at delta = 0, open
 # status, and compute_rand_two_sided_pval(custom)(delta=0.5), expected error).
 
@@ -98,7 +98,7 @@ comprehensive_incidence_rand_pvalue_source_guard <- function(runner_path) {
 		stop("unrecognized incidence plain-rand p-value runner guards or labels", call. = FALSE)
 	}
 
-	# rand_custom branch (v1.0.6-TODO-81/110): the delta = 0 custom p-value runs
+	# rand_custom branch (v1.0.6-TODO-42 / v1.0.6-TODO-64): the delta = 0 custom p-value runs
 	# under `!skip_slow` alone (no incidence exclusion), and the delta = 0.5
 	# custom p-value runs inside it only for incidence.
 	custom_condition <- c("supports_randomization_test", "should_run_test_family(\"rand_custom\")")
@@ -253,14 +253,14 @@ comprehensive_incidence_rand_pvalue_attempt_manifest <- function(cases, runner_p
 			skip_reasons <- NA_character_
 			if (!isTRUE(cases$skip_rand_delta_pval_slow[i])) {
 				functions <- c(functions, "compute_rand_two_sided_pval(delta=0.5)")
-				# v1.0.6-TODO-81/110: custom statistics are no longer exempt from the
+				# v1.0.6-TODO-42 / v1.0.6-TODO-64: custom statistics are no longer exempt from the
 				# nonzero-delta incidence guard, so every form expects an error.
 				statuses <- c(statuses, "error")
 				skip_reasons <- c(skip_reasons, "error")
 			}
 		}
 		if (custom_eligible) {
-			# v1.0.6-TODO-81/110: the standalone InferenceRandCustom runs at
+			# v1.0.6-TODO-42 / v1.0.6-TODO-64: the standalone InferenceRandCustom runs at
 			# delta = 0 on incidence (status open) and refuses delta = 0.5.
 			functions <- c(functions, "compute_rand_two_sided_pval(custom)",
 				"compute_rand_two_sided_pval(custom)(delta=0.5)")

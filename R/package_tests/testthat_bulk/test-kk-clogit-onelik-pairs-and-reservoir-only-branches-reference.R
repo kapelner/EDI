@@ -21,7 +21,7 @@ library(survival)                                                               
 #   2. Reservoir-only (m forced to 0): matches an independent glm(y ~ w + X, family = binomial())
 #      fit closely.
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict). At the default lambda = 0.1
 # seed 2 matched most subjects, and its small reservoir was perfectly separated,
 # so the glm() reference diverged (w coefficient -18.9) and test 2 compared

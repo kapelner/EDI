@@ -88,7 +88,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				design_formula = ~ .,
 				seed = NULL
 			) {
-			# Always enforced (v1.0.6-TODO-100): with asserts off, an NA p_best
+			# Always enforced (v1.0.6-TODO-58): with asserts off, an NA p_best
 			# silently assigns every subject to the same arm and an NA weight
 			# silently changes the imbalance criterion -- wrong designs, not errors.
 			if (length(p_best) > 0L && anyNA(p_best)){
@@ -132,8 +132,8 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 				private$counts = matrix(0, nrow = private$num_levels_total, ncol = 2)
 			}
 			
-			# v1.0.6-TODO-350: the Rcpp function updates counts in place, and R6's
-			# clone(deep = TRUE) and the v1.0.6-TODO-316 rollback snapshot hold the same
+			# v1.0.6-TODO-218: the Rcpp function updates counts in place, and R6's
+			# clone(deep = TRUE) and the v1.0.6-TODO-196 rollback snapshot hold the same
 			# matrix by reference, so a copy's assignments changed the original's counts.
 			# Give this design its own copy first (a levels x 2 matrix, so cheap).
 			private$counts = private$counts + 0
@@ -150,7 +150,7 @@ DesignSeqOneByOnePocockSimon = define_design_class(
 	private = list(
 		draw_ws_raw = function(r = 100){
 			private$ensure_factor_metadata()
-			# v1.0.6-TODO-183: replay the enrolled subjects only. Looping over all n
+			# v1.0.6-TODO-129: replay the enrolled subjects only. Looping over all n
 			# preallocated rows errored mid-trial (the unfilled rows have no stratum), and
 			# each subject's draw depends only on the subjects before it.
 			n = private$t

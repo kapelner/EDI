@@ -1,4 +1,4 @@
-# v1.0.6-TODO-59: when each arm is constant, InferenceAllSimpleWilcox returned an NA
+# v1.0.6-TODO-23: when each arm is constant, InferenceAllSimpleWilcox returned an NA
 # Hodges-Lehmann estimate because stats::wilcox.test(conf.int = TRUE) errors ("cannot compute
 # confidence interval when all observations are tied") and shared() treated that as a failed fit.
 # Every pairwise difference is yT - yC, so the estimate is that difference; the ties-corrected

@@ -186,7 +186,7 @@ Crossref 2026-11-17.)
   (its information-preference setter and getters and its Wald and score
   methods): Wald standard errors, p-values and CIs use the
   observed information at the MLE; the information preference applies only
-  to score tests and score CIs (v1.0.6-TODO-215).
+  to score tests and score CIs (v1.0.6-TODO-156).
 
 ### Randomization tests: Monte Carlo p-values
 
@@ -325,15 +325,15 @@ The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
   (`inference_all_abstract_jackknife.R`, `edi_jackknife_bias_variance()`):
   the stratified jackknife of the automatic deletion units
   `"permuted_block"` (`DesignSeqOneByOneSPBR`; `DesignSeqOneByOneRandomBlockSize`
-  from its recorded blocks, v1.0.6-TODO-231) and
+  from its recorded blocks, v1.0.6-TODO-165) and
   `"observation_within_block"` (`DesignFixedBlocking`; also SPBR and
   RandomBlockSize when any stratum has fewer than 10 permuted blocks,
-  `EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM`, v1.0.6-TODO-270), centred at the
+  `EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM`, v1.0.7-TODO-122), centred at the
   stratum mean of the replicates, with bias sum_h (n_h - 1)(theta_bar_h -
   theta_hat). Wolter's replicates reweight the rest of the stratum by
   n_h/(n_h - 1); EDI's subset refits do not, so each replicate's departure
   from theta_hat is first scaled by r_h = n_h (N - 1)/(N (n_h - 1)) (its
-  first-order reweighted equivalent; N = all units); v1.0.6-TODO-4. Also
+  first-order reweighted equivalent; N = all units); v1.0.6-TODO-1. Also
   used by `InferenceCountPoisson` (`inference_count_poisson.R`,
   private methods design_jackknife_pval / design_jackknife_ci): the fallback for the
   design-conservative tests on blocking designs whose automatic unit is the
@@ -347,7 +347,7 @@ The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
   paper not accessible 2026-11-19, form checked by a second-order Taylor
   expansion and simulation, see `edi_jackknife_bias_variance()`). — Used by:
   `InferenceJackknife` (`inference_all_abstract_jackknife.R`,
-  `edi_jackknife_bias_variance()`); v1.0.6-TODO-231.
+  `edi_jackknife_bias_variance()`); v1.0.6-TODO-165.
 - **[KrewskiRao1981]** Krewski, D. and Rao, J. N. K. (1981). Inference from
   stratified samples: properties of the linearization, jackknife and
   balanced repeated replication methods. *The Annals of Statistics* 9(5),
@@ -358,7 +358,7 @@ The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
   restatement in S. Kolenikov's lecture notes "Resampling with complex survey
   data", UNC, 2002). — Used by: `InferenceJackknife`
   (`inference_all_abstract_jackknife.R`, `edi_jackknife_bias_variance()`);
-  v1.0.6-TODO-231.
+  v1.0.6-TODO-165.
 - **[DavisonHinkley1997]** Davison, A. C. and Hinkley, D. V. (1997).
   *Bootstrap Methods and their Application*. Cambridge University Press.
   [doi:10.1017/CBO9780511802843](https://doi.org/10.1017/CBO9780511802843)
@@ -368,7 +368,7 @@ The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
   derived from the third cumulant of the linear approximation, book text not
   checked). — Used by: `InferenceJackknife`
   (`inference_all_abstract_jackknife.R`, `edi_jackknife_acceleration()`), the
-  BCa interval and p-value of `InferenceNonParamBootstrap`; v1.0.6-TODO-231.
+  BCa interval and p-value of `InferenceNonParamBootstrap`; v1.0.6-TODO-165.
 
 ### GEE (matched-design / correlated-data inference)
 
@@ -674,7 +674,7 @@ The `(1 + b) / (1 + B)` rule that counts the observed allocation as one draw
   Used by: `DesignSeqOneByOneKK21` and `DesignSeqOneByOneKK21stepwise`
   (`proportion_use_speedup = TRUE`: when a response so far is 0 or 1, all
   responses are compressed to (y(n - 1) + 0.5)/n, n the responses in the fit,
-  before the logit; v1.0.6-TODO-60).
+  before the logit; v1.0.6-TODO-24).
 
 ### Convergence rates and small-sample behaviour
 

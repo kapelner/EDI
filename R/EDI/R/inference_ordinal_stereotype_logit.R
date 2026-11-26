@@ -41,7 +41,7 @@
 		return(list())
 	}
 
-	gamma_idx = (n_alpha + p + 1L):n_params
+	gamma_idx = n_alpha + p + seq_len(n_gamma)
 	candidates = list()
 	add_gamma = function(label, offsets){
 		start = primary_params
@@ -153,7 +153,7 @@
 	fit
 }
 
-# v1.0.6-TODO-172: centre and scale the covariate columns (all but column 1 =
+# v1.0.6-TODO-119: centre and scale the covariate columns (all but column 1 =
 # treatment) before any stereotype fit, using the same rule as the other ordinal
 # classes (ordinal_center_scale_plan(): nothing changes when every column is
 # already well scaled). The C++ solver's convergence test is not scale-aware:
@@ -364,25 +364,10 @@ OrdinalStereotypeLikelihoodSource = list(
 		# @param estimate_only If \code{TRUE}, compute only the weighted point
 		#   estimate.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = as.numeric(private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights))
-			X_fit = private$build_design_matrix()
-			if (!is.null(private$best_Xmm_colnames)) {
-				keep = c("treatment", intersect(private$best_Xmm_colnames, colnames(X_fit)))
-				X_fit = X_fit[, keep, drop = FALSE]
-			}
-			fit = weighted_ordinal_bootstrap_surrogate_fit(X_fit, private$y, row_weights, method = "logistic")
-			if (is.null(fit) || !private$stereotype_treatment_estimate_is_usable(fit$beta_hat)) {
-				private$cache_nonestimable_estimate("stereotype_logit_weighted_fit_unusable")
-				private$cached_values$df = NA_real_
-				return(NA_real_)
-			}
-			private$cached_values$beta_hat_T = as.numeric(fit$beta_hat)
-			private$cached_values$s_beta_hat_T = NA_real_
-			private$cached_values$df = NA_real_
-			private$cached_values$full_coefficients = fit$coefficients
-			private$cached_values$summary_table = NULL
-			private$clear_nonestimable_state()
-			private$cached_values$beta_hat_T
+			ordinal_surrogate_estimate_with_bootstrap_weights(private, subject_or_block_weights,
+				method = "logistic", colnames_field = "best_Xmm_colnames",
+				fit_is_usable = private$stereotype_treatment_estimate_is_usable,
+				failure_reason = "stereotype_logit_weighted_fit_unusable")
 		}
 	),
 	private = list(
@@ -516,7 +501,7 @@ OrdinalStereotypeLikelihoodSource = list(
 						warm_start_params = NULL,
 						warm_start_fisher_info = NULL
 					)
-					# Same deterministic multistart as generate_mod() (v1.0.6-TODO-172):
+					# Same deterministic multistart as generate_mod() (v1.0.6-TODO-119):
 					# with the centred/scaled design a lone cold start can stop in a
 					# worse local optimum (b_T 1.93, nll 178.99 vs the class's 3.32,
 					# nll 171.84 on the reference fixture), so the worker would not
@@ -713,7 +698,7 @@ OrdinalStereotypeLikelihoodSource = list(
 
 			alphas = params_null[seq_len(n_alpha)]
 			betas  = params_null[(n_alpha + 1L):(n_alpha + p)]
-			gammas = params_null[(n_alpha + p + 1L):n_params]
+			gammas = params_null[n_alpha + p + seq_len(n_gamma)]
 
 			eg   = exp(gammas)
 			seg  = sum(eg)
@@ -949,28 +934,8 @@ InferenceOrdinalStereotypeLogitRegr = define_inference_class(
 		"OrdinalStereotypeLikelihood"
 	),
 	metadata = list(likelihood_tier = "full", response_types = "ordinal"),
-	overrides = list(
-		public = c(
-			"compute_estimate", "compute_rand_two_sided_pval",
-			"compute_asymp_confidence_interval", "compute_asymp_two_sided_pval",
-			"get_supported_testing_types", "set_testing_type", "compute_estimate_with_bootstrap_weights"
-		),
-		private = c(
-			"supports_bayesian_bootstrap",
-			"compute_treatment_estimate_during_randomization_inference",
-			"supports_likelihood_tests", "supports_reusable_bootstrap_worker",
-			"generate_mod", "get_likelihood_test_spec",
-			"supports_lik_ratio_param_bootstrap", "simulate_under_lik_null",
-			"resolve_jackknife_unit", "jackknife_block_size_gt_one_unsupported",
-			"mark_jackknife_nonestimable_if_block_unsupported",
-			"create_bootstrap_worker_state", "load_bootstrap_sample_into_worker",
-			"compute_bootstrap_worker_estimate", "get_supported_testing_types_impl",
-			"get_standard_error", "get_degrees_of_freedom", "make_warm_fit_null_wrapper",
-			"compute_likelihood_test_two_sided_pval", "compute_score_two_sided_pval_impl",
-			"compute_gradient_two_sided_pval_impl", "compute_lik_ratio_two_sided_pval_impl",
-			"supports_bartlett_likelihood_ratio_approx", "get_bartlett_factor_approx",
-			"get_complexity_tier", "get_bootstrap_worker_spec"
-		)
+	overrides = ordinal_likelihood_leaf_overrides(
+		extra_before = "supports_bayesian_bootstrap", extra_after = "get_bootstrap_worker_spec"
 	),
 	public = list(
 		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-143: under left-/interval-censoring the censored subjects' y is NA, so the
+# v1.0.6-TODO-95: under left-/interval-censoring the censored subjects' y is NA, so the
 # bootstrap randomization test's sharp-null shift (applied to y only) left y_L / y_R at their
 # observed values on both the reusable-worker and the slow path. The null distribution then
 # ignored delta entirely when every subject was censored (identical draws at delta = -1, 0, 1)
@@ -60,7 +60,7 @@ test_that("the slow path matches the reusable worker at nonzero delta on interva
 	des = brt_bounds_interval_design()
 	skipped = character(0)
 	for (cls in c("InferenceSurvivalWeibullRegr", "InferenceSurvivalKMDiff", "InferenceSurvivalLogRank")) {
-		# v1.0.6-TODO-180: skip a class whose interval-censored fit needs an absent Suggests package
+		# v1.0.6-TODO-126: skip a class whose interval-censored fit needs an absent Suggests package
 		missing_pkg = general_censoring_missing_package(cls, des)
 		if (length(missing_pkg)) { skipped[[cls]] = missing_pkg; next }
 		fast = brt_bounds_null_draws(cls, des, 0.7, TRUE)

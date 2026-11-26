@@ -292,35 +292,26 @@ List ols_hc2_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, cons
   );
 }
 
-// [[Rcpp::export]]
-List glm_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights, int j_treat) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-  
-
-  
-
-  
-
-  
-
-  
+template <typename ComputeMeat>
+static List glm_sandwich_post_fit(
+    const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat,
+    const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights,
+    int j_treat, const char* caller, ComputeMeat compute_meat) {
+  NumericVector y_numeric(y);
+  Eigen::Map<const Eigen::VectorXd> response(y_numeric.begin(), y_numeric.size());
   const int n = X_fit.rows();
   const int p = X_fit.cols();
-  if (y_vec_coerced.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
-    stop("dimension mismatch in glm_sandwich_post_fit_cpp");
+  if (response.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
+    stop(std::string("dimension mismatch in ") + caller);
   }
   if (!all_finite_vec(coef_hat) || !all_finite_vec(mu_hat) || !all_finite_vec(working_weights)) {
     stop("non-finite inputs");
   }
-
   for (int i = 0; i < n; ++i) {
     if (working_weights[i] <= 0.0) {
       stop("non-positive working weights");
     }
   }
-
   const Eigen::MatrixXd XtWX = weighted_crossprod(X_fit, working_weights);
   Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
   if (ldlt.info() != Eigen::Success) {
@@ -330,58 +321,27 @@ List glm_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y,
   if (ldlt.info() != Eigen::Success || !all_finite_mat(bread)) {
     stop("failed to invert X'WX");
   }
-
-  const Eigen::VectorXd resid = y_vec_coerced - mu_hat;
-  const Eigen::VectorXd resid_sq = resid.array().square().matrix();
-  Eigen::MatrixXd meat = weighted_crossprod(X_fit, resid_sq);
+  const Eigen::VectorXd resid = response - mu_hat;
+  const Eigen::MatrixXd meat = compute_meat(resid);
   Eigen::MatrixXd vcov = bread * meat * bread;
   vcov = 0.5 * (vcov + vcov.transpose());
   return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
 }
 
 // [[Rcpp::export]]
+List glm_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights, int j_treat) {
+  return glm_sandwich_post_fit(X_fit, y, coef_hat, mu_hat, working_weights, j_treat,
+    "glm_sandwich_post_fit_cpp", [&](const Eigen::VectorXd& resid) {
+      const Eigen::VectorXd resid_sq = resid.array().square().matrix();
+      return weighted_crossprod(X_fit, resid_sq);
+    });
+}
+
+// [[Rcpp::export]]
 List glm_cluster_sandwich_post_fit_cpp(const Eigen::Map<Eigen::MatrixXd>& X_fit, SEXP y, const Eigen::Map<Eigen::VectorXd>& coef_hat, const Eigen::Map<Eigen::VectorXd>& mu_hat, const Eigen::Map<Eigen::VectorXd>& working_weights, const IntegerVector& cluster_id, int j_treat) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-  
-
-  
-
-  
-
-  
-
-  
-  const int n = X_fit.rows();
-  const int p = X_fit.cols();
-  if (y_vec_coerced.size() != n || coef_hat.size() != p || mu_hat.size() != n || working_weights.size() != n) {
-    stop("dimension mismatch in glm_cluster_sandwich_post_fit_cpp");
-  }
-  if (!all_finite_vec(coef_hat) || !all_finite_vec(mu_hat) || !all_finite_vec(working_weights)) {
-    stop("non-finite inputs");
-  }
-
-  for (int i = 0; i < n; ++i) {
-    if (working_weights[i] <= 0.0) {
-      stop("non-positive working weights");
-    }
-  }
-
-  const Eigen::MatrixXd XtWX = weighted_crossprod(X_fit, working_weights);
-  Eigen::LDLT<Eigen::MatrixXd> ldlt(XtWX);
-  if (ldlt.info() != Eigen::Success) {
-    stop("failed to factorize X'WX");
-  }
-  const Eigen::MatrixXd bread = ldlt.solve(Eigen::MatrixXd::Identity(p, p));
-  if (ldlt.info() != Eigen::Success || !all_finite_mat(bread)) {
-    stop("failed to invert X'WX");
-  }
-
-  const Eigen::VectorXd resid = y_vec_coerced - mu_hat;
-  Eigen::MatrixXd meat = cluster_meat_robust(X_fit, resid, cluster_id);
-  Eigen::MatrixXd vcov = bread * meat * bread;
-  vcov = 0.5 * (vcov + vcov.transpose());
-  return edi::to_rcpp_list(summarize_with_vcov(coef_hat, vcov, j_treat));
+  return glm_sandwich_post_fit(X_fit, y, coef_hat, mu_hat, working_weights, j_treat,
+    "glm_cluster_sandwich_post_fit_cpp", [&](const Eigen::VectorXd& resid) {
+      return cluster_meat_robust(X_fit, resid, cluster_id);
+    });
 }
 #endif // EDI_CORE_ONLY

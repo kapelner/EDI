@@ -46,7 +46,7 @@ inline GHRule gauss_hermite_rule(int n) {
 
 // Soft quadratic barrier on |log_sigma| beyond `center` (value, gradient,
 // Hessian). Shared by the Poisson and hurdle-Poisson GLMM kernels, which used
-// to carry byte-identical per-file copies (v1.0.6-TODO-193).
+// to carry byte-identical per-file copies (v1.0.7-TODO-54).
 inline double soft_barrier(double log_sigma, double center = 5.0, double scale = 10.0) {
     const double d = std::abs(log_sigma) - center;
     if (d <= 0.0) return 0.0;
@@ -270,6 +270,27 @@ public:
         return numerical_hessian(*this, par); // Fallback to numerical Hessian for simplicity in generic engine
     }
 };
+
+template <typename Objective>
+inline LikelihoodFitResult best_multistart_fit(
+    Objective& objective, const std::vector<Eigen::VectorXd>& starts, const FixedParamSpec& fixed_spec,
+    int maxit, double tolerance, const std::string& optimization_alg, const Eigen::MatrixXd* warm_start_information,
+    const char* no_fit_message, std::vector<LikelihoodFitResult>* finite_fits = nullptr) {
+    LikelihoodFitResult best;
+    bool have_finite_fit = false;
+    for (const auto& start : starts) {
+        const LikelihoodFitResult fit = optimize_fixed_likelihood(
+            objective, start, fixed_spec, maxit, tolerance, optimization_alg, "lbfgs", 0, warm_start_information);
+        if (!std::isfinite(fit.value) || !fit.params.allFinite()) continue;
+        if (finite_fits) finite_fits->push_back(fit);
+        if (!have_finite_fit || fit.value < best.value) {
+            best = fit;
+            have_finite_fit = true;
+        }
+    }
+    if (!have_finite_fit) throw std::runtime_error(no_fit_message);
+    return best;
+}
 
 } // namespace glmm
 

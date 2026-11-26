@@ -1,6 +1,6 @@
 library(testthat)
 
-# v1.0.6-TODO-409 (owner decision 2026-11-22): a calibration shard that dies or hits its job timeout halves its unit's next
+# v1.0.6-TODO-227 (owner decision 2026-11-22): a calibration shard that dies or hits its job timeout halves its unit's next
 # shards (down to 1 replicate), which also get the longer job timeout (matrix timeout_minutes); only dead 1-replicate shards
 # count toward --max-dead abandonment. Campaign 2026-11-15-e36c7710 abandoned InferenceOrdinalKKCLMM at n = 1000 on three
 # designs (~870 s per replicate) under the old rule (every death counted, the same shard size re-planned). No EDI needed.

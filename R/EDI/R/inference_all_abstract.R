@@ -201,7 +201,7 @@ Inference = R6::R6Class("Inference",
 			private$cached_values$m_cache = list()
 			private$cached_values$likelihood_test_eval_cache = list()
 			private$install_weighted_refit_isolation()
-			# v1.0.6-TODO-158: drop covariates that predict the response exactly given
+			# v1.0.6-TODO-108: drop covariates that predict the response exactly given
 			# treatment (leakage), once, before any fit. Pending (re-run lazily from
 			# get_X()) when too few responses are recorded yet.
 			edi_perfect_predictor_check(self, private)
@@ -428,7 +428,7 @@ Inference = R6::R6Class("Inference",
 		#' @return A numeric matrix of covariates or \code{NULL}.
 		get_covariates = function(){
 			X = private$des_obj$get_X()
-			# v1.0.6-TODO-158: columns dropped as perfect predictors are not used by inference.
+			# v1.0.6-TODO-108: columns dropped as perfect predictors are not used by inference.
 			drop = private$perfect_predictor_dropped
 			if (length(drop) && !is.null(X) && !is.null(colnames(X)) && any(colnames(X) %in% drop)) {
 				X = X[, !(colnames(X) %in% drop), drop = FALSE]
@@ -503,7 +503,7 @@ Inference = R6::R6Class("Inference",
 		#'   \code{\link[EDI:InferenceMarginalEstimand]{MarginalEstimand}} version.
 		#' @return Does not return; always signals an error.
 		set_estimand = function(estimand){
-			# v1.0.6-TODO-208 item (4): without this, classes lacking the component
+			# v1.0.6-TODO-149 item (4): without this, classes lacking the component
 			# (e.g. InferenceCountNegBin) failed with "attempt to apply non-function".
 			private$stop_estimand_not_supported("set_estimand()")
 		},
@@ -785,7 +785,7 @@ Inference = R6::R6Class("Inference",
 		y_R = NULL,
 		y_temp = NULL,
 		X = NULL,
-		# v1.0.6-TODO-158 perfect-predictor check: NULL (not run), "pending" (too few
+		# v1.0.6-TODO-108 perfect-predictor check: NULL (not run), "pending" (too few
 		# responses; re-run lazily), "done"; the unreduced covariates; the dropped names.
 		perfect_predictor_state = NULL,
 		perfect_predictor_full_X = NULL,
@@ -866,7 +866,7 @@ Inference = R6::R6Class("Inference",
 				private$clear_fit_warm_start()
 				return(invisible(NULL))
 			}
-			# v1.0.6-TODO-345: a class can refuse a start that sits on a separation
+			# v1.0.6-TODO-216: a class can refuse a start that sits on a separation
 			# boundary (warm_start_on_separation_boundary(), FALSE by default); such
 			# a start is never stored, so later fits cold-start like a fresh object.
 			if (isTRUE(private$warm_start_on_separation_boundary(start))) {
@@ -1040,7 +1040,7 @@ Inference = R6::R6Class("Inference",
 		# available (TODO-116). It signals a classed warning
 		# (edi_unsupported_procedure) so callers are not silently handed NA,
 		# and records the reason for diagnostics.
-		# v1.0.6-TODO-208 item (4): the shared error for the root set_estimand() /
+		# v1.0.6-TODO-149 item (4): the shared error for the root set_estimand() /
 		# get_supported_estimands(), which classes composing MarginalEstimand replace.
 		stop_estimand_not_supported = function(method){
 			cls = class(self)[1L]
@@ -1336,7 +1336,7 @@ Inference = R6::R6Class("Inference",
 			X_full
 		},
 		get_X = function(){
-			# v1.0.6-TODO-158: lazy perfect-predictor check when responses were missing at construction.
+			# v1.0.6-TODO-108: lazy perfect-predictor check when responses were missing at construction.
 			if (identical(private$perfect_predictor_state, "pending")) edi_perfect_predictor_check(self, private, lazy = TRUE)
 			if (!is.null(private$X)) return(private$X)  # transient bootstrap override
 			# Sequential designs can retain the previous matrix while adding a
@@ -1581,7 +1581,7 @@ Inference = R6::R6Class("Inference",
 				if (!all(required_cols %in% keep_try)) next
 				attempt = attempt_fit(keep_try)
 				if (isTRUE(fit_ok(attempt$fit, attempt$X, attempt$keep))){
-					# v1.0.6-TODO-138: a covariate dropped beyond the QR rank set
+					# v1.0.6-TODO-92: a covariate dropped beyond the QR rank set
 					# changes the model; say so (once per object, silent inside
 					# resampling, no numeric change). Collinear drops stay silent.
 					if (is.function(private$warn_hardened_column_drop)) private$warn_hardened_column_drop(X_mat, rank_attempt, setdiff(keep, keep_try))
@@ -1642,7 +1642,7 @@ edi_build_summary_table = function(self, private, est_ret = NULL){
 }
 
 # ---------------------------------------------------------------------------
-# v1.0.6-TODO-158: perfect predictors among the inference covariates.
+# v1.0.6-TODO-108: perfect predictors among the inference covariates.
 #
 # A covariate (or combination) that makes a type-appropriate transform of y an
 # exact linear function of w and the covariates is almost always leakage (the
@@ -1657,7 +1657,7 @@ EDI_PERFECT_PREDICTOR_MIN_RESID_DF = 5L        # residual-df guard against satur
 EDI_PERFECT_PREDICTOR_REL_TOL = 1e-10          # RSS / TSS at or below this is "exact"
 EDI_PERFECT_PREDICTOR_MAX_SUBSET_FITS = 2000L  # cap on the minimal-set search
 
-#' Response transforms for the perfect-predictor check (v1.0.6-TODO-158)
+#' Response transforms for the perfect-predictor check (v1.0.6-TODO-108)
 #'
 #' One entry per transform: \code{rows} (rows with a usable value), \code{z}
 #' (the transform on those rows), \code{scale} (label for the warning) and, for
@@ -1705,7 +1705,7 @@ edi_perfect_predictor_targets = function(private, response_type){
 	)
 }
 
-#' Exact-fit test of one target on [1, w, X[, cols]] (v1.0.6-TODO-158)
+#' Exact-fit test of one target on [1, w, X[, cols]] (v1.0.6-TODO-108)
 #'
 #' Returns \code{NA} below the residual-df guard, \code{TRUE} for an exact fit
 #' (and, for survival, every censored row's fitted log time inside its interval),
@@ -1735,7 +1735,7 @@ edi_perfect_predictor_is_exact = function(target, X, w, cols){
 	TRUE
 }
 
-#' Find perfect-predictor columns of X (v1.0.6-TODO-158)
+#' Find perfect-predictor columns of X (v1.0.6-TODO-108)
 #'
 #' Returns \code{NULL} when the check cannot run (too few residual degrees of
 #' freedom for every transform), else a list with \code{drop} (column indices,
@@ -1786,7 +1786,7 @@ edi_find_perfect_predictors = function(targets, X, w){
 }
 
 
-#' Run the perfect-predictor check on an Inference object (v1.0.6-TODO-158)
+#' Run the perfect-predictor check on an Inference object (v1.0.6-TODO-108)
 #'
 #' Called once at the end of \code{Inference$initialize()} and, while the state
 #' is \code{"pending"} (too few responses for the residual-df guard), lazily from
@@ -1857,7 +1857,7 @@ edi_perfect_predictor_check = function(self, private, lazy = FALSE){
 	invisible(NULL)
 }
 
-#' Remove perfect-predictor columns from a component matrix (v1.0.6-TODO-158)
+#' Remove perfect-predictor columns from a component matrix (v1.0.6-TODO-108)
 #'
 #' Classes that build extra covariate matrices from the design's imputed
 #' covariates and their own component formulas (hurdle, zero-inflated,

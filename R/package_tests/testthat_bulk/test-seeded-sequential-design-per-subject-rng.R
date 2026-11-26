@@ -1,4 +1,4 @@
-# v1.0.6-TODO-177: a sequential design with a non-NULL seed derives subject t's
+# v1.0.6-TODO-123: a sequential design with a non-NULL seed derives subject t's
 # assignment draw from (seed, t) and runs it with the session's RNG state saved and
 # restored. So the allocation depends only on the seed and the subjects' data: RNG
 # use between assignments does not change it, a trial saved mid-way continues

@@ -2,7 +2,7 @@
 #include "_helper_functions_core.h"
 #else
 #include "_helper_functions.h"
-#include "result_map_rcpp.h"
+#include "glm_regression_rcpp.h"
 #include <RcppEigen.h>
 #endif
 #include <stdexcept>
@@ -81,7 +81,7 @@ public:
         return f;
     }
 
-    // v1.0.6-TODO-169 (PATCHED, needs owner build): Fisher information X'WX,
+    // v1.0.6-TODO-117 (PATCHED, needs owner build): Fisher information X'WX,
     // used by the shared L-BFGS finish (lbfgs_finish_with_newton_decrement in
     // _helper_functions_core.h) for its scale-aware convergence rule and
     // Fisher-scoring polish. Without it the wrapper falls back to a central
@@ -247,7 +247,7 @@ ModelResult fast_probit_regression_internal(
         // the template's analysis.
         res.gradient_norm = last_grad_norm;
         res.converged = (last_grad_norm < tol);
-        // v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): scale-aware
+        // v1.0.6-TODO-118 (2026-11-20; PATCHED, needs owner build): scale-aware
         // fallback, as in the logistic IRLS. With a large-scale or offset
         // covariate (colon age + 1e5) the fit reaches the optimum but rounding
         // keeps |score| above the absolute tol, and InferenceIncidProbitRegr then
@@ -477,32 +477,10 @@ Eigen::MatrixXd get_probit_regression_hessian_cpp( const Eigen::Map<Eigen::Matri
 //' @keywords internal
 // [[Rcpp::export]]
 List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rcpp::Nullable<Rcpp::NumericVector> warm_start_beta = R_NilValue, bool smart_cold_start = true, int maxit = 100, double tol = 1e-8, Rcpp::Nullable<Rcpp::IntegerVector> fixed_idx = R_NilValue, Rcpp::Nullable<Rcpp::NumericVector> fixed_values = R_NilValue, std::string optimization_alg = "irls", Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue, Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue, bool estimate_only = false) {
-	NumericVector y_r_coerced(y); Eigen::Map<const Eigen::VectorXd> y_vec_coerced(y_r_coerced.begin(), y_r_coerced.size());
-
-
-    
-
-    
-
-    ModelResult res = fast_probit_regression_internal(
-        X, y_vec_coerced, Eigen::VectorXd(),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        smart_cold_start, maxit, tol,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        estimate_only);
-    if (estimate_only) {
-        return edi::to_rcpp_list(edi::ResultMap()
-            .set("b", res.b)
-            .set("converged", res.converged)
-            .set("num_iter", res.num_iter)
-            .set("hit_iteration_cap", res.hit_iteration_cap)
-            .set("gradient_norm", res.gradient_norm)
-            .set("min_eigenvalue_information", res.min_eigenvalue_information));
-    }
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_probit_regression_internal, X, y, warm_start_beta, smart_cold_start, maxit, tol, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, estimate_only);
+    if (estimate_only) return edi_glm::estimate_result(res);
     const int n = X.rows();
     const Eigen::VectorXd eta = X * res.b;
     Eigen::VectorXd weights_vec(n);
@@ -513,17 +491,8 @@ List fast_probit_regression_cpp(const Eigen::Map<Eigen::MatrixXd>& X, SEXP y, Rc
         const double vm = std::max(1e-15, Phi * (1.0 - Phi));
         weights_vec[i] = phi * phi / vm;
     }
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("w", weights_vec)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("fisher_information", res.XtWX)
-        .set("score", res.score)
-        .set("neg_ll", res.neg_ll)
-        .set("converged", res.converged)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+
+    return edi_glm::binary_fit_result(res, weights_vec);
 }
 
 // [[Rcpp::export]]
@@ -547,18 +516,7 @@ List fast_probit_regression_weighted_cpp(const Eigen::Map<Eigen::MatrixXd>& X, S
         optimization_alg,
         nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
         nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info));
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("mu", res.mu)
-        .set("XtWX", res.XtWX)
-        .set("fisher_information", res.XtWX)
-        .set("score", res.score)
-        .set("neg_ll", res.neg_ll)
-        .set("converged", res.converged)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+    return edi_glm::fit_result_with_mean(res);
 }
 
 //' Fast Probit Regression with Variance Calculation (C++)
@@ -612,59 +570,9 @@ List fast_probit_regression_with_var_cpp( const Eigen::Map<Eigen::MatrixXd>& X,
 		std::string optimization_alg = "irls",
 		Rcpp::Nullable<Rcpp::NumericVector> warm_start_weights = R_NilValue,
 		Rcpp::Nullable<Rcpp::NumericMatrix> warm_start_fisher_info = R_NilValue) {
-
-    // See fast_logistic_regression_with_var_cpp for why y is coerced here
-    // rather than taken as a direct Eigen::Map.
-    NumericVector y_r(y);
-    Eigen::Map<const Eigen::VectorXd> y_vec(y_r.begin(), y_r.size());
-    ModelResult res = fast_probit_regression_internal(
-        X, y_vec, Eigen::VectorXd(),
-        nullable_to_optional<Eigen::VectorXd>(warm_start_beta),
-        smart_cold_start, 100, 1e-8,
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values),
-        optimization_alg,
-        nullable_to_optional<Eigen::VectorXd>(warm_start_weights),
-        nullable_to_optional<Eigen::MatrixXd>(warm_start_fisher_info),
-        false);
-
-    FixedParamSpec fixed_spec = make_fixed_param_spec(
-        X.cols(),
-        nullable_to_optional<Eigen::VectorXi>(fixed_idx),
-        nullable_to_optional<Eigen::VectorXd>(fixed_values));
-    Eigen::MatrixXd info_free = subset_matrix(res.XtWX, fixed_spec.free_idx, fixed_spec.free_idx);
-
-    auto free_idx_of = [&](int overall_j) -> int {
-        for (int jj = 0; jj < static_cast<int>(fixed_spec.free_idx.size()); ++jj)
-            if (fixed_spec.free_idx[jj] == overall_j) return jj + 1; // 1-based
-        return -1;
-    };
-
-    int free_j = (j > 0 && j <= X.cols()) ? free_idx_of(j - 1) : -1;
-    res.ssq_b_j = (free_j > 0) ? compute_diagonal_inverse_entry(info_free, free_j) : NA_REAL;
-
-    int free_2 = (X.cols() >= 2) ? free_idx_of(1) : -1;
-    res.ssq_b_2 = (free_2 > 0) ? compute_diagonal_inverse_entry(info_free, free_2) : NA_REAL;
-
-    Eigen::MatrixXd neg_XtWX = -res.XtWX;
-    return edi::to_rcpp_list(edi::ResultMap()
-        .set("b", res.b)
-        .set("params", res.b)
-        .set("ssq_b_j", res.ssq_b_j)
-        .set("ssq_b_2", res.ssq_b_2)
-        .set("score", res.score)
-        .set("observed_information", res.XtWX)
-        .set("fisher_information", res.XtWX)
-        .set("information", res.XtWX)
-        .set("information_type", std::string("fisher"))
-        .set("hessian", neg_XtWX)
-        .set("neg_loglik", res.neg_ll)
-        .set("neg_ll", res.neg_ll)
-        .set("loglik", R_finite(res.neg_ll) ? -res.neg_ll : NA_REAL)
-        .set("converged", res.converged)
-        .set("num_iter", res.num_iter)
-        .set("hit_iteration_cap", res.hit_iteration_cap)
-        .set("gradient_norm", res.gradient_norm)
-        .set("min_eigenvalue_information", res.min_eigenvalue_information));
+    const ModelResult res = edi_glm::fit_unweighted(
+        fast_probit_regression_internal, X, y, warm_start_beta, smart_cold_start, 100, 1e-8, fixed_idx, fixed_values,
+        optimization_alg, warm_start_weights, warm_start_fisher_info, false);
+    return edi_glm::variance_result(res, X.cols(), j, make_fixed_param_spec(X.cols(), fixed_idx, fixed_values), false);
 }
 #endif // EDI_CORE_ONLY

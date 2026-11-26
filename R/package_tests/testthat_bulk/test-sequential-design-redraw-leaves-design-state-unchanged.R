@@ -1,11 +1,11 @@
-# v1.0.6-TODO-42: draw_ws_according_to_design() on a live sequential design must leave
+# v1.0.6-TODO-8: draw_ws_according_to_design() on a live sequential design must leave
 # every piece of design state exactly as it was: the realized w, urn/block/match
 # bookkeeping, per-subject caches. The generic DesignSeqOneByOne replay (used by the
 # Urn design and by custom sequential designs) rebuilt private$w subject by subject
 # and left the last replayed vector in place of the subjects' real assignments, so
 # InferenceIncidCMH's SE path (which redraws from the design) silently changed the
 # allocation every later inference saw.
-# v1.0.6-TODO-183: mid-trial redraws are consistent: every sequential design returns one
+# v1.0.6-TODO-129: mid-trial redraws are consistent: every sequential design returns one
 # row per enrolled subject (t, not the planned n), Pocock-Simon no longer errors before
 # the last subject arrives, and the generic replay advances private$t so a custom
 # assignment_rule() that reads t sees the subject being replayed.
@@ -84,7 +84,7 @@ test_that("redraws leave a completed sequential design's state unchanged", {
 
 test_that("a redraw mid-trial does not change the rest of a seeded sequential trial", {
 	t_mid = 20L
-	# Pocock-Simon included since v1.0.6-TODO-183 (its redraw used to read all n
+	# Pocock-Simon included since v1.0.6-TODO-129 (its redraw used to read all n
 	# preallocated rows and error on the unfilled ones).
 	for (cls in redraw_classes) {
 		set.seed(1)

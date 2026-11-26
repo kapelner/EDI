@@ -1,4 +1,4 @@
-# v1.0.6-TODO-132: compute_estimate(estimate_only = TRUE) must be the same estimator as
+# v1.0.6-TODO-86: compute_estimate(estimate_only = TRUE) must be the same estimator as
 # compute_estimate(). InferenceSurvivalKKStratCoxPHIVWC (sample-size weights) and both
 # Weibull frailty IVWC classes (50/50 weights, or halves with no finite variance kept)
 # pooled the matched and reservoir halves differently under estimate_only, so the

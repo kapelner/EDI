@@ -12,7 +12,7 @@
 using namespace Rcpp;
 
 // Compound (matched-pair + reservoir) estimate for one replicate. Shared by
-// both exported kernels below (v1.0.6-TODO-193); they differ only in where y
+// both exported kernels below (v1.0.7-TODO-54); they differ only in where y
 // comes from. treated_idx / control_idx / diffs are per-thread scratch.
 static inline double compound_beta_hat(const double* y, const int* w_col, const int* m_col, int n,
 		std::vector<int>& treated_idx, std::vector<int>& control_idx, std::vector<double>& diffs) {

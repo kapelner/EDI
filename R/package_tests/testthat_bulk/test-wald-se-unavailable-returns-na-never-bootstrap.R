@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-380, owner principle: "If the user wants wald, we should always give
+# v1.0.6-TODO-225, owner principle: "If the user wants wald, we should always give
 # wald." These Wald confidence-interval / p-value paths used to return the
 # nonparametric bootstrap result when the standard error was unavailable. With
 # the SE forced unavailable, testing_type = "wald" (compute_asymp_*) and the
@@ -137,7 +137,7 @@ for (cn in names(wna_cases)) {
 	})
 }
 
-# v1.0.6-TODO-417 (DECISION-v1.0.6-TODO-380d): the asymptotic rank-test p-values
+# v1.0.6-TODO-231 (DECISION-v1.0.6-TODO-380d): the asymptotic rank-test p-values
 # (log-rank, Gehan-Wilcoxon) used to fall back to the bootstrap p-value when the
 # log-rank null variance (right-censored) or interval::ictest()'s p-value (left- /
 # interval-censored) was unavailable. With that quantity forced unavailable, the

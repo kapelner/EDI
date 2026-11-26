@@ -24,34 +24,7 @@ using namespace Rcpp;
 #endif
 using namespace Eigen;
 
-class OrdinalProbitRegression {
-private:
-    edi_ordinal::FixedOrdinalRegression m_model;
-
-public:
-    OrdinalProbitRegression(const Eigen::Ref<const Eigen::MatrixXd>& X, const Eigen::Ref<const Eigen::VectorXd>& y) :
-        m_model(X, y, edi_ordinal::Link::Probit, -1.0) {}
-
-    static std::vector<double> init_levels(const Eigen::Ref<const Eigen::VectorXd>& y) {
-        return edi_ordinal::init_levels(y);
-    }
-
-    double neg_log_likelihood(const Eigen::Ref<const Eigen::VectorXd>& params) const {
-        return m_model.neg_log_likelihood(params);
-    }
-
-    double operator()(const Eigen::Ref<const Eigen::VectorXd>& params, Eigen::Ref<Eigen::VectorXd> grad) const {
-        return m_model(params, grad);
-    }
-
-    MatrixXd hessian(const Eigen::Ref<const Eigen::VectorXd>& params) const {
-        return m_model.hessian(params);
-    }
-
-    MatrixXd expected_hessian(const Eigen::Ref<const Eigen::VectorXd>& params) const {
-        return m_model.expected_hessian(params);
-    }
-};
+using OrdinalProbitRegression = edi_ordinal::UnweightedOrdinalRegression<edi_ordinal::Link::Probit>;
 
 static MatrixXd pseudo_inverse_symmetric_probit(const Eigen::Ref<const Eigen::MatrixXd>& A, double tol = 1e-8) {
     JacobiSVD<MatrixXd> svd(A, ComputeThinU | ComputeThinV);
@@ -109,7 +82,7 @@ edi::ResultMap fast_ordinal_probit_regression_internal(
     std::optional<Eigen::MatrixXd> warm_start_fisher_info = std::nullopt,
     bool estimate_only = false
 ) {
-    // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.6-TODO-193).
+    // Shared pipeline: ordinal_fixed_link_internal.h (v1.0.7-TODO-54).
     static const edi_ordinal::FixedLinkFitSpec spec = {
         edi_ordinal::Link::Probit, probit_legacy_alpha};
     return edi_ordinal::fixed_link_ordinal_internal<OrdinalProbitRegression>(

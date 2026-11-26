@@ -15,14 +15,14 @@ library(EDI)
 # same pattern as the already-covered KKRankRegrIVWC/KKQuantileRegrIVWC
 # siblings.
 #
-# v1.0.6-TODO-217 (2026-11-19): that fallback was an unadjusted mean
+# v1.0.6-TODO-158 (2026-11-19): that fallback was an unadjusted mean
 # difference pooled with the observed w_star, not this covariate-adjusted
 # estimator, and is gone. The class now refits both halves by weighted least
 # squares (HC2 variances) and pools them by inverse variance. The tests below
 # check the halves against stats::lm.wfit() and the pooling against the
 # halves' own variances.
 
-# v1.0.6-TODO-45 (2026-11-17): KK14's match test now uses the published
+# v1.0.6-TODO-10 (2026-11-17): KK14's match test now uses the published
 # T^2 = 1/2 d'S^-1 d (it was twice as strict), so at the default lambda = 0.1
 # this seed formed 8 pairs, not the 4 pairs + 16 reservoir subjects (20 blocks)
 # the tests below are written for. With two covariates the F(2, .) cutoff near

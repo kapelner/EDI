@@ -1,4 +1,4 @@
-# v1.0.6-TODO-347 (ds-count-44883784401-f1): an offset() term in a count model formula was accepted,
+# v1.0.6-TODO-217 (ds-count-44883784401-f1): an offset() term in a count model formula was accepted,
 # echoed by get_model_formula() and silently dropped, so Poisson / NegBin / ZIP fits "with" an offset
 # equalled the fits without it. No class honours offsets yet (v1.1.0-TODO-17a), so every class now
 # refuses them at $new(), whether or not assertions are on, for model_formula and for the

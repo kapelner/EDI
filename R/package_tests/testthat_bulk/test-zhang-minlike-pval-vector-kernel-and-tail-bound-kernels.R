@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-285: the hull scan of the Zhang exact CI (zhang_ci_hull_endpoint()) evaluates the
+# v1.0.6-TODO-206: the hull scan of the Zhang exact CI (zhang_ci_hull_endpoint()) evaluates the
 # minimum-likelihood p-value of each component at many deltas with zhang_minlike_pval_vec_cpp(), and
 # its scan cut uses the tail bound kernels zhang_pval_exact_tail_bound_cpp() / zhang_hull_scan_cut_cpp().
 # They replaced R code (an outcomes x deltas matrix, and an R bisection on an R bound) and must give

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-70 (GitHub issue #28): DesignFixedRerandomization's abs_sum_diff objective.
+# v1.0.6-TODO-33 (GitHub issue #28): DesignFixedRerandomization's abs_sum_diff objective.
 # Both C++ kernels (rerandomization_search_cpp on the balanced fast path and
 # compute_objective_vals_cpp on the prop_acceptable path) divide each covariate's mean
 # difference by its SD, as DesignFixedGreedy's abs_sum_diff does. The pure-R path (odd n or

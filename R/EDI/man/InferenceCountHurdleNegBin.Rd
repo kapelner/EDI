@@ -61,7 +61,7 @@ of about \eqn{\pm 12} with a standard error in the hundreds). The estimate is
 then \code{NA} (reason \code{"hurdle_negbin_count_mle_not_finite"}) with one warning of class
 \code{edi_hurdle_count_mle_not_finite_warning} (a subclass of
 \code{edi_procedure_na_warning}); randomization and bootstrap refits whose data
-keep that pattern are \code{NA} too (v1.0.6-TODO-195).
+keep that pattern are \code{NA} too (v1.0.6-TODO-140).
 
 \strong{Separated hurdle part.} When the logistic hurdle (zero vs. positive)
 part is separated (a fitted probability of a zero is numerically 0 or 1, or
@@ -71,7 +71,7 @@ the fit stopped on such a ridge), one warning of class
 \code{\link[EDI:InferenceCountHurdlePoisson]{InferenceCountHurdlePoisson}}. The
 hurdle part is fit separately from the count part, so the count-part
 treatment estimate does not depend on it and is kept. A hurdle part has no
-benign "no inflation" case, so this is always the warning (v1.0.6-TODO-218).
+benign "no inflation" case, so this is always the warning (v1.0.6-TODO-159).
 }
 \section{Small-sample behaviour}{
 
@@ -280,7 +280,7 @@ The treatment is always included, so \code{~ 1} fits the hurdle
   interval for the treatment coefficient by the test chosen with
   \code{set_testing_type()} (Wald by default; the other types give the same
   interval as the matching \code{compute_<type>_confidence_interval()},
-  v1.0.6-TODO-413), using the shared count-likelihood semantics documented in
+  v1.0.6-TODO-230), using the shared count-likelihood semantics documented in
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -304,7 +304,7 @@ The treatment is always included, so \code{~ 1} fits the hurdle
   p-value for the treatment coefficient by the test chosen with
   \code{set_testing_type()} (Wald by default; the other types give the same
   p-value as the matching \code{compute_<type>_two_sided_pval()},
-  v1.0.6-TODO-413); see
+  v1.0.6-TODO-230); see
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
@@ -350,7 +350,7 @@ The treatment is always included, so \code{~ 1} fits the hurdle
   Compute the hurdle negative-binomial gradient-test confidence
   interval by inverting the gradient test, whatever testing type is
   configured (before 1.0.6 it inverted the configured type, so by default
-  it returned the Wald interval; v1.0.6-TODO-413). See
+  it returned the Wald interval; v1.0.6-TODO-230). See
   \code{\link[EDI:InferenceCountLikelihood]{InferenceCountLikelihood}}
   for related score, likelihood-ratio, and gradient methods.
   \subsection{Usage}{

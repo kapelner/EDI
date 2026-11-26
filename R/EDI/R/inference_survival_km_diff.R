@@ -14,16 +14,16 @@
 #' The two arms are independent by design. When either arm's median is not
 #' reached (its Kaplan-Meier curve never falls to 0.5) the estimate itself is
 #' \code{NA}, and so is every result on the object (asymptotic, bootstrap,
-#' jackknife and randomization); one warning of class
+#' jackknife and randomization); a warning of class
 #' \code{edi_km_median_not_reached_warning} names the arm(s) and their lowest
-#' survival and suggests \code{InferenceSurvivalRestrictedMeanDiff} (silent
-#' inside resampling, where a draw that loses its median just counts as
-#' unusable). When both medians are reached but a Brookmeyer-Crowley bound is
+#' survival and suggests \code{InferenceSurvivalRestrictedMeanDiff}. It is
+#' raised once by every call that returns that \code{NA} (silent inside
+#' resampling, where a draw that loses its median just counts as unusable). When both medians are reached but a Brookmeyer-Crowley bound is
 #' non-finite, the Wald-style confidence interval and p-value methods
 #' (\code{$compute_asymp_confidence_interval()}, \code{$compute_asymp_two_sided_pval()})
 #' return \code{NA}, with the reason recorded and an
-#' \code{edi_wald_unavailable_warning}; before EDI 1.0.6 they fell back to a
-#' nonparametric bootstrap (v1.0.6-TODO-380). The
+#' \code{edi_wald_unavailable_warning} on each call; before EDI 1.0.6 they fell back to a
+#' nonparametric bootstrap (v1.0.6-TODO-225). The
 #' jackknife-Wald methods are unreliable for a median and are often \code{NA},
 #' with an \code{edi_km_jackknife_na_warning} giving the reason; prefer the
 #' bootstrap. A convenience method,
@@ -93,7 +93,31 @@ InferenceSurvivalKMDiff = define_inference_class(
 	public = list(
 		#' @description Uses the shared randomization two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}.
-		compute_rand_two_sided_pval = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		#'   When a median is not reached the p-value is \code{NA} with an
+		#'   \code{edi_km_median_not_reached_warning} on every call (v1.0.7-TODO-182).
+		#'   Every argument is passed to, and documented in,
+		#'   \code{\link[EDI:InferenceRand]{InferenceRand}}\code{$compute_rand_two_sided_pval()}.
+		#' @param r Number of randomization draws.
+		#' @param delta Null shift of the treatment effect (on the log scale for survival).
+		#' @param transform_responses Response transform; see \code{InferenceRand}.
+		#' @param na.rm Whether to drop non-finite reference statistics.
+		#' @param show_progress Show progress.
+		#' @param permutations Pre-computed assignment draws, or \code{NULL} to draw them from the design;
+		#'   see \code{InferenceRand}.
+		#' @param zero_one_logit_clamp Clamp used by the \code{"logit"} transform; see \code{InferenceRand}.
+		#' @param alternative \code{"two.sided"} (default), \code{"greater"} or \code{"less"}.
+		#' @return The randomization p-value, or \code{NA} (with the warning above) when the
+		#'   median is not reached.
+		compute_rand_two_sided_pval = function(r = 501, delta = 0, transform_responses = "none", na.rm = TRUE, show_progress = TRUE, permutations = NULL, zero_one_logit_clamp = .Machine$double.eps, alternative = "two.sided"){
+			# Same arguments as InferenceRand$compute_rand_two_sided_pval (written out, not copied with
+			# formals<-, which drops the srcref roxygen needs).
+			n0 = private$km_median_warn_count()
+			out = private$rand_pval_impl(r = r, delta = delta, transform_responses = transform_responses, na.rm = na.rm,
+				show_progress = show_progress, permutations = permutations, zero_one_logit_clamp = zero_one_logit_clamp,
+				alternative = alternative)
+			if (!any(is.finite(out))) private$explain_median_na(n0)
+			out
+		},
 		#' @description Initialize Kaplan-Meier median-difference survival inference
 		#'   and prepare treatment-group survival curves used by
 		#'   \code{\link[EDI:InferenceSurvivalKMDiff]{InferenceSurvivalKMDiff}}.
@@ -135,7 +159,10 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#'
 		#' @param estimate_only If TRUE, skip variance component calculations.
 		compute_estimate = function(estimate_only = FALSE){
+			n0 = private$km_median_warn_count()
 			private$shared(estimate_only = estimate_only)
+			# v1.0.7-TODO-182: a repeated call returns the cached NA; explain it again.
+			private$explain_median_na(n0)
 			private$cached_values$beta_hat_T
 		},
 		#' @description Recomputes the class-specific treatment estimate for a bootstrap sample; see
@@ -166,7 +193,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' result is \code{NA_real_} with nonestimability reason
 		#' \code{"bayesian_bootstrap_too_few_finite_estimates"}. It also requires
 		#' at least \code{min_fraction_usable_samples} (default 95\%) of the \code{B}
-		#' draws to be finite (v1.0.6-TODO-12); below that the result is \code{NA_real_}
+		#' draws to be finite (v1.0.6-TODO-2); below that the result is \code{NA_real_}
 		#' with reason \code{"bayesian_bootstrap_too_few_valid_replicates_fraction"}. Set
 		#' \code{na.rm = FALSE} to retain the generic fail-on-any-nonfinite policy.
 		#'
@@ -185,7 +212,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' @return A numeric two-sided p-value, or \code{NA_real_} when too few
 		#'   finite draws remain.
 		compute_bayesian_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, weighting_unit_type = NULL, min_fraction_usable_samples = 0.95){
-			# v1.0.6-TODO-90: under left-/interval-censoring every weighted draw stops (see
+			# v1.0.6-TODO-49: under left-/interval-censoring every weighted draw stops (see
 			# compute_estimate_with_bootstrap_weights()), the draw loop turns those errors into NA
 			# draws, and with na.rm = TRUE the p-value came back NA with no warning. Stop up front.
 			if (isTRUE(private$has_general_censoring)) {
@@ -223,7 +250,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' \code{edi_km_median_not_reached_warning} (see the class description). When
 		#' both medians are reached but a Brookmeyer-Crowley bound is \code{NA}, the
 		#' interval is \code{NA} too, with an \code{edi_wald_unavailable_warning} (no
-		#' bootstrap is substituted, v1.0.6-TODO-380). On left- or interval-censored
+		#' bootstrap is substituted, v1.0.6-TODO-225). On left- or interval-censored
 		#' data, which have no analytic standard error, this is the nonparametric
 		#' bootstrap interval (see the class description).
 		#'
@@ -236,25 +263,32 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (should_run_asserts()) {
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
 			}
+			n0 = private$km_median_warn_count()
 			private$shared()
 			# The Turnbull median contrast has no analytic SE; its documented variance
 			# strategy is the bootstrap (TODO-8, interval_censored_survival_response.md).
 			if (isTRUE(private$has_general_censoring)) {
 				return(self$compute_bootstrap_confidence_interval(alpha = alpha))
 			}
-			# v1.0.6-TODO-380: right-censored data used to fall back to the bootstrap here;
+			# v1.0.6-TODO-225: right-censored data used to fall back to the bootstrap here;
 			# a Wald request gets Wald or NA. A median that is not reached keeps its own
 			# edi_km_median_not_reached_warning, so it gets no second warning.
+			# v1.0.7-TODO-182: every call that returns NA says why. The median warning fires once
+			# per fit inside shared(), and the Wald-unavailable warning once per fit, so a second
+			# call (or an estimate computed first) returned a silent NA.
 			if (!is.finite(private$cached_values$beta_hat_T)) {
+				private$explain_median_na(n0)
 				ci = c(NA_real_, NA_real_)
 				names(ci) = paste0(c(alpha / 2, 1 - alpha / 2) * 100, "%")
 				return(ci)
 			}
 			if (is.na(private$cached_values$s_beta_hat_T)) {
+				private$cached_values$wald_unavailable_warned = FALSE
 				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			arms = private$km_median_arm_bounds(alpha)
 			if (is.null(arms)) {
+				private$cached_values$wald_unavailable_warned = FALSE
 				return(edi_wald_unavailable_na(self, private, alpha = alpha, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			hw = private$mover_half_widths(arms)
@@ -272,7 +306,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		#' because each arm's interval changes shape with its level. \code{NA} (with an
 		#' \code{edi_km_median_not_reached_warning}) when a median is not reached, and
 		#' \code{NA} with an \code{edi_wald_unavailable_warning} under the same
-		#' conditions as the confidence interval (v1.0.6-TODO-380); the bootstrap p-value
+		#' conditions as the confidence interval (v1.0.6-TODO-225); the bootstrap p-value
 		#' on left- or interval-censored data.
 		#'
 		#' @param delta The null difference to test against. Default is 0.
@@ -282,16 +316,22 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
+			n0 = private$km_median_warn_count()
 			private$shared()
 			if (isTRUE(private$has_general_censoring)) {
 				# No analytic SE on this path (see compute_asymp_confidence_interval()). Drop
 				# non-finite replicates like the CI does (subject to the bootstrap's
-				# usable-fraction guard), since this method takes no na.rm (v1.0.6-TODO-309).
+				# usable-fraction guard), since this method takes no na.rm (v1.0.6-TODO-193).
 				return(self$compute_bootstrap_two_sided_pval(delta = delta, na.rm = TRUE))
 			}
-			if (!is.finite(private$cached_values$beta_hat_T)) return(NA_real_)
+			# v1.0.7-TODO-182: explain the NA on every call (see compute_asymp_confidence_interval()).
+			if (!is.finite(private$cached_values$beta_hat_T)) {
+				private$explain_median_na(n0)
+				return(NA_real_)
+			}
 			if (is.na(private$cached_values$s_beta_hat_T)) {
-				# v1.0.6-TODO-380: was a bootstrap fallback.
+				# v1.0.6-TODO-225: was a bootstrap fallback.
+				private$cached_values$wald_unavailable_warned = FALSE
 				return(edi_wald_unavailable_na(self, private, reason = "km_brookmeyer_crowley_bound_unavailable"))
 			}
 			edi_warn_cluster_independence_once(self, private, "wald")
@@ -379,15 +419,26 @@ InferenceSurvivalKMDiff = define_inference_class(
 		}
 	),
 	private = list(
+		rand_pval_impl = InferenceRand$public_methods$compute_rand_two_sided_pval,
+		# v1.0.7-TODO-182: how many edi_km_median_not_reached_warnings this fit has raised, so a
+		# public method can tell whether shared() just explained the NA it is about to return.
+		km_median_warn_count = function() private$cached_values$km_median_warn_count %||% 0L,
+		# Re-raise the median warning for a public result that is NA because the estimate is,
+		# unless shared() already raised it during this call (the count moved since n0).
+		explain_median_na = function(n0){
+			if (is.finite(private$cached_values$beta_hat_T %||% NA_real_)) return(invisible(FALSE))
+			if (private$km_median_warn_count() > n0) return(invisible(FALSE))
+			private$warn_km_median_not_reached_once()
+		},
 		jackknife_wald_ci_impl = InferenceJackknife$public_methods$compute_jackknife_wald_confidence_interval,
 		jackknife_wald_pval_impl = InferenceJackknife$public_methods$compute_jackknife_wald_two_sided_pval,
-		# v1.0.6-TODO-112: the jackknife-Wald result was NA with no warning on plain uncensored
+		# v1.0.6-TODO-66: the jackknife-Wald result was NA with no warning on plain uncensored
 		# data. Cause: leave-one-out KM medians take only three values per arm (the deleted
 		# subject is below, at or above the median), with uneven gaps, so the (n - 1)-scaled
 		# jackknife bias is large and the shared |bias| > 2 SE guard
 		# (InferenceJackknife compute_jackknife_summary(), reason "jackknife_extreme_summary")
 		# returns NA. The guard is right to refuse; this says why in median terms. The shared
-		# jackknife NA warning (v1.0.6-TODO-113, edi_warn_jackknife_na()) attributes that
+		# jackknife NA warning (v1.0.6-TODO-67, edi_warn_jackknife_na()) attributes that
 		# reason to separation, which does not apply here, so it is held back and replaced
 		# by this class's warning; it is re-raised unchanged when no median-specific reason
 		# applies (e.g. the median itself is NA, which shared() has already explained).
@@ -424,7 +475,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 			if (!is.null(private$active_resampling_operation)) return(NULL)
 			theta_hat = private$cached_values$beta_hat_T
 			if (is.null(theta_hat)) return(NULL)
-			# v1.0.6-TODO-144: the full-data difference in medians is NA (a median is not
+			# v1.0.6-TODO-96: the full-data difference in medians is NA (a median is not
 			# reached; shared() raised edi_km_median_not_reached_warning on the first fit).
 			# Say so in median terms rather than the generic "estimate not available".
 			if (!is.finite(theta_hat)) {
@@ -451,7 +502,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 			m = length(jack)
 			bias = (m - 1) * (mean(jack) - theta_hat)
 			se = sqrt((m - 1) / m * sum((jack - mean(jack))^2))
-			# v1.0.6-TODO-144: under interval censoring the Turnbull median is the midpoint of
+			# v1.0.6-TODO-96: under interval censoring the Turnbull median is the midpoint of
 			# one Turnbull interval, so deleting one unit rarely moves it and the
 			# leave-one-out medians are often all equal (jackknife SE 0).
 			if (is.finite(se) && se <= 0) {
@@ -501,11 +552,11 @@ InferenceSurvivalKMDiff = define_inference_class(
 				# for a median contrast), so s_beta_hat_T is left NA here --
 				# compute_asymp_confidence_interval()/compute_asymp_two_sided_pval()
 				# return the nonparametric bootstrap on this path, the variance
-				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-380).
+				# strategy TODO-8 asks for (explicitly since v1.0.6-TODO-225).
 				assert_interval_installed(class(self)[1L])
 				private$cached_values$beta_hat_T = turnbull_npmle_stat_diff(private$y_L, private$y_R, private$w, "median", y = private$y)
 				private$cached_values$s_beta_hat_T = NA_real_
-				# v1.0.6-TODO-144: this branch returned before the not-reached warning below.
+				# v1.0.6-TODO-96: this branch returned before the not-reached warning below.
 				if (!is.finite(private$cached_values$beta_hat_T)) private$warn_km_median_not_reached_once()
 				return(invisible(NULL))
 			}
@@ -571,7 +622,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 			# mover_half_widths()); it marks the analytic path as available.
 			private$cached_values$s_beta_hat_T = sqrt(((hi_T - lo_T) / (2 * z))^2 + ((hi_C - lo_C) / (2 * z))^2)
 		},
-		# v1.0.6-TODO-112: a median that is not reached is a legitimate NA, but say so, naming
+		# v1.0.6-TODO-66: a median that is not reached is a legitimate NA, but say so, naming
 		# the arm(s) whose Kaplan-Meier curve stays above 0.5 and suggesting the restricted
 		# mean. shared() caches the NA estimate, so this fires once per fit, not once per
 		# method call; there is deliberately no once-per-object flag, because internal
@@ -580,7 +631,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 		# draws are counted by the resampling code, not warned one by one).
 		warn_km_median_not_reached_once = function(){
 			if (!is.null(private$active_resampling_operation)) return(invisible(FALSE))
-			# v1.0.6-TODO-144: under left/interval censoring private$y is NA for every
+			# v1.0.6-TODO-96: under left/interval censoring private$y is NA for every
 			# censored row, so describe each arm from its Turnbull NPMLE instead.
 			turnbull_arm_note = function(w_val, label){
 				iv = turnbull_effective_interval(private$y_L, private$y_R, private$y)
@@ -617,6 +668,7 @@ InferenceSurvivalKMDiff = define_inference_class(
 				"which is defined however much follow-up there is. ",
 				"Suppress with suppressWarnings(expr, classes = \"edi_km_median_not_reached_warning\")."
 			)
+			private$cached_values$km_median_warn_count = private$km_median_warn_count() + 1L
 			warning(structure(
 				class = c("edi_km_median_not_reached_warning", "edi_procedure_na_warning", "warning", "condition"),
 				list(message = msg, call = NULL, procedure = "estimate", reason = "km_median_not_reached")

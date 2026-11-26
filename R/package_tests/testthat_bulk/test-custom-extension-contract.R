@@ -49,8 +49,8 @@ test_that("custom asymptotic inference works from an external-package-like envir
 
 	des = DesignFixedBernoulli$new(n = 20, response_type = "continuous", verbose = FALSE)
 	# x must be an ordinary covariate: with x = 1:20 the response c(1:10, 12:21) is
-	# exactly x + w, so the v1.0.6-TODO-158 perfect-predictor check drops x as
-	# leakage and the get_analysis_data() expectation below fails (v1.0.6-TODO-208).
+	# exactly x + w, so the v1.0.6-TODO-108 perfect-predictor check drops x as
+	# leakage and the get_analysis_data() expectation below fails (v1.0.6-TODO-149).
 	des$add_all_subjects_to_experiment(data.frame(x = rep(c(4, 1, 7, 2, 9, 3, 8, 5, 10, 6), 2)))
 	des$overwrite_all_subject_assignments(rep(c(0, 1), each = 10))
 	des$add_all_subject_responses(c(1:10, 12:21))

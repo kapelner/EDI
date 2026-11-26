@@ -18,9 +18,12 @@ gcomp_clip_design = function(response_type, y) {
 test_that("incidence g-computation rejects prob_clip_eps = 0.5 and accepts values below it", {
 	set.seed(12)
 	des = gcomp_clip_design("incidence", rbinom(40, 1, 0.4))
+	below_half = 0.5 - .Machine$double.eps / 4
 	for (cls in list(InferenceIncidGCompRiskDiff, InferenceIncidGCompRiskRatio)) {
-		expect_error(cls$new(des, prob_clip_eps = 0.5), "prob_clip_eps must be in \\[0, 0.5\\)")
-		expect_no_error(cls$new(des, prob_clip_eps = 0.49))
+		for (invalid in list(-0.01, 0.5, 0.51, NA_real_, Inf, "0.1", c(0.1, 0.2))) {
+			expect_error(cls$new(des, prob_clip_eps = invalid), "prob_clip_eps must be in \\[0, 0.5\\)")
+		}
+		expect_no_error(cls$new(des, prob_clip_eps = below_half))
 		expect_no_error(cls$new(des, prob_clip_eps = 0))
 	}
 })

@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-70 (GitHub issue #28): DesignSeqOneByOneEfron documented weighted_coin_prob > 0.5
+# v1.0.6-TODO-33 (GitHub issue #28): DesignSeqOneByOneEfron documented weighted_coin_prob > 0.5
 # but never checked it. Efron (1971) defines the biased coin for p > 1/2; p = 1 is the
 # deterministic limit (the under-represented arm always gets the next subject) and existing
 # tests rely on it, so the constructor accepts 0.5 < p <= 1 and rejects everything else.

@@ -72,8 +72,7 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		#' @return Numeric scalar: the treatment-effect estimate on the outcome's natural
 		#'   (untransformed) scale, i.e. a mean-difference estimand.
 		compute_estimate = function(estimate_only = FALSE){
-			private$fit_combined(estimate_only = estimate_only)
-			private$cached_values$beta_hat_T
+			kk_stacked_linear_estimate(private, estimate_only)
 		},
 		#' @description Recomputes the treatment estimate under nonparametric/Bayesian bootstrap
 		#'   subject-or-block weights, used by \code{\link[EDI:InferenceBayesianBootstrap]{InferenceBayesianBootstrap}}
@@ -93,23 +92,8 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		#' @return Numeric scalar treatment-effect estimate under the given weights (same scale as
 		#'   \code{compute_estimate()}), or \code{NA_real_} if the weighted fit is not estimable.
 		compute_estimate_with_bootstrap_weights = function(subject_or_block_weights, estimate_only = FALSE){
-			row_weights = private$expand_subject_or_block_weights_to_row_weights(subject_or_block_weights)
-			if (weights_are_effectively_constant(row_weights)) {
-				self$compute_estimate(estimate_only = estimate_only)
-				beta_hat_T = as.numeric(private$cached_values$beta_hat_T)[1L]
-				if (is.finite(beta_hat_T)) {
-					return(private$cached_values$beta_hat_T)
-				}
-			}
-			result = private$fit_weighted_combined(row_weights, estimate_only = estimate_only)
-			if (is.list(result)) {
-				private$cached_values$beta_hat_T = result$beta
-				private$cached_values$s_beta_hat_T = result$se
-			} else {
-				private$cached_values$beta_hat_T = result
-				private$cached_values$s_beta_hat_T = NA_real_
-			}
-			private$cached_values$beta_hat_T
+			kk_stacked_weighted_estimate(self, private, subject_or_block_weights, estimate_only,
+				private$fit_weighted_combined)
 		},
 		#' @description Two-sided \eqn{(1-\alpha)} confidence interval for the treatment
 		#'   coefficient \eqn{\beta_T}. When \code{testing_type = "wald"} (the default), this is the
@@ -126,24 +110,10 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		#' @return A length-2 numeric vector \code{c(lower, upper)}, or \code{NA} bounds if the
 		#'   underlying fit is nonestimable.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			if (should_run_asserts()) {
-				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
-			}
-			switch(
-				private$testing_type,
-				wald = {
-					private$fit_combined()
-					private$compute_z_or_t_ci_from_s_and_df(alpha)
-				},
+			edi_stacked_likelihood_ci(private, alpha, private$fit_combined(),
 				score = private$invert_test_pval_confidence_interval(alpha),
 				gradient = private$invert_gradient_ci_uniroot(alpha),
-				lik_ratio = private$invert_lik_ratio_ci_newton(alpha),
-				# v1.0.6-TODO-327: the Bartlett types are in get_supported_testing_types()
-				# but had no branch here, so the CI came back NULL.
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+				lik_ratio = private$invert_lik_ratio_ci_newton(alpha))
 		},
 		#' @description Two-sided p-value for \eqn{H_0: \beta_T = \code{delta}} vs.
 		#'   \eqn{H_1: \beta_T \neq \code{delta}}. Under \code{testing_type = "wald"} (default), this
@@ -162,20 +132,10 @@ ContinKKOLSOneLikLikelihoodSource = list(
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 			}
-			switch(
-				private$testing_type,
-				wald = {
-					private$fit_combined()
-					private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-				},
-				score = private$compute_score_two_sided_pval_impl(delta),
-				gradient = private$compute_gradient_two_sided_pval_impl(delta),
-				lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
-				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
-				lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
-				lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
-				stop("Unsupported testing_type: ", private$testing_type)
-			)
+			edi_likelihood_asymp_pval(private, delta, {
+				private$fit_combined()
+				private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+			})
 		},
 		#' @description Returns the Gaussian log-likelihood, score, and observed information at the
 		#'   current full-model fit, with \eqn{\sigma^2} held fixed at the full model's unbiased
@@ -360,27 +320,8 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		# Copied from InferenceAsympLikStdModCache to avoid multiple inheritance issues
 		# while still using the shared infrastructure.
 		compute_likelihood_test_two_sided_pval = function(delta, testing_type, bartlett_B = NULL){
-			edi_warn_cluster_independence_once(self, private, "likelihood")
-			spec = private$get_likelihood_test_spec()
-			if (is.null(spec)) {
-				edi_warn_lik_test_unavailable_once(self, private, testing_type, delta, reason = "get_likelihood_test_spec() returned NULL (the model fit exposes no likelihood specification)")
-				if (!isTRUE(self$is_nonestimable())) {
-					edi_record_procedure_failure(self, private, "likelihood_test_spec_unavailable", stage = "estimate", procedure = edi_lik_test_procedure(testing_type)) # TODO-116 (2026-10-22): spec missing with a valid Wald fit is a lik-test failure
-				}
-				return(NA_real_)
-			}
-			p_value = private$get_memoized_likelihood_test_pval(
-				delta = delta,
-				testing_type = testing_type,
-				spec = spec,
-				warm_cache_key = paste0("likelihood_test:", testing_type),
-				bartlett_B = bartlett_B
-			)
-			if (!is.finite(p_value)) edi_warn_lik_test_unavailable_once(self, private, testing_type, delta)
-			if (!is.finite(p_value) && !isTRUE(self$is_nonestimable("estimate"))) {
-				edi_record_procedure_failure(self, private, paste0(testing_type, "_test_unavailable"), stage = "se") # TODO-116 (2026-10-22): keeps the Wald state
-			}
-			p_value
+			standard_model_likelihood_test_pval(self, private, delta, testing_type, bartlett_B,
+				check_support = FALSE)
 		},
 		fit_ols = function(X, y, j_treat, estimate_only = FALSE){
 			if (nrow(X) <= ncol(X)) return(NULL)
@@ -416,51 +357,9 @@ ContinKKOLSOneLikLikelihoodSource = list(
 		fit_combined = function(estimate_only = FALSE){
 			if (estimate_only && !is.null(private$cached_values$beta_hat_T)) return(invisible(NULL))
 			if (!estimate_only && !is.null(private$cached_values$s_beta_hat_T)) return(invisible(NULL))
-			KKstats = private$cached_values$KKstats
-			if (is.null(KKstats)){
-				private$compute_basic_match_data()
-				KKstats = private$cached_values$KKstats
-			}
-			m   = KKstats$m
-			nRT = KKstats$nRT
-			nRC = KKstats$nRC
-			nR  = nRT + nRC
-			if (m > 0 && nRT > 0 && nRC > 0){
-				if (ncol(as.matrix(private$get_X())) > 0){
-					Xd_full = as.matrix(KKstats$X_matched_diffs_full)
-					p = ncol(Xd_full)
-				} else {
-					Xd_full = matrix(nrow = m, ncol = 0L)
-					p = 0L
-				}
-				X_comb = rbind(
-					if (p > 0L) cbind(0, 1, Xd_full) else cbind(numeric(m), rep(1.0, m)),
-					if (p > 0L) cbind(rep(1, nR), KKstats$w_reservoir, as.matrix(KKstats$X_reservoir)) else cbind(rep(1, nR), KKstats$w_reservoir)
-				)
-				y_comb = c(KKstats$y_matched_diffs, KKstats$y_reservoir)
-				j_treat = 2L
-			} else if (m > 0){
-				Xd = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_matched_diffs) else matrix(nrow = m, ncol = 0L)
-				X_comb = if (ncol(Xd) > 0L) cbind(1, Xd) else matrix(1, nrow = m, ncol = 1L)
-				y_comb = KKstats$y_matched_diffs
-				j_treat = 1L
-			} else if (nRT > 0 && nRC > 0){
-				X_r = if (ncol(as.matrix(private$get_X())) > 0) as.matrix(KKstats$X_reservoir) else matrix(nrow = nR, ncol = 0L)
-				X_comb = if (ncol(X_r) > 0L) cbind(rep(1, nR), KKstats$w_reservoir, X_r) else cbind(rep(1, nR), KKstats$w_reservoir)
-				y_comb = KKstats$y_reservoir
-				j_treat = 2L
-			} else {
-				private$cache_nonestimable_estimate("no_usable_matched_or_reservoir_data")
-				return(invisible(NULL))
-			}
-			reduced = private$reduce_design_matrix_once(
-				X_comb,
-				j_treat,
-				cache_key = "kk_ols_combined_reduced_design"
-			)
-			X_comb = reduced$X
-			j_treat = reduced$j_treat
-			fit = private$fit_ols(X_comb, y_comb, j_treat, estimate_only = estimate_only)
+			data = kk_stacked_linear_model_data(private, "kk_ols_combined_reduced_design")
+			if (is.null(data)) return(invisible(NULL))
+			fit = private$fit_ols(data$X, data$y, data$j_treat, estimate_only = estimate_only)
 			if (is.null(fit)){
 				private$cache_nonestimable_estimate("ols_fit_unavailable")
 				private$cached_values$likelihood_test_context = NULL
@@ -472,9 +371,9 @@ ContinKKOLSOneLikLikelihoodSource = list(
 				private$cached_values$df = fit$df
 				private$cached_mod = fit
 				private$cached_values$likelihood_test_context = list(
-					X = X_comb,
-					y = y_comb,
-					j_treat = j_treat
+					X = data$X,
+					y = data$y,
+					j_treat = data$j_treat
 				)
 				if (!is.null(fit$mod)) {
 					private$cached_values$full_coefficients = stats::coef(fit$mod)

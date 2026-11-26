@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-136 and v1.0.6-TODO-145: p-values that returned a silent NA now warn once
+# v1.0.6-TODO-90 and v1.0.6-TODO-97: p-values that returned a silent NA now warn once
 # (edi_procedure_na_warning, with the recorded reason), values unchanged:
 #  - randomization p-value with too few finite null draws (randomization_too_few_finite_estimates),
 #    also via the randomization-bootstrap p-value that shares the helper;
@@ -59,7 +59,7 @@ test_that("randomization p-value with too few finite draws warns once", {
 })
 
 test_that("randomization p-value with r below the finite-draw floor blames r, not the estimator", {
-	# v1.0.6-TODO-202: r = 9 with every draw finite still returns NA (floor is 10), and the
+	# v1.0.6-TODO-143: r = 9 with every draw finite still returns NA (floor is 10), and the
 	# warning must say r is too small rather than that the estimator fails on re-randomizations.
 	des = make_cont_design()
 	inf = InferenceAllSimpleAverageDiff$new(des)

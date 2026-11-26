@@ -189,9 +189,9 @@ KKMeanDifferenceIVWCSource = list(
 			)
 			return(res)
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate, formerly the KK compound's
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate, formerly the KK compound's
 		# generic fallback, which pooled the weighted means with the observed data's
-		# w_star. Under the v1.0.6-TODO-132 rule a replicate is the same estimator as
+		# w_star. Under the v1.0.6-TODO-86 rule a replicate is the same estimator as
 		# shared(), so the two variances (and hence w_star) come from the weighted
 		# draw too: weighted mean and variance of the pair differences, weighted
 		# treated-minus-control reservoir means with the weighted pooled variance,

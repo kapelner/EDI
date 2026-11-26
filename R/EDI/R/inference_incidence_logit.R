@@ -148,7 +148,7 @@ IncidenceLogisticLikelihoodSource = list(
 				return(NA_real_)
 			}
 			private$set_fit_warm_start(res$b, "beta", fisher = res$fisher_information)
-			# v1.0.6-TODO-189: under a marginal estimand return the g-computed
+			# v1.0.6-TODO-135: under a marginal estimand return the g-computed
 			# functional, the scale compute_estimate() and the reused worker use.
 			estimand = self$get_estimand()
 			if (identical(estimand, "conditional")) return(as.numeric(res$b[2]))
@@ -495,13 +495,13 @@ IncidenceLogisticLikelihoodSource = list(
 #' }
 #' @inheritSection InferenceContinOLS Blocking designs
 #' @section Subsampling and m-out-of-n:
-#' (v1.0.6-TODO-230.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
+#' (v1.0.6-TODO-164.) At the default size \eqn{b = m = \lfloor n^{0.7} \rfloor} a draw can be
 #' \emph{degenerate}: a treatment arm with no events or only events, or a (quasi-)separated fit (a fitted probability numerically 0 or 1). Its log odds ratio then sits where the fitter stopped (about \eqn{\pm 20}),
 #' not in the sampling law the pivot estimates, so the draw is \code{NaN} in
 #' \code{approximate_subsampling_distribution_beta_hat_T()} and
 #' \code{approximate_m_out_of_n_bootstrap_distribution_beta_hat_T()} (also with \code{debug = TRUE})
 #' and is not used. If fewer than \code{min_fraction_usable_samples} (default 0.8, user-settable since
-#' v1.0.6-TODO-269) of the \code{B} draws are usable (degenerate and failed draws both count against
+#' v1.0.6-TODO-204) of the \code{B} draws are usable (degenerate and failed draws both count against
 #' it), the subsampling / m-out-of-n p-value or interval is \code{NA} with reason
 #' \code{"subsampling_too_few_usable_draws_fraction"} or \code{"m_out_of_n_too_few_usable_draws_fraction"}
 #' and one \code{edi_procedure_na_warning}. The p-value is symmetric: the share of usable pivot draws
@@ -584,7 +584,7 @@ InferenceIncidLogRegr = define_inference_class(
 		#'   bootstrap resampling paths.
 		compute_estimate = function(estimate_only = FALSE){
 			private$shared(estimate_only = estimate_only)
-			# v1.0.6-TODO-109: warn (once per object, never inside resampling)
+			# v1.0.6-TODO-63: warn (once per object, never inside resampling)
 			# when fitted probabilities are numerically 0 or 1, i.e. the data
 			# are (quasi-)completely separated. Warning only, no numeric change.
 			if (!is.null(private$cached_mod)) edi_warn_logistic_separation_once(self, private, private$cached_mod$X, private$cached_mod$b)

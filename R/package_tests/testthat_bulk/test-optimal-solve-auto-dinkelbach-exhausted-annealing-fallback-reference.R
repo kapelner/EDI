@@ -60,7 +60,7 @@ test_that("when the exhausted MILP's objective_value is NOT lower, annealing's o
 	expect_equal(res$solver, "annealing")
 })
 
-# v1.0.6-TODO-296 (docs-scenarios fixed-designs F4): solver = "auto" sent abs_sum_diff to the exact
+# v1.0.6-TODO-183 (docs-scenarios fixed-designs F4): solver = "auto" sent abs_sum_diff to the exact
 # MILP with no time limit; at n = 40 it had not returned after 400 s. It now gets
 # solver_args$milp_time_limit seconds (GLPK) and then falls back to annealing with a message.
 test_that("abs_sum_diff under solver = 'auto' falls back to annealing when the MILP hits milp_time_limit", {

@@ -130,7 +130,34 @@ kk_cpoisson_glm_fallback_spec = function(ctx){
 	ci
 }
 
-# v1.0.6-TODO-380 (owner, 2026-11-21): testing_type
+# Save the design estimate before evaluating the model p-value, which can refit.
+.kk_count_conservative_pval = function(self, private, delta, model_pval, label) {
+	beta_design = private$cached_values$beta_hat_T
+	se_design = private$cached_values$s_beta_hat_T
+	df_design = private$cached_values$df
+	p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
+	p_model = tryCatch(model_pval, error = function(e) NA_real_)
+	private$cached_values$beta_hat_T = beta_design
+	private$cached_values$s_beta_hat_T = se_design
+	private$cached_values$df = df_design
+	if (is.finite(p_design)) private$clear_nonestimable_state()
+	.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = label)
+}
+
+.kk_count_conservative_ci = function(self, private, alpha, model_ci, label) {
+	beta_design = private$cached_values$beta_hat_T
+	se_design = private$cached_values$s_beta_hat_T
+	df_design = private$cached_values$df
+	ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
+	ci_model = tryCatch(model_ci, error = function(e) c(NA_real_, NA_real_))
+	private$cached_values$beta_hat_T = beta_design
+	private$cached_values$s_beta_hat_T = se_design
+	private$cached_values$df = df_design
+	if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
+	.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = label)
+}
+
+# v1.0.6-TODO-225 (owner, 2026-11-21): testing_type
 # "lik_ratio_bartlett_approx_design_conservative" on the KK count OneLik classes.
 # "lik_ratio_bartlett_approx" stays the model-only Bartlett-corrected LR test;
 # this type combines it with the design-based Wald test by the rule the
@@ -172,7 +199,7 @@ kk_cpoisson_glm_fallback_spec = function(ctx){
 		if (isTRUE(private$supports_bartlett_likelihood_ratio_approx())) "lik_ratio_bartlett_approx_design_conservative")
 }
 
-# v1.0.6-TODO-195 (1), 2026-11-19: the KK hurdle-Poisson classes fit the count
+# v1.0.6-TODO-140 (1), 2026-11-19: the KK hurdle-Poisson classes fit the count
 # part of a hurdle model, a zero-truncated Poisson GLMM on the matched rows with a
 # positive count (fast_hurdle_poisson_glmm_cpp()); the hurdle (zero vs. positive)
 # part never enters. The OneLik class adds a plain Poisson likelihood on the
@@ -180,13 +207,13 @@ kk_cpoisson_glm_fallback_spec = function(ctx){
 # zero-augmented classes apply to their positive rows apply here, to the rows
 # that actually enter the count likelihood ("count rows"):
 #   * aliased count covariates on those rows are dropped, as glm does
-#     (v1.0.6-TODO-195 (2), zero_augmented_drop_aliased_count_cols());
+#     (v1.0.6-TODO-140 (2), zero_augmented_drop_aliased_count_cols());
 #   * a treatment coefficient those rows do not identify is not estimable
-#     (v1.0.6-TODO-186, zero_augmented_count_treatment_identified());
+#     (v1.0.6-TODO-132, zero_augmented_count_treatment_identified());
 #   * an arm whose truncated rows all have y = 1 and whose Poisson (reservoir)
 #     rows all have y = 0 (and that has at least one count row) sends the
 #     treatment coefficient to infinity: lowering that arm's rate alone raises
-#     every one of its terms (v1.0.6-TODO-195 (3),
+#     every one of its terms (v1.0.6-TODO-140 (3),
 #     zero_augmented_count_mle_infinite_arms() for the truncated-only case).
 # Before this, such data gave arbitrary estimates (e.g. -0.43 with SE 0.31 when
 # every positive matched row was treated, -14 with SE 335 when every treated
@@ -504,7 +531,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (estimate_only) return(invisible(NULL))
 				private$cached_values$s_beta_hat_T = sqrt(ssq_r)
 			} else if (!is.null(res_m$reason)) {
-				# v1.0.6-TODO-195 (1) / (3): no reservoir to fall back on, so the
+				# v1.0.6-TODO-140 (1) / (3): no reservoir to fall back on, so the
 				# matched component's guard decides the estimate.
 				private$cache_nonestimable_estimate(res_m$reason)
 				if (identical(res_m$reason, "kk_hurdle_count_mle_not_finite")) {
@@ -530,7 +557,7 @@ CountKKHurdlePoissonIVWCSource = list(
 			if (is.null(X_fit) || !is.finite(reduced$j_treat) || nrow(X_fit) <= ncol(X_fit)){
 				return(list(beta_hat = NA_real_, se = NA_real_))
 			}
-			# v1.0.6-TODO-195 (1): the matched component is the count part of a
+			# v1.0.6-TODO-140 (1): the matched component is the count part of a
 			# hurdle model, learned from the positive matched rows only; apply the
 			# zero-augmented guards there (see kk_hurdle_count_guard()). A failed
 			# guard makes this component unusable, so the IVWC estimate is the
@@ -568,7 +595,7 @@ CountKKHurdlePoissonIVWCSource = list(
 		},
 		fit_hurdle_for_matched_pairs_rcpp = function(X_fit, y_fit, group_id, j_treat){
 			fit = tryCatch({
-				# v1.0.6-TODO-195 (4): see edi_check_count_kernel_inputs().
+				# v1.0.6-TODO-140 (4): see edi_check_count_kernel_inputs().
 				edi_check_count_kernel_inputs("fast_hurdle_poisson_glmm_cpp", X_fit, y_fit, group_id = group_id)
 				fast_hurdle_poisson_glmm_cpp(
 					X = as.matrix(X_fit),
@@ -602,7 +629,7 @@ CountKKHurdlePoissonIVWCSource = list(
 				pred_df,
 				pair_group = factor(group_id)
 			)
-			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-62)
+			glmm_control = glmmTMB::glmmTMBControl(parallel = 1L) # one TMB thread: core-count invariance (v1.0.6-TODO-26)
 			formula_cond = private$build_glmm_formula(dat)
 			mod = tryCatch(
 				suppressWarnings(suppressMessages(
@@ -700,7 +727,7 @@ CountKKHurdlePoissonIVWCSource = list(
 #' maximum likelihood estimate, giving \code{NA} (reason
 #' \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
 #' \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
-#' refits apply the same rules to their own data (v1.0.6-TODO-195). For this class the guards apply to the matched-pair component: when it fails
+#' refits apply the same rules to their own data (v1.0.6-TODO-140). For this class the guards apply to the matched-pair component: when it fails
 #' them the estimate is the reservoir component's alone, as for any failed
 #' component, and \code{NA} only when there is no usable reservoir.
 #'
@@ -889,65 +916,28 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		#'   \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 		#' @param alpha Significance level; the interval has confidence level 1 - alpha.
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			switch(
-				self$get_testing_type(),
-				# v1.0.6-TODO-380: the Wald method itself, which returns NA (never a
-				# bootstrap interval) when the standard error is unavailable.
-				wald = self$compute_wald_confidence_interval(alpha = alpha),
-				score = self$compute_score_confidence_interval(alpha = alpha),
-				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
-				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
-				# branch here, so the CI came back NULL. Same method a direct call reaches.
-				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
-				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_ci(self, private, alpha = alpha),
-				stop("Unsupported testing_type: ", self$get_testing_type())
-			)
+			kk_count_onelik_asymptotic(self, private, alpha, interval = TRUE)
 		},
 		#' @description Computes a design-conservative score confidence interval.
 		#' @param alpha Significance level.
 		compute_score_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_score_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "score")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_score_confidence_interval_generic(alpha = alpha), "score")
 		},
 		#' @description Computes a design-conservative likelihood-ratio confidence interval.
 		#' @param alpha Significance level.
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "lik_ratio")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), "lik_ratio")
 		},
 		#' @description Computes a design-conservative gradient confidence interval.
 		#' @param alpha Significance level.
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_gradient_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "gradient")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_gradient_confidence_interval_generic(alpha = alpha), "gradient")
 		},
 		#' @description Compute the configured asymptotic two-sided p-value for the
 		#'   one-likelihood hurdle-Poisson treatment coefficient, delegating to the
@@ -955,63 +945,28 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		#'   \code{\link[EDI:InferenceCountKKHurdlePoissonOneLik]{InferenceCountKKHurdlePoissonOneLik}}.
 		#' @param delta Null treatment effect value.
 		compute_asymp_two_sided_pval = function(delta = 0){
-			switch(
-				self$get_testing_type(),
-				# v1.0.6-TODO-380: see compute_asymp_confidence_interval().
-				wald = self$compute_wald_two_sided_pval(delta = delta),
-				score = self$compute_score_two_sided_pval(delta = delta),
-				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				gradient = self$compute_gradient_two_sided_pval(delta = delta),
-				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
-				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
-				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_pval(self, private, delta = delta),
-				stop("Unsupported testing_type: ", self$get_testing_type())
-			)
+			kk_count_onelik_asymptotic(self, private, delta, interval = FALSE)
 		},
 		#' @description Computes a design-conservative score p-value.
 		#' @param delta Null treatment effect value.
 		compute_score_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_score_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "score")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_score_two_sided_pval_generic(delta = delta), "score")
 		},
 		#' @description Computes a design-conservative likelihood-ratio p-value.
 		#' @param delta Null treatment effect value.
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_lik_ratio_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "lik_ratio")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_lik_ratio_two_sided_pval_generic(delta = delta), "lik_ratio")
 		},
 		#' @description Computes a design-conservative gradient p-value.
 		#' @param delta Null treatment effect value.
 		compute_gradient_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_gradient_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "gradient")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_gradient_two_sided_pval_generic(delta = delta), "gradient")
 		},
 		#' @description Compute the Wald confidence interval for the one-likelihood
 		#'   hurdle-Poisson treatment coefficient. When the model standard error is
@@ -1023,7 +978,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		compute_wald_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: was a bootstrap fallback; a Wald request gets Wald or NA.
+				# v1.0.6-TODO-225: was a bootstrap fallback; a Wald request gets Wald or NA.
 				return(edi_wald_unavailable_na(self, private, alpha = alpha))
 			}
 			private$compute_z_or_t_ci_from_s_and_df(alpha)
@@ -1037,7 +992,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		compute_wald_two_sided_pval = function(delta = 0){
 			private$shared_combined_hurdle()
 			if (!is.finite(private$cached_values$s_beta_hat_T) || private$cached_values$s_beta_hat_T <= 0){
-				# v1.0.6-TODO-380: see compute_wald_confidence_interval().
+				# v1.0.6-TODO-225: see compute_wald_confidence_interval().
 				return(edi_wald_unavailable_na(self, private))
 			}
 			private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
@@ -1073,7 +1028,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		supports_lik_ratio_param_bootstrap = function(){
 			TRUE
 		},
-		# v1.0.6-TODO-380: plus "lik_ratio_bartlett_approx_design_conservative".
+		# v1.0.6-TODO-225: plus "lik_ratio_bartlett_approx_design_conservative".
 		get_supported_testing_types_impl = function(){
 			.kk_onelik_supported_testing_types(private)
 		},
@@ -1129,25 +1084,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			p = ncol(dat$X_fit)
 			beta = as.numeric(params[seq_len(p)])
 			total = 0
-			w_m = dat$weights_matched %||% rep(1, length(dat$y_matched))
-			if (length(dat$matched_idx) > 0L && sum(dat$y_matched > 0 & w_m > 0, na.rm = TRUE) > p) {
-				total = total + if (is.null(dat$weights_matched)) {
-					as.numeric(get_hurdle_poisson_glmm_neg_loglik_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						params = as.numeric(params)
-					))
-				} else {
-					as.numeric(get_hurdle_poisson_glmm_weighted_neg_loglik_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						weights = w_m,
-						params = as.numeric(params)
-					))
-				}
-			}
+			total = kk_hurdle_matched_contribution(
+				total, params, dat, p, get_hurdle_poisson_glmm_neg_loglik_cpp,
+				get_hurdle_poisson_glmm_weighted_neg_loglik_cpp, as.numeric
+			)
 			if (length(dat$reservoir_idx) > 0L) {
 				w_r = dat$weights_reservoir %||% rep(1, length(dat$y_reservoir))
 				eta_r = as.numeric(dat$X_reservoir %*% beta)
@@ -1158,25 +1098,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		combined_hurdle_score = function(params, dat){
 			p = ncol(dat$X_fit)
 			score = numeric(p + 1L)
-			w_m = dat$weights_matched %||% rep(1, length(dat$y_matched))
-			if (length(dat$matched_idx) > 0L && sum(dat$y_matched > 0 & w_m > 0, na.rm = TRUE) > p) {
-				score = score + if (is.null(dat$weights_matched)) {
-					as.numeric(get_hurdle_poisson_glmm_score_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						params = as.numeric(params)
-					))
-				} else {
-					as.numeric(get_hurdle_poisson_glmm_weighted_score_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						weights = w_m,
-						params = as.numeric(params)
-					))
-				}
-			}
+			score = kk_hurdle_matched_contribution(
+				score, params, dat, p, get_hurdle_poisson_glmm_score_cpp,
+				get_hurdle_poisson_glmm_weighted_score_cpp, as.numeric
+			)
 			if (length(dat$reservoir_idx) > 0L) {
 				w_r = dat$weights_reservoir %||% rep(1, length(dat$y_reservoir))
 				score[seq_len(p)] = score[seq_len(p)] + as.numeric(get_poisson_regression_weighted_score_cpp(
@@ -1191,25 +1116,10 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 		combined_hurdle_hessian = function(params, dat){
 			p = ncol(dat$X_fit)
 			H = matrix(0, nrow = p + 1L, ncol = p + 1L)
-			w_m = dat$weights_matched %||% rep(1, length(dat$y_matched))
-			if (length(dat$matched_idx) > 0L && sum(dat$y_matched > 0 & w_m > 0, na.rm = TRUE) > p) {
-				H = H + if (is.null(dat$weights_matched)) {
-					as.matrix(get_hurdle_poisson_glmm_hessian_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						params = as.numeric(params)
-					))
-				} else {
-					as.matrix(get_hurdle_poisson_glmm_weighted_hessian_cpp(
-						X = dat$X_matched,
-						y = dat$y_matched,
-						group_id = dat$group_id,
-						weights = w_m,
-						params = as.numeric(params)
-					))
-				}
-			}
+			H = kk_hurdle_matched_contribution(
+				H, params, dat, p, get_hurdle_poisson_glmm_hessian_cpp,
+				get_hurdle_poisson_glmm_weighted_hessian_cpp, as.matrix
+			)
 			if (length(dat$reservoir_idx) > 0L) {
 				w_r = dat$weights_reservoir %||% rep(1, length(dat$y_reservoir))
 				H[seq_len(p), seq_len(p)] = H[seq_len(p), seq_len(p), drop = FALSE] + as.matrix(get_poisson_regression_weighted_hessian_cpp(
@@ -1413,7 +1323,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 				return(invisible(NULL))
 			}
 			X_model = X_fit
-			# v1.0.6-TODO-195 (1) / (3): the count-row guards of the other
+			# v1.0.6-TODO-140 (1) / (3): the count-row guards of the other
 			# zero-augmented classes, on the rows that enter the combined likelihood
 			# (see kk_hurdle_count_guard()).
 			split = split_kk_matched_reservoir_idx(private$m, nrow(X_fit))
@@ -1497,7 +1407,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			if (weights_are_effectively_constant(row_weights)) {
 				return(as.numeric(self$compute_estimate(estimate_only = estimate_only))[1L])
 			}
-			# v1.0.6-TODO-195 (1) / (3): same guards as the full fit, on the rows with
+			# v1.0.6-TODO-140 (1) / (3): same guards as the full fit, on the rows with
 			# positive weight.
 			split = split_kk_matched_reservoir_idx(private$m, nrow(X_fit))
 			guard = kk_hurdle_count_guard(X_fit, private$y, reduced$j_treat, split$matched_idx, split$reservoir_idx,
@@ -1585,7 +1495,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 			)
 			if (is.null(full_res) || !isTRUE(full_res$converged)) return(NULL)
 			if (length(full_res$b) < j || !is.finite(full_res$b[j])) return(NULL)
-			# v1.0.6-TODO-195 (1) / (3): a simulated response whose count rows do not
+			# v1.0.6-TODO-140 (1) / (3): a simulated response whose count rows do not
 			# identify the treatment coefficient, or put it at infinity, has no usable
 			# estimate: the parametric-bootstrap estimate replicate reads b[j] and
 			# counts NA as a failed refit; the LR replicate uses only the two nlls and
@@ -1704,7 +1614,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' design-conservative version is a separate testing type,
 #' \code{set_testing_type("lik_ratio_bartlett_approx_design_conservative")}: the
 #' larger of the model-only Bartlett p-value and the design Wald p-value, and the
-#' union of the two intervals (v1.0.6-TODO-380).
+#' union of the two intervals (v1.0.6-TODO-225).
 #' When the model-based standard error is unavailable or non-finite (e.g. a
 #' boundary/separation fit) the Wald confidence interval and p-value are
 #' \code{NA}, with the reason recorded and an \code{edi_wald_unavailable_warning};
@@ -1730,7 +1640,7 @@ CountKKHurdlePoissonOneLikLikelihoodSource = list(
 #' maximum likelihood estimate, giving \code{NA} (reason
 #' \code{"kk_hurdle_count_mle_not_finite"}) with one warning of class
 #' \code{edi_hurdle_count_mle_not_finite_warning}. Randomization and bootstrap
-#' refits apply the same rules to their own data (v1.0.6-TODO-195).
+#' refits apply the same rules to their own data (v1.0.6-TODO-140).
 #'
 #' @references
 #' Mullahy, J. (1986). "Specification and Testing of Some Modified Count
@@ -1905,36 +1815,13 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_asymp_confidence_interval = function(alpha = 0.05){
-			switch(
-				self$get_testing_type(),
-				wald = self$compute_wald_confidence_interval(alpha = alpha),
-				score = self$compute_score_confidence_interval(alpha = alpha),
-				lik_ratio = self$compute_lik_ratio_confidence_interval(alpha = alpha),
-				gradient = self$compute_gradient_confidence_interval(alpha = alpha),
-				# v1.0.6-TODO-327: listed by get_supported_testing_types() but had no
-				# branch here, so the CI came back NULL. Same method a direct call reaches.
-				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_confidence_interval(alpha = alpha),
-				# v1.0.6-TODO-380: the model-only Bartlett interval unioned with the design Wald one.
-				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_ci(self, private, alpha = alpha),
-				stop("Unsupported testing_type: ", self$get_testing_type())
-			)
+			kk_count_onelik_asymptotic(self, private, alpha, interval = TRUE)
 		},
 		#' @description Uses the shared asymptotic two-sided p-value contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_asymp_two_sided_pval = function(delta = 0){
-			switch(
-				self$get_testing_type(),
-				wald = self$compute_wald_two_sided_pval(delta = delta),
-				score = self$compute_score_two_sided_pval(delta = delta),
-				lik_ratio = self$compute_lik_ratio_two_sided_pval(delta = delta),
-				gradient = self$compute_gradient_two_sided_pval(delta = delta),
-				# v1.0.6-TODO-327: see compute_asymp_confidence_interval().
-				lik_ratio_bartlett_approx = self$compute_lik_ratio_bartlett_approx_two_sided_pval(delta = delta),
-				# v1.0.6-TODO-380: the larger of the model-only Bartlett and design Wald p-values.
-				lik_ratio_bartlett_approx_design_conservative = .kk_onelik_bartlett_design_conservative_pval(self, private, delta = delta),
-				stop("Unsupported testing_type: ", self$get_testing_type())
-			)
+			kk_count_onelik_asymptotic(self, private, delta, interval = FALSE)
 		},
 		#' @description Uses the shared Wald confidence-interval contract; see
 		#'   \code{\link[EDI:InferenceAsymp]{InferenceAsymp}}.
@@ -1953,91 +1840,43 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_score_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_score_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "score")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_score_confidence_interval_generic(alpha = alpha), "score")
 		},
 		#' @description Computes a design-adjusted likelihood-ratio confidence interval.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_lik_ratio_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "lik_ratio")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_lik_ratio_confidence_interval_generic(alpha = alpha), "lik_ratio")
 		},
 		#' @description Computes a design-adjusted gradient confidence interval.
 		#' @param alpha Numeric. Significance level (default 0.05).
 		compute_gradient_confidence_interval = function(alpha = 0.05){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			ci_design = private$compute_z_or_t_ci_from_s_and_df(alpha)
-			ci_model = tryCatch(self$compute_gradient_confidence_interval_generic(alpha = alpha), error = function(e) c(NA_real_, NA_real_))
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (all(is.finite(ci_design[1:2]))) private$clear_nonestimable_state()
-			.conservative_kk_onelik_ci(ci_model, ci_design, alpha, owner = list(self = self, private = private), label = "gradient")
+			.kk_count_conservative_ci(self, private, alpha,
+				self$compute_gradient_confidence_interval_generic(alpha = alpha), "gradient")
 		},
 		#' @description Computes a design-adjusted score p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_score_two_sided_pval = function(delta = 0){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_score_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "score")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_score_two_sided_pval_generic(delta = delta), "score")
 		},
 		#' @description Computes a design-adjusted likelihood-ratio p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_lik_ratio_two_sided_pval = function(delta = 0){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_lik_ratio_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "lik_ratio")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_lik_ratio_two_sided_pval_generic(delta = delta), "lik_ratio")
 		},
 		#' @description Computes a design-adjusted gradient p-value.
 		#' @param delta Numeric. Null treatment effect value (default 0).
 		compute_gradient_two_sided_pval = function(delta = 0){
 			private$shared_combined_cpoisson(estimate_only = FALSE)
-			beta_design = private$cached_values$beta_hat_T
-			se_design = private$cached_values$s_beta_hat_T
-			df_design = private$cached_values$df
-			p_design = private$compute_z_or_t_two_sided_pval_from_s_and_df(delta)
-			p_model = tryCatch(self$compute_gradient_two_sided_pval_generic(delta = delta), error = function(e) NA_real_)
-			private$cached_values$beta_hat_T = beta_design
-			private$cached_values$s_beta_hat_T = se_design
-			private$cached_values$df = df_design
-			if (is.finite(p_design)) private$clear_nonestimable_state()
-			.conservative_kk_onelik_pval(p_model, p_design, owner = list(self = self, private = private), label = "gradient")
+			.kk_count_conservative_pval(self, private, delta,
+				self$compute_gradient_two_sided_pval_generic(delta = delta), "gradient")
 		}
 		# approximate_bootstrap_distribution_beta_hat_T's old eval(body(...))
 		# restatement dropped as a verified no-op (same argument as
@@ -2056,7 +1895,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 		supports_lik_ratio_param_bootstrap = function(){
 			TRUE
 		},
-		# v1.0.6-TODO-380: plus "lik_ratio_bartlett_approx_design_conservative".
+		# v1.0.6-TODO-225: plus "lik_ratio_bartlett_approx_design_conservative".
 		get_supported_testing_types_impl = function(){
 			.kk_onelik_supported_testing_types(private)
 		},
@@ -2552,7 +2391,7 @@ CountKKCondPoissonOneLikLikelihoodSource = list(
 #' design-conservative version is the separate testing type
 #' \code{"lik_ratio_bartlett_approx_design_conservative"}: the larger of the
 #' model-only Bartlett p-value and the design Wald p-value, and the union of
-#' the two intervals (v1.0.6-TODO-380).
+#' the two intervals (v1.0.6-TODO-225).
 #'
 #' \strong{Estimand.} \eqn{\beta_T}, the treatment coefficient in a
 #' log-linear (Poisson) mean model \eqn{E[Y \mid w, x] = \exp(\beta_0 +
@@ -2670,3 +2509,35 @@ NULL
 #' @R6method InferenceCountKKCondPoissonOneLik$compute_rand_two_sided_pval
 #' @template rand-compute-rand-two-sided-pval-params
 NULL
+
+# Evaluate only the fitted matched contribution. The reservoir formulas differ by statistic.
+kk_hurdle_matched_contribution = function(accumulator, params, dat, p, unweighted, weighted, convert) {
+	w_m = dat$weights_matched %||% rep(1, length(dat$y_matched))
+	if (length(dat$matched_idx) == 0L || sum(dat$y_matched > 0 & w_m > 0, na.rm = TRUE) <= p) {
+		return(accumulator)
+	}
+	accumulator + if (is.null(dat$weights_matched)) {
+		convert(unweighted(X = dat$X_matched, y = dat$y_matched, group_id = dat$group_id,
+						   params = as.numeric(params)))
+	} else {
+		convert(weighted(X = dat$X_matched, y = dat$y_matched, group_id = dat$group_id,
+						 weights = w_m, params = as.numeric(params)))
+	}
+}
+
+kk_count_onelik_asymptotic = function(self, private, value, interval) {
+	testing_type = self$get_testing_type()
+	if (identical(testing_type, "lik_ratio_bartlett_approx_design_conservative")) {
+		if (interval) return(.kk_onelik_bartlett_design_conservative_ci(self, private, alpha = value))
+		return(.kk_onelik_bartlett_design_conservative_pval(self, private, delta = value))
+	}
+	procedure = switch(testing_type, wald = "wald", score = "score", lik_ratio = "lik_ratio",
+		gradient = "gradient", lik_ratio_bartlett_approx = "lik_ratio_bartlett_approx",
+		stop("Unsupported testing_type: ", self$get_testing_type()))
+	if (is.null(procedure)) return(NULL)
+	if (interval) {
+		self[[paste0("compute_", procedure, "_confidence_interval")]](alpha = value)
+	} else {
+		self[[paste0("compute_", procedure, "_two_sided_pval")]](delta = value)
+	}
+}

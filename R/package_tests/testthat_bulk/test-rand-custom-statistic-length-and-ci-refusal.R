@@ -1,10 +1,10 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-83: an InferenceRandCustom statistic returning several values was
+# v1.0.6-TODO-44: an InferenceRandCustom statistic returning several values was
 # silently cut to its first value (estimate 1 for function(y, w, dead) c(1, 2)).
 # It is now an error naming the statistic argument and the length.
-# v1.0.6-TODO-84: the count/proportion randomization-CI refusal told
+# v1.0.6-TODO-45: the count/proportion randomization-CI refusal told
 # InferenceRandCustom users the randomization-bootstrap CI "remains available",
 # but this class has no bootstrap. The message now names only the p-value, and
 # the capability lookups agree with what runs.
@@ -68,7 +68,8 @@ test_that("a scalar statistic is unaffected", {
 })
 
 test_that("count/proportion randomization-CI refusal names only what InferenceRandCustom can run", {
-	for (rt in c("count", "proportion")) {
+	built_in_help = c(count = "?InferenceCountPoisson", proportion = "?InferencePropFractionalLogit")
+	for (rt in names(built_in_help)) {
 		d = rand_custom_fixture(rt)
 		o = InferenceRandCustom$new(d, custom_randomization_statistic_function = mean_diff_stat)
 		expect_false(o$supports("randomization_ci"))
@@ -77,8 +78,9 @@ test_that("count/proportion randomization-CI refusal names only what InferenceRa
 		expect_false("randomization_ci" %in% EDI:::get_effective_capabilities_for_response_type("InferenceRandCustom", rt))
 		err = tryCatch(o$compute_rand_confidence_interval(r = 51, show_progress = FALSE), error = function(e) conditionMessage(e))
 		expect_match(err, "not supported for InferenceRandCustom")
-		expect_match(err, "compute_rand_two_sided_pval", fixed = TRUE)
-		expect_no_match(err, "bootstrap")
+		expect_match(err, "at delta = 0 (compute_rand_two_sided_pval())", fixed = TRUE)
+		expect_match(err, built_in_help[[rt]], fixed = TRUE)
+		expect_no_match(err, "bootstrap|TODO-|package_metadata")
 		# What it does advertise still runs.
 		o$set_seed(1)
 		pv = o$compute_rand_two_sided_pval(r = 51, show_progress = FALSE)

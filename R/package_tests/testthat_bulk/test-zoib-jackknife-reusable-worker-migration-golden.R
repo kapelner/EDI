@@ -68,7 +68,7 @@ test_that("ZOIB reusable worker keeps distinct component matrices aligned across
 	design$assign_w_to_all_subjects()
 	w <- as.numeric(design$get_w())
 	# The noise keeps beta_x an ordinary covariate: without it logit(y) is an
-	# exact linear function of w and beta_x, and the v1.0.6-TODO-158
+	# exact linear function of w and beta_x, and the v1.0.6-TODO-108
 	# perfect-predictor check drops beta_x in the constructor.
 	y <- plogis(-0.3 + 0.55 * w + 0.25 * beta_x + rnorm(n, sd = 0.3))
 	y[seq.int(2L, n, by = 7L)] <- 0
@@ -197,7 +197,7 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 		reusable = zoib_generator$new(design, verbose = FALSE),
 		legacy = LegacyZOIB$new(design, verbose = FALSE)
 	)
-	# >= 5 replicates so the v1.0.6-TODO-135 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
+	# >= 5 replicates so the v1.0.6-TODO-89 minimum-deletion-units guard (EDI_JACKKNIFE_MIN_DELETION_UNITS) does not fire first.
 	jack <- rep(0.25, 5L)
 	for (route in names(instances)) {
 		inf <- instances[[route]]
@@ -209,7 +209,7 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 	}
 
 	# The NA estimate is announced by one edi_procedure_na_warning per route
-	# (v1.0.6-TODO-212 (2): it used to leak out of the test); expect exactly those.
+	# (v1.0.6-TODO-153 (2): it used to leak out of the test); expect exactly those.
 	na_warnings <- list()
 	results <- withCallingHandlers(
 		lapply(instances, function(inf) {
@@ -243,9 +243,9 @@ test_that("ZOIB jackknife extreme-summary NA decision is identical for equal fin
 test_that("ZOIB exact diagnosed tuning seed preserves finite jackknife draws across routes", {
 	# The tuning fixture's proportion response was noise-free (y = plogis(linpred)),
 	# so logit(y) was an exact linear function of w, x and z: since
-	# v1.0.6-TODO-158 both routes dropped x and z (v1.0.6-TODO-190 asserted that
+	# v1.0.6-TODO-108 both routes dropped x and z (v1.0.6-TODO-136 asserted that
 	# drop here). The fixture now adds a little logit-scale noise
-	# (v1.0.6-TODO-204), so both routes keep x and z and must raise no
+	# (v1.0.6-TODO-145), so both routes keep x and z and must raise no
 	# edi_perfect_predictor_warning, and the summaries are finite. Compare the
 	# leave-one-out values too, so a summary-only equality cannot hide a
 	# migration difference. The NA-producing extreme-summary guard is covered by
@@ -312,7 +312,7 @@ test_that("ZOIB reusable jackknife skips futile full-matrix refits after a faile
 	# make no more native calls than the forced-legacy route while returning
 	# bit-identical draws. Call COUNTS are the metric (wall clock is host-noisy).
 	ns <- asNamespace("EDI")
-	# The diagnosed failures need the pre-v1.0.6-TODO-204 tuning fixture: its
+	# The diagnosed failures need the pre-v1.0.6-TODO-145 tuning fixture: its
 	# noise-free proportion response (logit(y) exactly linear in w, x and z) is
 	# what makes 8 direct fits fail. The shared fixture now adds noise, so this
 	# test rebuilds the old recipe locally (same seed, same assignment draws).
@@ -334,7 +334,7 @@ test_that("ZOIB reusable jackknife skips futile full-matrix refits after a faile
 		private = list(supports_reusable_bootstrap_worker = function() FALSE)
 	)
 	# The 8 failed fits come from x and z being exact predictors of logit(y)
-	# on this noise-free design. Since v1.0.6-TODO-158 the constructor drops
+	# on this noise-free design. Since v1.0.6-TODO-108 the constructor drops
 	# them, which removes the failures, so this test stubs the detector to
 	# keep the diagnosed covariates and still reach the fallback it guards.
 	orig_detect <- get("edi_find_perfect_predictors", envir = ns)

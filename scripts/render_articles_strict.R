@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-# Strict article render gate (v1.0.6-TODO-99): renders each given .Rmd (the
+# Strict article render gate (v1.0.6-TODO-57): renders each given .Rmd (the
 # package vignettes and the pkgdown-only articles under vignettes/articles/)
 # and fails if any chunk prints a warning or an error, so the workflows the
 # articles document keep working. Run by .github/workflows/articles-strict.yml;

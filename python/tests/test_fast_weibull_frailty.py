@@ -52,7 +52,7 @@ def _synthetic_data():
     return X, y_obs, dead, group_id
 
 
-# R reference, EDI 1.0.4 (dev, after the v1.0.6-TODO-169/170 Newton-decrement
+# R reference, EDI 1.0.4 (dev, after the v1.0.6-TODO-117 / v1.0.6-TODO-118 Newton-decrement
 # convergence rule in _helper_functions_core.h), recomputed 2026-11-21 via:
 #   EDI:::fast_weibull_frailty_cpp(X, y, dead, group_id)
 # The rule lets the fit go further along the flat log_sigma_u direction and

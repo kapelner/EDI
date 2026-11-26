@@ -257,7 +257,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			}
 			private$clear_nonestimable_state()
 		},
-		# v1.0.6-TODO-217: the Bayesian-bootstrap replicate. It used to fall through to
+		# v1.0.6-TODO-158: the Bayesian-bootstrap replicate. It used to fall through to
 		# the KK compound's generic fallback, a weighted raw mean difference of the
 		# survival times (replicates centred near 2.3 for an estimate of 0.94). Now it
 		# is the same estimator as shared(): both aftsrr fits rerun with the draw's
@@ -311,7 +311,7 @@ SurvivalKKRankRegrIVWCSource = list(
 			# Filter strata that have no events (aftsrr needs at least some events)
 			if (sum(dead_m) < 2) return(invisible(NULL))
 			dat = data.frame(y = y_m, dead = dead_m, w = w_m, id = strata_m)
-			# Case weights of a Bayesian-bootstrap replicate (v1.0.6-TODO-217).
+			# Case weights of a Bayesian-bootstrap replicate (v1.0.6-TODO-158).
 			if (!is.null(weights)) dat$wt__ = as.numeric(weights)
 			formula_str = "survival::Surv(y, dead) ~ w"
 			cached_ssq = private$cached_values$ssq_beta_T_matched
@@ -444,7 +444,7 @@ KKSurvivalRankRegressionSource = list(
 
 .kk_rank_regr_aftsrr_seed = function(base_seed, component, formula_str, dat){
 	base = if (is.null(base_seed)) .kk_rank_regr_aftsrr_unseeded_base else as.integer(base_seed)
-	# v1.0.6-TODO-217: hash the data's values, not its row names. cbind() with a
+	# v1.0.6-TODO-158: hash the data's values, not its row names. cbind() with a
 	# covariate matrix carries that matrix's row names into `dat`; a bootstrap draw
 	# whose model matrix was rebuilt (e.g. a rare covariate dropped) has character
 	# row names in one path and automatic ones in the other, so the reusable worker
@@ -472,7 +472,7 @@ KKSurvivalRankRegressionSource = list(
 	}, add = TRUE)
 	set.seed(seed, kind = "Mersenne-Twister", normal.kind = "Inversion", sample.kind = "Rejection")
 	formula_obj = stats::as.formula(formula_str)
-	# A `wt__` column carries Bayesian-bootstrap case weights (v1.0.6-TODO-217).
+	# A `wt__` column carries Bayesian-bootstrap case weights (v1.0.6-TODO-158).
 	if ("wt__" %in% names(dat)) {
 		if (clustered) {
 			suppressMessages(aftgee::aftsrr(formula_obj, id = id, data = dat, se = se, B = B, weights = wt__))

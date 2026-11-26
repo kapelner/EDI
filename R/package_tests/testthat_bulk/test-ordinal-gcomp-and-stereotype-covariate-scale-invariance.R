@@ -1,4 +1,4 @@
-# v1.0.6-TODO-172: InferenceOrdinalGCompMeanDiff called the raw proportional-odds kernels and
+# v1.0.6-TODO-119: InferenceOrdinalGCompMeanDiff called the raw proportional-odds kernels and
 # InferenceOrdinalStereotypeLogitRegr called fast_stereotype_logit_cpp on the raw covariates,
 # bypassing the column scaling the other ordinal classes use (ordinal_fit_scaled()). The C++
 # convergence tests are not scale-aware, so the estimate moved with the units of a covariate

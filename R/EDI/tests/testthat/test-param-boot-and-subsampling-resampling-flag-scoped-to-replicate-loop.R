@@ -1,13 +1,13 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-207 (found by the v1.0.6-TODO-185 agent): the parametric-bootstrap methods, the
+# v1.0.6-TODO-148 (found by the v1.0.6-TODO-131 agent): the parametric-bootstrap methods, the
 # Monte-Carlo Bartlett factor and the m-out-of-n / subsampling distributions set
 # private$active_resampling_operation at their own top level, so a procedure-NA warning raised in
 # their own top-level code was silenced even when a user called them directly. The flag now covers
 # only the replicate loop (run_param_bootstrap_replicates(), run_param_bootstrap_estimate_replicates(),
 # compute_resampling_draw_distribution()), restoring the caller's value afterwards
-# (v1.0.6-TODO-185). Top-level NA results warn; replicates stay silent.
+# (v1.0.6-TODO-131). Top-level NA results warn; replicates stay silent.
 
 lin_fixture = function(seed = 1L, n = 40L){
 	set.seed(seed)
@@ -154,7 +154,7 @@ test_that("parametric-bootstrap estimate / CI / p-value warn on their recorded N
 })
 
 test_that("an LR-bootstrap CI whose B cannot reach alpha errors up front instead of a warned NA", {
-	# v1.0.6-TODO-210: B = 29 < 2 / 0.05 - 1 = 39 used to search and then warn
+	# v1.0.6-TODO-151: B = 29 < 2 / 0.05 - 1 = 39 used to search and then warn
 	# lik_ratio_bootstrap_ci_bound_not_found; it now errors before any bootstrap work.
 	inf = lin_fixture()
 	expect_error(inf$compute_lik_ratio_bootstrap_confidence_interval(B = 29, max_root_iterations = 2L),

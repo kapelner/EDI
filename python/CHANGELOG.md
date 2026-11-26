@@ -20,7 +20,7 @@ or permutation function is exposed in Python.
 
 ### Added
 
-- Input checks for every kernel (v1.0.6-TODO-101). Each exported function
+- Input checks for every kernel (v1.0.6-TODO-59). Each exported function
   is now a thin Python wrapper (same name, signature, docstring and type
   stub) around the compiled `_core` function. It checks its inputs first and
   raises `ValueError` naming the bad argument: finite numeric data, 0/1
@@ -35,7 +35,7 @@ or permutation function is exposed in Python.
   `wilcox_hl_point_estimate`, `get_survival_stat_diff` and
   `fast_ridit_analysis` return `nan` with no error, and a 1/2-coded `w`
   made `fast_logrank_stats` return a sign-flipped `beta_hat`
-  (v1.0.6-TODO-86).
+  (v1.0.6-TODO-47).
   Mismatched lengths could read past the end of the shorter array (for
   example `fast_lbeta` loops over `a` and indexes `b`).
 - `set_checks(enabled)` and `get_checks()`, the Python version of R's
@@ -49,7 +49,7 @@ or permutation function is exposed in Python.
   wheel). Calls that were already valid give the same results.
 - Variance outputs for `fast_ols`, `fast_logistic_regression`,
   `fast_probit_regression`, `fast_poisson_regression` and `fast_neg_bin`
-  (v1.0.6-TODO-87). With `estimate_only=False` each now also returns
+  (v1.0.6-TODO-48). With `estimate_only=False` each now also returns
   `vcov` (the coefficient covariance matrix; for `fast_neg_bin` over
   `[beta, log(theta)]`) and `ssq_b_2` (the variance of coefficient 2, usually
   the treatment), and `fast_ols` also returns `sigma2_hat`. These are the
@@ -64,26 +64,26 @@ or permutation function is exposed in Python.
   `log_phi`, `zero_one_b0`, `zero_one_b1`, `vcov`, `observed_information`,
   `fisher_information`, `information`, `information_type`, `hessian` and
   `min_eigenvalue_information`. It takes `estimate_only` (default `False`;
-  see Changed) (v1.0.6-TODO-333).
+  see Changed) (v1.0.6-TODO-212).
 - `fast_robust_regression` now returns `min_eigenvalue_information` and,
   unless `estimate_only`, `ssq_b_j` (`nan` where R gives `NA`) and
-  `fisher_information`, as R's export does (v1.0.6-TODO-333).
+  `fisher_information`, as R's export does (v1.0.6-TODO-212).
 - `fast_clogit_plus_glmm`'s `weights_disc` and `weights_conc` arguments are
-  now in the type stub and the input checks (v1.0.6-TODO-333).
+  now in the type stub and the input checks (v1.0.6-TODO-212).
 
 ### Changed
 
 - `fast_zero_one_inflated_beta`: a default call (`estimate_only=False`) now
   also computes the Hessian and the information matrices, so it is slower;
-  `estimate_only=True` keeps the old, estimate-only path (v1.0.6-TODO-333).
+  `estimate_only=True` keeps the old, estimate-only path (v1.0.6-TODO-212).
 
 - The `fast_ordinal_*` cumulative-link kernels no longer return a
   `fisher_information` key: it held the observed Hessian. Use
-  `observed_information` / `information` (v1.0.6-TODO-215).
+  `observed_information` / `information` (v1.0.6-TODO-156).
 - `fast_logistic_regression` and `fast_probit_regression` no longer return
   `ssq_b_j`, `dispersion` and `sigma2_hat`, and `fast_poisson_regression` no
   longer returns `dispersion`: the C++ never filled them, so they were always
-  `nan` (v1.0.6-TODO-87). `ssq_b_2` is now filled (see Added) and is left
+  `nan` (v1.0.6-TODO-48). `ssq_b_2` is now filled (see Added) and is left
   out when `estimate_only=True`.
 - `fast_wilcox_hl`: the Hodges-Lehmann variance is recalibrated. The
   rank-sum variance was too small by a factor of 2 pi / 3 in the balanced
@@ -147,7 +147,7 @@ or permutation function is exposed in Python.
   `maxit` is now 100 (was 20), matching the R kernels, which were raised from
   20 to 100 because the cap stopped some fits one to three iterations short.
   Fits that converged before still return the same result; fits that hit the
-  old cap now run on to convergence (v1.0.6-TODO-72, GitHub issue #33).
+  old cap now run on to convergence (v1.0.6-TODO-35, GitHub issue #33).
 - `fast_ordinal_clmm`: `converged` is now judged by the projected gradient
   (KKT at the `sigma -> 0` lower bound), with a threshold of 1e-4. It used
   to be L-BFGS's own flag, which also counted a stall in the relative change
@@ -167,10 +167,10 @@ or permutation function is exposed in Python.
   Poisson, probit, beta, ZINB and others) and the Poisson and probit IRLS
   kernels use a scale-aware convergence rule, so ill-conditioned or large-scale
   designs no longer stop early or report a correct fit as unconverged
-  (v1.0.6-TODO-169, v1.0.6-TODO-170).
+  (v1.0.6-TODO-117, v1.0.6-TODO-118).
 - `fast_neg_bin` now returns the negative log-likelihood (`neg_loglik`, equal to
   -`logLik` from R's `fast_neg_bin_cpp`) and the fitted means `mu = exp(X b)`;
-  both were previously `nan` / empty (v1.0.6-TODO-188).
+  both were previously `nan` / empty (v1.0.6-TODO-134).
 - `fast_clayton_weibull_aft_optim`: the dependence parameter is capped at
   `log_theta = 6` (`log_theta_at_upper_bound` reports a capped optimum), a
   stale-gradient bug is fixed, and the likelihood ratios are overflow-safe.
@@ -212,8 +212,8 @@ or permutation function is exposed in Python.
   stopped at `b = 0` with `converged=False`. When the zero cold start fails
   to converge, the kernel now refits once from the `log(y + 0.1)` start
   (`glm()`'s starting values) and returns that fit if it converges. A fit
-  that converges from the zero start is unchanged (v1.0.6-TODO-394,
-  v1.0.6-TODO-395, v1.0.6-TODO-396).
+  that converges from the zero start is unchanged (v1.0.6-TODO-199,
+  v1.0.6-TODO-200, v1.0.6-TODO-201).
 - `fast_hurdle_negbin`: near the Poisson limit (very large `theta_hat`),
   where the observed information is not positive definite, the count fit
   falls back to the expected information. That series now uses four running
@@ -221,7 +221,7 @@ or permutation function is exposed in Python.
   a single fit take from seconds to hours. Ordinary fits are unchanged. At
   the Poisson limit, where `theta_hat` is effectively infinite either way,
   the coefficients can move slightly (by 5e-5 in one test fit)
-  (v1.0.6-TODO-411).
+  (v1.0.6-TODO-229).
 
 ### Documentation
 
@@ -229,7 +229,7 @@ or permutation function is exposed in Python.
   `fast_hurdle_poisson_glmm`: the docstrings said `X` has "no intercept
   column", but these models need one (beta_0 is the intercept; the R classes
   pass columns intercept, treatment, covariates). Leaving it out fits a
-  different model (v1.0.6-TODO-85). The `.pyi` stub is fixed now; the
+  different model (v1.0.6-TODO-46). The `.pyi` stub is fixed now; the
   compiled docstrings are fixed in the binding sources and ship with the
   next wheel. The ordinal and Cox kernels really do take `X` without an
   intercept, and their docstrings are unchanged.
@@ -255,7 +255,7 @@ or permutation function is exposed in Python.
   `pip install .`, and every install from the sdist, built for the build
   machine's CPU. A wheel built that way on an AVX-512 machine crashed
   `import edi_kernels` with SIGILL on an AVX2-only CPU
-  (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). The PyPI wheels were
+  (ds-python-kernels-44358267779-f1, v1.0.6-TODO-205). The PyPI wheels were
   already portable and are not affected. CI now disassembles every Linux
   x86-64 wheel and fails on any AVX or AVX-512 instruction
   (`.github/scripts/check_wheel_isa.py`). The READMEs state the CPU

@@ -175,7 +175,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'
 		#' @references Bickel, P. J. and Sakov, A. (2008). On the choice of m in
 		#'   the m out of n bootstrap. \emph{The Annals of Statistics}.
-		approximate_m_out_of_n_bootstrap_distribution_beta_hat_T = function(B = 501, m = NULL, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		approximate_m_out_of_n_bootstrap_distribution_beta_hat_T = function(B = 501, m = NULL, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, scaling = "sqrt_n", center = "full_estimate", reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			private$approximate_m_out_of_n_bootstrap_distribution_beta_hat_T_impl(B = B, m = m, show_progress = show_progress, debug = debug, bootstrap_type = bootstrap_type, scaling = scaling, center = center)
 		},
 		#' @description Computes a centered m-out-of-n bootstrap two-sided p-value.
@@ -203,7 +215,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   fraction the method returns \code{NA} with reason
 		#'   \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
 		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
 		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
@@ -218,7 +230,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		compute_m_out_of_n_bootstrap_two_sided_pval = function(delta = 0, B = 501, m = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			private$compute_m_out_of_n_bootstrap_two_sided_pval_impl(delta = delta, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
@@ -248,7 +272,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   fraction the method returns \code{NA} with reason
 		#'   \code{"m_out_of_n_too_few_usable_draws_fraction"} and one
 		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
 		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
@@ -263,7 +287,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		compute_m_out_of_n_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, m = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, bootstrap_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			private$compute_m_out_of_n_bootstrap_confidence_interval_impl(alpha = alpha, B = B, m = m, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, bootstrap_type = bootstrap_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
@@ -292,7 +328,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'
 		#' @return An \code{EDIMOutOfNBootstrapMSelection} list with the selected
 		#'   \code{m}, mapped exponent, candidate table, status, and reason.
-		select_optimal_m_out_of_n_bootstrap = function(B = 251, alpha = 0.05, m_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), m_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, bootstrap_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		select_optimal_m_out_of_n_bootstrap = function(B = 251, alpha = 0.05, m_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), m_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, bootstrap_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			private$select_optimal_m_out_of_n_bootstrap_impl(B = B, alpha = alpha, m_pow_of_n_grid = m_pow_of_n_grid, m_grid = m_grid, objective = objective, target = target, volatility_window = volatility_window, bootstrap_type = bootstrap_type, scaling = scaling, show_progress = show_progress, min_finite_fraction = min_finite_fraction)
 		},
 		#' @description Creates the Politis/Romano/Wolf subsampling distribution of
@@ -329,7 +377,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'
 		#' @references Politis, D. N., Romano, J. P., and Wolf, M. (1999).
 		#'   \emph{Subsampling}. Springer.
-		approximate_subsampling_distribution_beta_hat_T = function(B = 501, b = NULL, show_progress = TRUE, debug = FALSE, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate"){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		approximate_subsampling_distribution_beta_hat_T = function(B = 501, b = NULL, show_progress = TRUE, debug = FALSE, subsampling_type = NULL, scaling = "sqrt_n", center = "full_estimate", reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			private$approximate_subsampling_distribution_beta_hat_T_impl(B = B, b = b, show_progress = show_progress, debug = debug, subsampling_type = subsampling_type, scaling = scaling, center = center)
 		},
 		#' @description Computes a centered PRW subsampling two-sided p-value.
@@ -357,7 +417,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   fraction the method returns \code{NA} with reason
 		#'   \code{"subsampling_too_few_usable_draws_fraction"} and one
 		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
 		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
@@ -372,7 +432,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#' @return A numeric two-sided p-value, or \code{NA_real_} if the procedure
 		#'   fails (recorded as a failure of this procedure only; the Wald estimate
 		#'   and standard error are kept).
-		compute_subsampling_two_sided_pval = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		compute_subsampling_two_sided_pval = function(delta = 0, B = 501, b = NULL, type = "centered", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			private$compute_subsampling_two_sided_pval_impl(delta = delta, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
@@ -402,7 +474,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   fraction the method returns \code{NA} with reason
 		#'   \code{"subsampling_too_few_usable_draws_fraction"} and one
 		#'   \code{edi_procedure_na_warning}; otherwise it uses the usable draws only.
-		#'   Default 0.8 (v1.0.6-TODO-230): degenerate draws concentrate in the data sets
+		#'   Default 0.8 (v1.0.6-TODO-164): degenerate draws concentrate in the data sets
 		#'   with an extreme estimate, so a stricter cap returns \code{NA} on many data
 		#'   sets a test should reject. Lower it (down to 0) to keep more data sets, raise
 		#'   it to return \code{NA} sooner. Other classes ignore it and keep their fixed
@@ -418,7 +490,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{c(NA_real_, NA_real_)} if the procedure fails (recorded as a
 		#'   failure of this procedure only; the Wald estimate and standard error are
 		#'   kept).
-		compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		compute_subsampling_confidence_interval = function(alpha = 0.05, B = 501, b = NULL, type = "basic", show_progress = TRUE, min_number_usable_samples = 5L, subsampling_type = NULL, scaling = "sqrt_n", min_fraction_usable_samples = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			if (should_run_asserts()) assert_min_fraction_usable_samples(min_fraction_usable_samples)
 			private$compute_subsampling_confidence_interval_impl(alpha = alpha, B = B, b = b, type = type, show_progress = show_progress, min_number_usable_samples = min_number_usable_samples, subsampling_type = subsampling_type, scaling = scaling, min_fraction_usable_samples = min_fraction_usable_samples)
 		},
@@ -447,7 +531,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'
 		#' @return An \code{EDISubsamplingBSelection} list with the selected
 		#'   \code{b}, mapped exponent, candidate table, status, and reason.
-		select_optimal_b_subsampling = function(B = 251, alpha = 0.05, b_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), b_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, subsampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0.8){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		select_optimal_b_subsampling = function(B = 251, alpha = 0.05, b_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), b_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, subsampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0.8, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			private$select_optimal_b_subsampling_impl(B = B, alpha = alpha, b_pow_of_n_grid = b_pow_of_n_grid, b_grid = b_grid, objective = objective, target = target, volatility_window = volatility_window, subsampling_type = subsampling_type, scaling = scaling, show_progress = show_progress, min_finite_fraction = min_finite_fraction)
 		},
 		#' @description Computes PRW subsampling sensitivity over candidate sizes.
@@ -470,7 +566,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'
 		#' @return An \code{EDISubsamplingSensitivity} list containing the candidate
 		#'   grid table without selecting a final \code{b}.
-		compute_subsampling_sensitivity = function(B = 251, alpha = 0.05, b_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), b_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, subsampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0){
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation. \code{TRUE}: each resample runs the design's missing-data step
+		#'   (\code{missingness_method}) again on its own raw covariates, at the cost of one
+		#'   imputation per resample (a small resample may hold too few rows to impute, and
+		#'   then its estimate is \code{NA}). Without missing covariates the two are identical.
+		#'   Not available when the inference's covariate matrix differs from the design's.
+		#'   See \code{compute_bootstrap_confidence_interval()}.
+		compute_subsampling_sensitivity = function(B = 251, alpha = 0.05, b_pow_of_n_grid = seq(0.5, 0.9, by = 0.05), b_grid = NULL, objective = "ci_width", target = "ci", volatility_window = 3L, subsampling_type = NULL, scaling = "sqrt_n", show_progress = TRUE, min_finite_fraction = 0, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.7-TODO-190: NULL-forwarding rule of edi_bootstrap_reimpute_enter().
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			if (edi_bootstrap_reimputes(private)) edi_assert_bootstrap_reimpute_supported(private)
 			private$compute_subsampling_sensitivity_impl(B = B, alpha = alpha, b_pow_of_n_grid = b_pow_of_n_grid, b_grid = b_grid, objective = objective, target = target, volatility_window = volatility_window, subsampling_type = subsampling_type, scaling = scaling, show_progress = show_progress, min_finite_fraction = min_finite_fraction)
 		},
 		#' @description Creates the bootstrap distribution of the estimate for the treatment effect.
@@ -485,6 +593,16 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   per-iteration diagnostics including error messages, warning messages, counts of each,
 		#'   and summary proportions for iterations with errors, warnings, and illegal (non-finite)
 		#'   values. Runs serially. Default \code{FALSE}.
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation, so the interval or p-value is conditional on that imputation, and a
+		#'   resample costs no more than with complete data. \code{TRUE}: each resample runs the
+		#'   design's missing-data step (\code{missingness_method}) again on its own raw
+		#'   covariates, so the bootstrap includes the imputation's variability, at the cost of
+		#'   one imputation per resample. Without missing covariates the two are identical. Not
+		#'   available when the inference's covariate matrix differs from the design's (a
+		#'   \code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+		#'   batch kernel is bypassed when it is \code{TRUE}.
 		#' @return 	When \code{debug = FALSE} (default), a numeric vector of length \code{B}
 		#'   containing the bootstrap estimates. When \code{debug = TRUE}, a list with: \code{values},
 		#'   \code{errors} (list of character vectors, one per iteration), \code{warnings} (list of
@@ -510,11 +628,15 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'       rather than resampling units within each block.}
 		#'   }
 		#'   Any non-\code{NULL} value is rejected for designs outside that blocking family.
-		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+		approximate_bootstrap_distribution_beta_hat_T = function(B = 501, show_progress = TRUE, debug = FALSE, bootstrap_type = NULL, reimpute_missing_vals_each_resample = FALSE){
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "non_param_boot"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
+			reimpute = edi_bootstrap_reimputes(private)
+			if (reimpute) edi_assert_bootstrap_reimpute_supported(private)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("Bootstrap inference")
 				private$assert_valid_bootstrap_type(bootstrap_type)
@@ -522,8 +644,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			# Check cache (skipped in debug mode to always get fresh diagnostic results)
 			# Key on the resampling scheme too: a "resample_blocks" diagnostic call must not return (or
-			# leave behind for compute_bootstrap_*()) draws of another scheme (v1.0.6-TODO-299).
+			# leave behind for compute_bootstrap_*()) draws of another scheme (v1.0.6-TODO-186).
 			cache_key = paste0(as.character(B), "::", if (is.null(bootstrap_type)) "default" else bootstrap_type)
+			if (reimpute) cache_key = paste0(cache_key, "::reimpute")
 			cached_boot_distr = private$get_cached_resampling_distribution("non_param_boot", cache_key)
 			if (!isTRUE(debug) && !is.null(cached_boot_distr)) {
 				return(cached_boot_distr)
@@ -653,7 +776,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# Optional class-specific batch path. Draws have already been generated,
 			# so a supported hook preserves the generic path's RNG contract. Debug
 			# calls returned above with per-replicate diagnostics and never batch.
-			if (private$has_private_method("compute_fast_non_param_bootstrap_distr")) {
+			# A class's batch kernel resamples the fixed imputed matrix, so it cannot re-impute.
+			if (!reimpute && private$has_private_method("compute_fast_non_param_bootstrap_distr")) {
 				fast_boot_distr = private$compute_fast_non_param_bootstrap_distr(
 					boot_draws = boot_draws,
 					bootstrap_type = bootstrap_type
@@ -795,8 +919,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   \code{na.rm = FALSE}, which already returns \code{NA} on any non-finite replicate.
 		#' @param show_progress  		A flag indicating whether a progress bar should be displayed.
 		#'
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation, so the interval or p-value is conditional on that imputation, and a
+		#'   resample costs no more than with complete data. \code{TRUE}: each resample runs the
+		#'   design's missing-data step (\code{missingness_method}) again on its own raw
+		#'   covariates, so the bootstrap includes the imputation's variability, at the cost of
+		#'   one imputation per resample. Without missing covariates the two are identical. Not
+		#'   available when the inference's covariate matrix differs from the design's (a
+		#'   \code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+		#'   batch kernel is bypassed when it is \code{TRUE}.
 		#' @return 	A bootstrap two-sided p-value.
-		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95){
+		compute_bootstrap_two_sided_pval = function(delta = 0, B = 501, type = NULL, na.rm = FALSE, show_progress = TRUE, min_number_usable_samples = 5L, min_fraction_usable_samples = 0.95, reimpute_missing_vals_each_resample = FALSE){
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
 			if (should_run_asserts()) {
 				assertNumeric(delta, len = 1, finite = TRUE, any.missing = FALSE)
 				assertBootstrapArgs(B = B, min_number_usable_samples = min_number_usable_samples, context = "compute_bootstrap_two_sided_pval")
@@ -819,10 +955,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			private$clear_nonestimable_state()
 			edi_clear_procedure_failure(private, "bootstrap")
 			# A studentized p-value that is NA for missing/unstable SEs warns like the CI does
-			# (v1.0.6-TODO-140); silent inside resampling (edi_warn_procedure_na()).
+			# (v1.0.6-TODO-93); silent inside resampling (edi_warn_procedure_na()).
 			warn_studentized_na = function(reason) edi_warn_procedure_na(self, private,
 				procedure = "bootstrap p-value", reason = reason, detail = bootstrap_studentized_se_na_detail())
-			# The other NA returns warn the same way (v1.0.6-TODO-145).
+			# The other NA returns warn the same way (v1.0.6-TODO-97).
 			warn_pval_na = function(reason, detail = NULL) edi_warn_procedure_na(self, private,
 				procedure = "bootstrap p-value", reason = reason, detail = detail)
 			if (type %in% c("studentized", "bootstrap-t")) {
@@ -856,7 +992,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					bootstrap_too_few_finite_na_detail(length(boot_distr), B, min_number_usable_samples))
 				return(NA_real_)
 			}
-			# v1.0.6-TODO-12: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
+			# v1.0.6-TODO-2: na.rm = TRUE needs min_fraction_usable_samples of the B replicates.
 			if (isTRUE(na.rm) && bootstrap_valid_fraction_too_low(length(boot_distr), B, min_fraction_usable_samples)) {
 				if (isTRUE(private$harden)) edi_record_procedure_failure(self, private, "bootstrap_too_few_valid_replicates_fraction",
 					if (!is.null(boot_stats)) "se" else "estimate")
@@ -1010,8 +1146,20 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#'   Default TRUE. Non-finite replicates are always removed internally.
 		#' @param show_progress  		Show progress bar.
 		#'
+		#' @param reimpute_missing_vals_each_resample Missing covariate values in the resamples.
+		#'   \code{FALSE} (default): every resample analyses its rows of the design's original
+		#'   imputation, so the interval or p-value is conditional on that imputation, and a
+		#'   resample costs no more than with complete data. \code{TRUE}: each resample runs the
+		#'   design's missing-data step (\code{missingness_method}) again on its own raw
+		#'   covariates, so the bootstrap includes the imputation's variability, at the cost of
+		#'   one imputation per resample. Without missing covariates the two are identical. Not
+		#'   available when the inference's covariate matrix differs from the design's (a
+		#'   \code{model_formula}, or covariates dropped as perfect predictors); a class-specific
+		#'   batch kernel is bypassed when it is \code{TRUE}.
 		#' @return 	A bootstrap confidence interval.
-		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L){
+		compute_bootstrap_confidence_interval = function(alpha = 0.05, B = 501, type = NULL, na.rm = TRUE, show_progress = TRUE, min_number_usable_samples = 5L, reimpute_missing_vals_each_resample = FALSE){
+			prev_reimpute = edi_bootstrap_reimpute_enter(private, reimpute_missing_vals_each_resample, !missing(reimpute_missing_vals_each_resample))
+			on.exit(private$cached_values$bootstrap_reimpute_active <- prev_reimpute, add = TRUE)
 			if (should_run_asserts()) {
 				private$assert_design_supports_resampling("Bootstrap inference")
 				assertNumeric(alpha, len = 1, lower = .Machine$double.xmin, upper = 1 - .Machine$double.eps, any.missing = FALSE)
@@ -1194,19 +1342,19 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			} else if (is_cluster_design) {
 				"cluster"
 			} else if (is_blocking_design) {
-				# v1.0.6-TODO-4 (owner decisions 2026-11-19): get_block_ids() returns STRATUM ids,
+				# v1.0.6-TODO-1 (owner decisions 2026-11-19): get_block_ids() returns STRATUM ids,
 				# so leave-one-block-out deleted whole strata (G = 2-4 units, coverage ~0.85).
 				# SPBR deletes one permuted block at a time and DesignFixedBlocking one subject at
 				# a time, both within strata (the stratified jackknife; see
 				# jackknife_stratified_layout() and edi_jackknife_bias_variance()).
 				if (is(design_obj, "DesignSeqOneByOneSPBR") || is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
-					# v1.0.6-TODO-231: on RandomBlockSize the permuted blocks assign_wt() recorded; a design
+					# v1.0.6-TODO-165: on RandomBlockSize the permuted blocks assign_wt() recorded; a design
 					# object without that record (saved before EDI 1.0.6) keeps the old whole-stratum unit.
 					pb_layout = private$jackknife_stratified_layout("permuted_block")
 					if (is.null(pb_layout)) {
 						if (is(design_obj, "DesignSeqOneByOneRandomBlockSize")) "block" else "permuted_block"
 					} else if (min(tabulate(pb_layout$strata)) < EDI_JACKKNIFE_MIN_PERMUTED_BLOCKS_PER_STRATUM) {
-						# v1.0.6-TODO-270 (owner decision 2026-11-20): with few permuted blocks in a stratum
+						# v1.0.7-TODO-122 (owner decision 2026-11-20): with few permuted blocks in a stratum
 						# the permuted-block jackknife-Wald test is too liberal (RandomBlockSize, Poisson ~1,
 						# prob_T 0.2, n 200, 3-4 blocks in the smallest stratum: size 0.082, against 0.055
 						# deleting one subject at a time), so delete one subject within its stratum instead
@@ -1218,7 +1366,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				} else if (is(design_obj, "DesignFixedBlocking")) {
 					"observation_within_block"
 				} else if (is(design_obj, "ObservationalDesignBlocks")) {
-					# v1.0.6-TODO-231 (owner decision 2026-11-20): the user's blocks may be matched sets or
+					# v1.0.6-TODO-165 (owner decision 2026-11-20): the user's blocks may be matched sets or
 					# clusters (leave-one-block-out) or a few strata, where leave-one-block-out has fewer than
 					# EDI_JACKKNIFE_MIN_DELETION_UNITS units and is NA; then delete one subject at a time,
 					# pooled within blocks as strata.
@@ -1235,7 +1383,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				"observation"
 			}
 		},
-		# v1.0.6-TODO-4: the deletion units and their strata for the two stratified jackknife
+		# v1.0.6-TODO-1: the deletion units and their strata for the two stratified jackknife
 		# units, or NULL for every other unit. Returns list(delete = list of integer row-index
 		# vectors, one per deletion unit, in unit order; strata = integer stratum id per unit).
 		# "permuted_block" (DesignSeqOneByOneSPBR): the unit is the design's permuted block,
@@ -1251,7 +1399,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			design_obj = private$des_obj
 			n = design_obj$get_n()
 			if (unit == "permuted_block" && is(design_obj, "DesignSeqOneByOneRandomBlockSize")) {
-				# v1.0.6-TODO-231: DesignSeqOneByOneRandomBlockSize draws each block's size at random,
+				# v1.0.6-TODO-165: DesignSeqOneByOneRandomBlockSize draws each block's size at random,
 				# so its blocks are read from the record assign_wt() keeps (block of each subject,
 				# stratum key and drawn size of each block). Same merge rule as SPBR: a stratum's
 				# trailing block that was not filled is merged into that stratum's previous block.
@@ -1305,7 +1453,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				return(list(delete = unname(split(seq_len(n), factor(unit_id, levels = seq_len(next_id)))),
 					strata = unit_stratum))
 			}
-			# v1.0.6-TODO-270: a RandomBlockSize design without strata_cols (one stratum, "overall") can now
+			# v1.0.7-TODO-122: a RandomBlockSize design without strata_cols (one stratum, "overall") can now
 			# resolve "auto" here; its get_block_ids() errors, so treat all subjects as one stratum.
 			if (is(design_obj, "DesignSeqOneByOneRandomBlockSize") && is.null(private$des_obj_priv_int$strata_cols)) {
 				return(list(delete = as.list(seq_len(n)), strata = rep.int(1L, n)))
@@ -1353,8 +1501,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		mark_jackknife_nonestimable_if_block_unsupported = function(unit = "auto"){
 			if (!private$jackknife_block_size_gt_one_unsupported(unit = unit)) return(FALSE)
 			private$cache_procedure_failure("jackknife", "jackknife_block_size_gt_one_not_supported")
-			# Public jackknife methods return NA right after this; say why (v1.0.6-TODO-108,
-			# the v1.0.6-TODO-95 rule). Silent inside resampling (edi_warn_procedure_na()).
+			# Public jackknife methods return NA right after this; say why (v1.0.6-TODO-62,
+			# the v1.0.6-TODO-54 rule). Silent inside resampling (edi_warn_procedure_na()).
 			edi_warn_procedure_na(self, private, procedure = "jackknife",
 				reason = "jackknife_block_size_gt_one_not_supported",
 				detail = paste0("Deletion unit \"", private$resolve_jackknife_unit(unit), "\" is not supported on this ",
@@ -1363,7 +1511,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			TRUE
 		},
 		# `warn = FALSE` records the reason without the generic edi_procedure_na_warning; the
-		# Bayesian BCa CI passes it when a specific BCa warning covers this NA (v1.0.6-TODO-116).
+		# Bayesian BCa CI passes it when a specific BCa warning covers this NA (v1.0.6-TODO-70).
 		missing_bootstrap_ci = function(alpha, reason, stage = c("estimate", "se"), procedure = NULL, warn = TRUE){
 			stage = match.arg(stage)
 			# Keep-first (TODO-101): a specific reason already recorded during this CI call
@@ -1374,13 +1522,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason)
 				else {
 					edi_record_procedure_failure(self, private, reason, stage, procedure = procedure)
-					# A recorded reason must not reach the user as a silent NA (v1.0.6-TODO-113).
+					# A recorded reason must not reach the user as a silent NA (v1.0.6-TODO-67).
 					if (isTRUE(warn)) edi_warn_procedure_na(self, private, procedure = "bootstrap confidence interval", reason = reason,
 						detail = if (grepl("extreme_confidence_interval$", reason)) paste0(
 							"The interval was wider than EDI's stability cap, so it is treated as numerically ",
 							"unstable (typically a few resamples near separation, or too few independent units ",
 							"such as clusters).",
-							# Class-aware advice (v1.0.6-TODO-125): name the randomization CI only when this
+							# Class-aware advice (v1.0.6-TODO-79): name the randomization CI only when this
 							# class offers it (e.g. RMST refuses it).
 							if (isTRUE(tryCatch(self$supports("randomization_ci")[[1L]], error = function(e) FALSE)))
 								" A randomization interval (compute_rand_confidence_interval()) may still be available."
@@ -1413,7 +1561,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		bootstrap_outcome_scale = function(){
 			y = tryCatch(suppressWarnings(as.numeric(private$y)), error = function(e) numeric(0))
 			if (isTRUE(private$has_general_censoring) && length(private$y_L) == length(y) && length(private$y_R) == length(y)) {
-				# Left-/interval-censored survival (v1.0.6-TODO-91): y is NA for every censored row,
+				# Left-/interval-censored survival (v1.0.6-TODO-50): y is NA for every censored row,
 				# so the scale fell back to 1 and the width cap to 5 time units, and ordinary
 				# percentile intervals were discarded as "extreme". Use one time per subject: the
 				# exact time, else the interval midpoint, else the right-censoring time.
@@ -1432,12 +1580,12 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			ci = as.numeric(ci)
 			if (length(ci) < 2L || !all(is.finite(ci[1:2]))) return(FALSE)
 			on_link_scale = isTRUE(private$bootstrap_estimand_on_link_scale())
-			# v1.0.6-TODO-160 (2): a raw ratio estimand (g-computation risk ratio) is judged on
+			# v1.0.6-TODO-109 (2): a raw ratio estimand (g-computation risk ratio) is judged on
 			# log(ratio) with the link-scale rule, so a legitimately skewed ratio interval such as
 			# [0.5, 6] is not rejected by the outcome-SD width cap on the ratio scale, while a
 			# ratio interval reaching e^-10 or e^10 is. Only with replicates (theta) and positive
 			# bounds; otherwise the previous ratio-scale check runs unchanged.
-			# v1.0.6-TODO-175 (2): the log(ratio) rule no longer needs replicates, so theta-free
+			# v1.0.6-TODO-121 (2): the log(ratio) rule no longer needs replicates, so theta-free
 			# callers (the risk-ratio subsampling / m-out-of-n pivots, the m-selection objective)
 			# judge an interval such as [3e-5, 2.83] on the log scale too. Those pivots pass no
 			# replicates on purpose: their b- / m-size replicates are sqrt(n / b) more spread out
@@ -1457,12 +1605,12 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			max_abs = as.numeric(max_abs)[1L]
 			if (!is.finite(max_abs) || max_abs <= 0) max_abs = EDI_SEPARATION_THRESHOLD
 			if (any(abs(ci[1:2]) > max_abs)) return(TRUE)
-			# v1.0.6-TODO-160 (1): on the link scale a bound beyond +-bootstrap_extreme_link_scale_max_abs
+			# v1.0.6-TODO-109 (1): on the link scale a bound beyond +-bootstrap_extreme_link_scale_max_abs
 			# (a ratio of e^10, about 22,000) is always extreme, whatever the outcome SD. Before,
 			# a large outcome SD (counts with SD 20) put the width cap below at ~100 log units, so
 			# degenerate log-rate-ratio intervals such as [-25.8, -5.0] passed. Only when
 			# replicates are passed (theta), so callers without them keep the previous behavior;
-			# a raw ratio moved to log(ratio) always gets it (v1.0.6-TODO-175 (2)).
+			# a raw ratio moved to log(ratio) always gets it (v1.0.6-TODO-121 (2)).
 			if (on_link_scale && (!is.null(theta) || ratio_on_log)) {
 				link_max_abs = as.numeric(private$bootstrap_extreme_link_scale_max_abs)[1L]
 				if (is.finite(link_max_abs) && any(abs(ci[1:2]) > link_max_abs)) return(TRUE)
@@ -1478,13 +1626,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			max_width = min(scaled_max_width, absolute_max_width, na.rm = TRUE)
 			if (!is.finite(max_width) || max_width <= 0) max_width = scaled_max_width
 			if (!(is.finite(width) && width > max_width)) return(FALSE)
-			# v1.0.6-TODO-157: the outcome-SD cap above is on the wrong scale for a log-ratio /
+			# v1.0.6-TODO-104: the outcome-SD cap above is on the wrong scale for a log-ratio /
 			# link-scale estimand (a 5.6-wide log-OR CI from 10 clusters was rejected). For those,
 			# an interval over the cap is kept when it is narrow relative to the replicates' own
 			# robust spread and stays out of separation territory; otherwise the cap stands.
 			!private$bootstrap_link_scale_ci_plausible(ci, width, theta, on_link_scale = on_link_scale)
 		},
-		# v1.0.6-TODO-157: TRUE when compute_estimate() is a log ratio (odds, rate, risk, hazard,
+		# v1.0.6-TODO-104: TRUE when compute_estimate() is a log ratio (odds, rate, risk, hazard,
 		# time) or a link-scale coefficient (probit/cloglog/cauchit/stereotype/logit effect), read
 		# from EDI_INFERENCE_ESTIMAND_TAGS (nearest class in class(self)) or get_estimand_type().
 		# A marginal estimand (set_estimand(), e.g. a risk difference) is not on the link scale.
@@ -1499,14 +1647,14 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			grepl("^log_(hazard|odds|rate|risk|time)_ratio|link_effect|^probit_effect|^logit_effect", tag)
 		},
-		# v1.0.6-TODO-160/175: TRUE for a raw ratio estimand that the extreme checks judge on
+		# v1.0.6-TODO-109 / v1.0.6-TODO-121: TRUE for a raw ratio estimand that the extreme checks judge on
 		# log(ratio). "RR" (risk1 / risk0) is the tag of InferenceIncidGCompRiskRatio and
 		# InferenceIncidKKGCompRiskRatio, whose get_estimand_type() is also "RR".
 		bootstrap_estimand_is_raw_ratio = function(){
 			if (isTRUE(private$bootstrap_estimand_on_link_scale())) return(FALSE)
 			identical(tryCatch(as.character(private$get_estimand_type())[1L], error = function(e) NA_character_), "RR")
 		},
-		# v1.0.6-TODO-175 (1): the replicate guard of the bootstrap CI paths. For a raw ratio it
+		# v1.0.6-TODO-121 (1): the replicate guard of the bootstrap CI paths. For a raw ratio it
 		# runs on log(ratio), as it already does for every log-ratio estimand (log OR, log rate
 		# ratio), so one replicate with a near-zero control risk (RR > 1e6) no longer rejects the
 		# whole bootstrap; a degenerate interval is still caught by
@@ -1522,7 +1670,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			private$bootstrap_estimates_extreme(theta, est = est)
 		},
-		# v1.0.6-TODO-157: whether a link-scale interval wider than the outcome-SD cap is still a
+		# v1.0.6-TODO-104: whether a link-scale interval wider than the outcome-SD cap is still a
 		# plausible interval rather than a degenerate one. Both must hold:
 		# * width <= bootstrap_extreme_ci_width_spread_multiple robust SDs of the replicates
 		#   (MAD; a normal percentile interval is 3.92 SDs wide), so the interval is wide because
@@ -1535,7 +1683,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		# keep the previous behavior.
 		bootstrap_extreme_ci_width_spread_multiple = 10,
 		bootstrap_extreme_link_scale_max_abs = 10,
-		# on_link_scale: whether ci and theta are on the link scale (v1.0.6-TODO-160 passes TRUE
+		# on_link_scale: whether ci and theta are on the link scale (v1.0.6-TODO-109 passes TRUE
 		# for a raw ratio already moved to log(ratio)).
 		bootstrap_link_scale_ci_plausible = function(ci, width, theta = NULL, on_link_scale = private$bootstrap_estimand_on_link_scale()){
 			if (is.null(theta)) return(FALSE)
@@ -1603,7 +1751,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			worker_priv$X = private$get_X()
 			base_X = if (!is.null(private$X)) private$X else private$get_X()
-			# v1.0.6-TODO-130: base_X is the INFERENCE's matrix (model_formula). When that
+			# v1.0.6-TODO-84: base_X is the INFERENCE's matrix (model_formula). When that
 			# differs from the design's own design_formula matrix, keep the design's matrix
 			# separately so the worker design redraws on its own columns. NULL means the two
 			# coincide (the usual case) and the historical shared-matrix path is used.
@@ -1629,6 +1777,8 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				base_fit_warm_start_fisher = private$fit_warm_start_fisher,
 				base_Xraw = if (!is.null(source_des_priv$Xraw)) bootstrap_subset_source(source_des_priv$Xraw) else NULL,
 				base_Ximp = if (!is.null(source_des_priv$Ximp)) bootstrap_subset_source(source_des_priv$Ximp) else NULL,
+				# v1.0.7-TODO-190: whether the draws' covariates hold imputed values at all.
+				base_covariates_missing = isTRUE(edi_bootstrap_covariates_have_missingness(private)),
 				base_X = base_X,
 				base_des_X = base_des_X,
 				base_w = if (!is.null(source_des_priv$w)) as.numeric(source_des_priv$w) else NULL,
@@ -1667,8 +1817,12 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			stop("Reusable bootstrap workers are not implemented for this class.")
 		},
 		load_bootstrap_sample_into_design_backed_worker = function(worker_state, indices){
+			# v1.0.7-TODO-190: a draw may carry its rows already re-imputed (`reimputed_Ximp`,
+			# the bootstrap-randomization test's once-per-draw imputation).
+			pre_imputed_Ximp = NULL
 			if (is.list(indices)) {
 				m_vec_override = indices$m_vec_b
+				pre_imputed_Ximp = indices[["reimputed_Ximp"]]
 				indices = indices$i_b
 			} else {
 				m_vec_override = NULL
@@ -1701,8 +1855,17 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					bootstrap_qr_rank_certificate = list(mode = "unweighted", X = X_rank)
 				}
 			}
+			# v1.0.7-TODO-190: reimpute_missing_vals_each_resample = TRUE re-runs the missing-data
+			# step on every draw, so no draw may reuse the full-data (imputed) matrix directly.
+			reimpute_draw = is.null(pre_imputed_Ximp) && isTRUE(worker_state$base_covariates_missing) &&
+				isTRUE(private$cached_values$bootstrap_reimpute_active) &&
+				!identical(private$des_obj_priv_int$missingness_method, "error")
+			if (reimpute_draw || !is.null(pre_imputed_Ximp)) {
+				use_direct_X_subset = FALSE
+				bootstrap_qr_rank_certificate = NULL
+			}
 			w_priv$X = if (isTRUE(use_direct_X_subset)) X_subset else NULL
-			# v1.0.6-TODO-130: with a model_formula that differs from the design_formula, a
+			# v1.0.6-TODO-84: with a model_formula that differs from the design_formula, a
 			# NULL inference X would fall back to the design's matrix (get_X()), fitting on
 			# the design's columns. Keep the model-formula subset, as the slow path does.
 			if (!is.null(worker_state[["base_des_X"]]) && is.null(w_priv$X)) w_priv$X = X_subset
@@ -1747,7 +1910,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 				# explicitly in both directions: otherwise a previous fallback leaves
 				# the reusable design permanently stale and defeats later direct draws.
 				des_priv$model_matrix_stale = !isTRUE(use_direct_X_subset)
-				# v1.0.6-TODO-130: the design redraws on its own design_formula matrix, not
+				# v1.0.6-TODO-84: the design redraws on its own design_formula matrix, not
 				# the inference's. Subset it directly when it stays full rank; otherwise
 				# rebuild it from the resampled Ximp, as the shared path does.
 				base_des_X = worker_state[["base_des_X"]]
@@ -1792,7 +1955,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 					x
 				}
 				des_priv$Xraw = subset_field(worker_state$base_Xraw)
-				des_priv$Ximp = subset_field(worker_state$base_Ximp)
+				des_priv$Ximp = if (!is.null(pre_imputed_Ximp)) pre_imputed_Ximp else subset_field(worker_state$base_Ximp)
+				# v1.0.7-TODO-190: by default a draw that needs its model matrix rebuilt (a
+				# rank-deficient resample) rebuilds it from these resampled imputed rows, as a
+				# full-rank draw uses them, instead of imputing the resample again. A draw that
+				# carries its own re-imputed rows rebuilds from those.
+				des_priv$rebuild_model_matrix_from_ximp = !is.null(pre_imputed_Ximp) ||
+					(isTRUE(worker_state$base_covariates_missing) && !reimpute_draw)
 				if (!is.null(worker_state$base_y_i_t_i)) des_priv$y_i_t_i = worker_state$base_y_i_t_i[indices]
 
 				des_priv$all_subject_data_cache = list()
@@ -2102,9 +2271,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		bootstrap_subset_inference = function(boot_draw, smooth = FALSE){
 			# boot_draw is list(i_b, m_vec_b) from des_obj$draw_bootstrap_indices()
 			# For backward compatibility also accept a bare integer vector.
+			pre_imputed_Ximp = NULL
 			if (is.list(boot_draw)){
 				indices = as.integer(boot_draw$i_b)
 				m_vec_b = boot_draw$m_vec_b
+				# v1.0.7-TODO-190: rows already re-imputed for this draw (see
+				# edi_rand_bootstrap_attach_reimputed()).
+				pre_imputed_Ximp = boot_draw[["reimputed_Ximp"]]
 			} else {
 				indices = as.integer(boot_draw)
 				m_vec_b = NULL
@@ -2123,10 +2296,16 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			if (!is.null(orig_des_priv$Xraw)) sub_des_priv$Xraw = subset_field(orig_des_priv$Xraw)
 			if (!is.null(orig_des_priv$Ximp)) sub_des_priv$Ximp = subset_field(orig_des_priv$Ximp)
+			# v1.0.7-TODO-190: missing covariates. By default the subset keeps the resampled rows
+			# of the original imputation, also if its matrix is rebuilt; with
+			# reimpute_missing_vals_each_resample = TRUE it re-runs the missing-data step.
+			reimpute_draw = is.null(pre_imputed_Ximp) && isTRUE(private$cached_values$bootstrap_reimpute_active) && edi_bootstrap_reimputes(private)
+			if (!reimpute_draw && isTRUE(edi_bootstrap_covariates_have_missingness(private))) sub_des_priv$rebuild_model_matrix_from_ximp = TRUE
+			if (!is.null(pre_imputed_Ximp)) sub_des_priv$Ximp = pre_imputed_Ximp
 			if (!is.null(orig_des_priv$X)) sub_des_priv$X = subset_field(orig_des_priv$X)
 			if (!is.null(orig_des_priv$w)) sub_des_priv$w = as.numeric(orig_des_priv$w[indices])
 			if (!is.null(orig_des_priv$y)) sub_des_priv$y = as.numeric(orig_des_priv$y[indices])
-			# v1.0.6-TODO-131: the design's y_L / y_R / y_original are per-subject too. Left at the
+			# v1.0.6-TODO-85: the design's y_L / y_R / y_original are per-subject too. Left at the
 			# parent's n rows, get_effective_time() paired the subset's y with the parent's y_L
 			# (wrong censoring times), the rand-bootstrap slow path copied them into the subset
 			# Inference on interval-censored data, and assert_all_responses_recorded() /
@@ -2162,7 +2341,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			sub_inf = self$duplicate(verbose = FALSE, make_fork_cluster = FALSE)
 			sub_inf_priv = sub_inf$.__enclos_env__$private
-			# v1.0.6-TODO-142: duplicate() applies the warm-start dispatch policy only while a
+			# v1.0.7-TODO-47: duplicate() applies the warm-start dispatch policy only while a
 			# resampling operation is active; a copy made outside one kept the parent's warm
 			# start whatever the policy says, so the same draw fitted differently by call path.
 			# Such a copy is a nonparametric-bootstrap subset, so it follows that operation's
@@ -2177,6 +2356,18 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			sub_inf_priv$des_obj = sub_des
 			sub_inf_priv$des_obj_priv_int = sub_des_priv
 			sub_inf_priv$X = if (!is.null(private$X)) subset_field(private$X) else NULL
+			if (reimpute_draw) {
+				# Rebuild from the resample's raw covariates (edi_assert_bootstrap_reimpute_supported()
+				# has checked that the inference uses the design's own matrix).
+				sub_des_priv$model_matrix_stale = TRUE
+				sub_des_priv$rebuild_model_matrix_from_ximp = FALSE
+				sub_inf_priv$X = NULL
+			} else if (!is.null(pre_imputed_Ximp)) {
+				# Rebuild from the draw's re-imputed rows, without imputing again.
+				sub_des_priv$model_matrix_stale = TRUE
+				sub_des_priv$rebuild_model_matrix_from_ximp = TRUE
+				sub_inf_priv$X = NULL
+			}
 			# Subset y from the source Inference's own private$y, NOT from the
 			# design's raw y (sub_des_priv$y): post y/y_L/y_R migration the design
 			# stores NA for every censored subject, while Inference$initialize()
@@ -2218,7 +2409,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			sub_inf_priv$cached_X_full_for_reduced = NULL
 			sub_inf_priv$cached_keep_for_reduced = NULL
 			sub_inf_priv$cached_j_treat_for_reduced = NULL
-			# v1.0.6-TODO-126: the zero-inflated / hurdle covariate caches are n-row
+			# v1.0.6-TODO-80: the zero-inflated / hurdle covariate caches are n-row
 			# matrices too. duplicate() copies the parent's full-data ones, which
 			# build_component_matrix() then cbind()s against the subset's w (silently
 			# recycled), so the subset refit fitted the wrong rows.
@@ -2229,7 +2420,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 
 			if (!is.null(sub_des_priv$m)) sub_inf_priv$m = sub_des_priv$m
-			# v1.0.6-TODO-131: generic guard for every other per-subject cache. Every
+			# v1.0.6-TODO-85: generic guard for every other per-subject cache. Every
 			# remaining private field still holding the parent's rows was copied by
 			# duplicate(), not rebuilt for this subset, so it is cleared and the class
 			# rebuilds it lazily (see clear_parent_row_private_caches()).
@@ -2260,7 +2451,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			})
 		},
 		approximate_bootstrap_statistics_beta_hat_T = function(B = 501, show_progress = TRUE, na.rm = TRUE, smooth = FALSE, require_se = FALSE){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "non_param_boot"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -2287,6 +2478,10 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			# entry.  Wholesale cached_values resets (set_optimization_alg(),
 			# duplicate()) drop the entry together with the plain distribution cache.
 			stats_cache_key = paste0("stats::", as.character(B), "::", if (isTRUE(smooth)) "smooth" else "plain")
+			if (edi_bootstrap_reimputes(private)) {
+				edi_assert_bootstrap_reimpute_supported(private)
+				stats_cache_key = paste0(stats_cache_key, "::reimpute")
+			}
 			stats_cache = private$cached_values$boot_stats_cache
 			cached_stats = stats_cache[[paste0(stats_cache_key, "::se")]]
 			if (is.null(cached_stats) && !isTRUE(require_se)) cached_stats = stats_cache[[paste0(stats_cache_key, "::nose")]]
@@ -2336,7 +2531,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			list(theta = stats_mat[, 1L], se = stats_mat[, 2L])
 		},
 		approximate_jackknife_distribution_beta_hat_T_private = function(unit = "auto"){
-			# v1.0.6-TODO-185: restore the caller's operation (not NULL) so a nested call keeps an outer one.
+			# v1.0.6-TODO-131: restore the caller's operation (not NULL) so a nested call keeps an outer one.
 			prev_resampling_operation = private$active_resampling_operation
 			private$active_resampling_operation = "jackknife"
 			on.exit(private$active_resampling_operation <- prev_resampling_operation, add = TRUE)
@@ -2357,6 +2552,9 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			if (n_draws <= 1L) return(numeric(0))
 			actual_cores = private$effective_parallel_cores("jackknife", self$num_cores)
 			cache_key = paste0(unit, "::", as.character(n_draws))
+			# v1.0.7-TODO-190: a jackknife run inside a reimpute_missing_vals_each_resample = TRUE bootstrap (BCa)
+			# re-imputes each leave-out; keep it apart from the default jackknife's reuse of the full-data imputation.
+			if (isTRUE(edi_bootstrap_reimputes(private))) cache_key = paste0(cache_key, "::reimpute")
 			if (!is.null(private$cached_values$jack_distr_cache[[cache_key]])) {
 				return(private$cached_values$jack_distr_cache[[cache_key]])
 			}
@@ -2438,28 +2636,23 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			)
 		},
 		ci_bca = function(boot_distr, alpha, est){
-			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
-			jack = jack_all[is.finite(jack_all)]
-			# v1.0.6-TODO-231: stratum of each finite replicate for the stratified acceleration.
-			jack_strata = private$jackknife_replicate_strata("auto")
-			jack_strata = if (length(jack_strata) == length(jack_all)) jack_strata[is.finite(jack_all)] else NULL
-			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
-			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
+			jackknife = bootstrap_bca_jackknife_inputs(private)
+			reason = jackknife$reason
 			if (!is.null(reason)) {
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
 				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap confidence interval (type = \"bca\")",
-					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
+					n_units = length(jackknife$jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(c(NA_real_, NA_real_))
 			}
-			private$bca_ci_core(boot_distr, alpha, est, jack, reason_prefix = "bootstrap_bca_", strata = jack_strata, on_failure = function(reason){
+			private$bca_ci_core(boot_distr, alpha, est, jackknife$jack, reason_prefix = "bootstrap_bca_", strata = jackknife$strata, on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
 				if (is.character(private$cached_values$ci_call_failure_reason)) private$cached_values$ci_call_failure_reason = reason
 				ctx = private$cached_values$ci_call_ctx
 				if (!is.null(ctx) && isTRUE(ctx$all_finite)) {
 					edi_warn_bca_boundary_once(self, private, ctx$B, "bca", reason, ctx$alpha)
 				} else {
-					# v1.0.6-TODO-162: with some non-finite draws (e.g. a cluster resample with no treated
+					# v1.0.6-TODO-111: with some non-finite draws (e.g. a cluster resample with no treated
 					# or no control cluster) the specific warning above was skipped, and
 					# missing_bootstrap_ci() then saw this recorded reason (keep-first) and did not warn
 					# either, so the NA was silent. Warn here with the reason and the finite-draw count.
@@ -2489,7 +2682,7 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 			}
 			n_outer = max(25L, min(as.integer(B), 101L))
 			n_inner = max(25L, min(as.integer(B), 51L))
-			# v1.0.6-TODO-142: the outer resamples are nonparametric-bootstrap replicates, so
+			# v1.0.7-TODO-47: the outer resamples are nonparametric-bootstrap replicates, so
 			# their subset copies follow that operation's warm-start policy (the inner
 			# bootstrap's on.exit would otherwise leave no operation set). Restored on exit
 			# so a caller's own operation survives.
@@ -2565,22 +2758,17 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 		#   z_delta = Phi^{-1}(F_boot(delta_0)),   s = z_delta - z0,
 		#   adj_z   = s / (1 + a*s) - z0.
 		pval_bca = function(boot_distr, est, delta){
-			jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
-			jack = jack_all[is.finite(jack_all)]
-			# v1.0.6-TODO-231: stratum of each finite replicate for the stratified acceleration.
-			jack_strata = private$jackknife_replicate_strata("auto")
-			jack_strata = if (length(jack_strata) == length(jack_all)) jack_strata[is.finite(jack_all)] else NULL
-			# v1.0.6-TODO-135 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
-			reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
+			jackknife = bootstrap_bca_jackknife_inputs(private)
+			reason = jackknife$reason
 			if (!is.null(reason)) {
 				if (identical(reason, "jackknife_block_size_gt_one_not_supported")) private$cache_procedure_failure("jackknife", reason) else edi_record_procedure_failure(self, private, reason, "se")
 				edi_warn_bca_jackknife_unavailable(self, private, reason, "bootstrap p-value (type = \"bca\")",
-					n_units = length(jack_all), unit_label = private$resolve_jackknife_unit("auto"))
+					n_units = length(jackknife$jack_all), unit_label = private$resolve_jackknife_unit("auto"))
 				return(NA_real_)
 			}
-			private$bca_pval_core(boot_distr, est, delta, jack, reason_prefix = "bootstrap_bca_", strata = jack_strata, on_failure = function(reason){
+			private$bca_pval_core(boot_distr, est, delta, jackknife$jack, reason_prefix = "bootstrap_bca_", strata = jackknife$strata, on_failure = function(reason){
 				edi_record_procedure_failure(self, private, reason, "se")
-				# v1.0.6-TODO-114: warn like the BCa CI does on the same boundary (no-op for other reasons)
+				# v1.0.6-TODO-68: warn like the BCa CI does on the same boundary (no-op for other reasons)
 				edi_warn_bca_boundary_once(self, private, length(boot_distr), "bca", reason, what = "p-value")
 				NA_real_
 			})
@@ -2588,13 +2776,13 @@ InferenceNonParamBootstrap = R6::R6Class("InferenceNonParamBootstrap",
 	))
 )
 
-# Details for bootstrap / Bayesian-bootstrap p-values that are NA (v1.0.6-TODO-145).
+# Details for bootstrap / Bayesian-bootstrap p-values that are NA (v1.0.6-TODO-97).
 bootstrap_too_few_finite_na_detail = function(n_finite, B, min_usable) {
 	paste0("Only ", n_finite, " of ", B, " replicate estimates were finite; at least ", min_usable,
 		" are needed (min_number_usable_samples). The estimator fails on most resamples of this data; ",
 		"try a more stable estimator, a larger B, or an asymptotic or randomization p-value.")
 }
-# v1.0.6-TODO-12 (owner decision 2026-11-19): with na.rm = TRUE a bootstrap-family p-value
+# v1.0.6-TODO-2 (owner decision 2026-11-19): with na.rm = TRUE a bootstrap-family p-value
 # (nonparametric, Bayesian, randomization bootstrap) needs at least min_fraction_usable_samples
 # of its replicates to be finite. The default 0.95 mirrors the 5% invalid-interval cap EDI's
 # coverage calibration applies to confidence intervals. TRUE when n_valid of n_total falls short;
@@ -2621,7 +2809,7 @@ bootstrap_extreme_na_detail = function() {
 		"randomization p-value.")
 }
 
-# Detail for a studentized bootstrap p-value that is NA for missing/unstable SEs (v1.0.6-TODO-140).
+# Detail for a studentized bootstrap p-value that is NA for missing/unstable SEs (v1.0.6-TODO-93).
 bootstrap_studentized_se_na_detail = function() {
 	paste0("The studentized (bootstrap-t) p-value needs finite, stable standard errors for the original fit ",
 		"and for enough bootstrap replicates, and this class did not supply them on this data. ",
@@ -2631,9 +2819,9 @@ bootstrap_studentized_se_na_detail = function() {
 # Why a BCa CI / p-value cannot use these jackknife replicates for its acceleration, or NULL
 # when it can. jack_all is one replicate per deletion unit (non-finite included), jack_finite
 # its finite subset. Fewer than 2 finite replicates: "<prefix>jackknife_unavailable"
-# (v1.0.6-TODO-108). Fewer than EDI_JACKKNIFE_MIN_DELETION_UNITS deletion units:
+# (v1.0.6-TODO-62). Fewer than EDI_JACKKNIFE_MIN_DELETION_UNITS deletion units:
 # "<prefix>jackknife_too_few_deletion_units" (owner decision 2026-11-18, follow-up to
-# v1.0.6-TODO-135): the acceleration is a skewness estimated from G replicates (identically 0
+# v1.0.6-TODO-89): the acceleration is a skewness estimated from G replicates (identically 0
 # at G = 2) and the bootstrap resamples only those G units, so BCa is as unreliable there as
 # the jackknife SE. The unit count is taken before dropping non-finite replicates, so results
 # with >= EDI_JACKKNIFE_MIN_DELETION_UNITS units are unchanged. block_check = FALSE skips the
@@ -2649,7 +2837,7 @@ edi_bca_jackknife_gate_reason = function(private, jack_all, jack_finite, reason_
 
 # BCa needs >= 2 finite jackknife replicates and >= EDI_JACKKNIFE_MIN_DELETION_UNITS deletion
 # units for its acceleration; with fewer, the BCa CI / p-value is NA. Warn instead of returning
-# it silently (v1.0.6-TODO-108, the v1.0.6-TODO-95 rule). Silent inside resampling
+# it silently (v1.0.6-TODO-62, the v1.0.6-TODO-54 rule). Silent inside resampling
 # (edi_warn_procedure_na()). n_units / unit_label name the deletion units in the message.
 edi_warn_bca_jackknife_unavailable = function(self, private, reason, what, n_units = NA_integer_, unit_label = NULL){
 	detail = if (identical(reason, "jackknife_block_size_gt_one_not_supported")) {
@@ -2670,4 +2858,96 @@ edi_warn_bca_jackknife_unavailable = function(self, private, reason, what, n_uni
 			"(or another non-BCa type).")
 	}
 	edi_warn_procedure_na(self, private, procedure = what, reason = reason, detail = detail)
+}
+
+bootstrap_bca_jackknife_inputs = function(private) {
+	jack_all = private$approximate_jackknife_distribution_beta_hat_T_private(unit = "auto")
+	jack = jack_all[is.finite(jack_all)]
+	# v1.0.6-TODO-165: stratum of each finite replicate for the stratified acceleration.
+	jack_strata = private$jackknife_replicate_strata("auto")
+	jack_strata = if (length(jack_strata) == length(jack_all)) jack_strata[is.finite(jack_all)] else NULL
+	# v1.0.6-TODO-89 follow-up: also NA below EDI_JACKKNIFE_MIN_DELETION_UNITS units.
+	reason = edi_bca_jackknife_gate_reason(private, jack_all, jack, "bootstrap_bca_")
+	list(jack_all = jack_all, jack = jack, strata = jack_strata, reason = reason)
+}
+
+# v1.0.7-TODO-190: missing covariate values in nonparametric bootstrap resamples. By default
+# (reimpute_missing_vals_each_resample = FALSE) every resample analyses its rows of the
+# design's original imputation, whichever path fits it; TRUE re-runs the design's missing-data
+# step on each resample's raw covariates. Without missing covariates the flag changes nothing.
+# The value of the bootstrap call in progress lives in private$cached_values (NULL outside
+# one); a nested call that does not pass the argument keeps its caller's. Package-level
+# functions rather than private methods: the inference-component contract lists every
+# private member of InferenceNonParamBootstrap (contracts_mixins.R).
+edi_bootstrap_reimpute_enter = function(private, value, passed) {
+	prev = private$cached_values$bootstrap_reimpute_active
+	# A class override forwards NULL when its caller left the argument out
+	# (edi_bootstrap_reimpute_forward()), so an inner call inherits the outer setting
+	# exactly as a call with the argument missing does.
+	passed = isTRUE(passed) && !is.null(value)
+	if (passed || is.null(prev)) {
+		if (is.null(value)) value = FALSE
+		if (should_run_asserts()) assertFlag(value)
+		private$cached_values$bootstrap_reimpute_active = isTRUE(value)
+	}
+	prev
+}
+
+# What a class override of a bootstrap method passes on for
+# reimpute_missing_vals_each_resample: the value when its caller gave one, NULL
+# otherwise (an R formal with a default is never "missing" in the callee).
+edi_bootstrap_reimpute_forward = function(value, was_missing) {
+	if (isTRUE(was_missing)) NULL else value
+}
+
+# For a class override with its own resampling loop, which always analyses rows of
+# the original imputed covariates: refuse reimpute_missing_vals_each_resample = TRUE
+# when there is anything to re-impute, rather than ignoring it. TRUE is requested
+# either by this call's own argument or, when that was left out, by an enclosing base
+# bootstrap call that is running with it (the base CI / p-value reach the class's
+# distribution method without the argument).
+edi_assert_bootstrap_reimpute_not_requested = function(private, value, was_missing, class_label) {
+	given = !isTRUE(was_missing) && !is.null(value)
+	if (given && should_run_asserts()) assertFlag(value)
+	active = if (given) isTRUE(value) else isTRUE(private$cached_values$bootstrap_reimpute_active)
+	if (active && !identical(private$des_obj_priv_int$missingness_method, "error") &&
+			edi_bootstrap_covariates_have_missingness(private)) {
+		stop(class_label, ": this bootstrap resamples the original imputed covariates and cannot re-impute them per ",
+			"resample; use reimpute_missing_vals_each_resample = FALSE.", call. = FALSE)
+	}
+	invisible(TRUE)
+}
+
+edi_bootstrap_covariates_have_missingness = function(private) {
+	des_priv = private$des_obj_priv_int
+	Xraw = if (is.null(des_priv)) NULL else des_priv$Xraw
+	if (is.null(Xraw) || NCOL(Xraw) == 0L || NROW(Xraw) == 0L) return(FALSE)
+	t = min(NROW(Xraw), des_priv$t)
+	Xraw_current = if (data.table::is.data.table(Xraw)) Xraw[seq_len(t)] else Xraw[seq_len(t), , drop = FALSE]
+	any(columns_have_missingness_cpp(Xraw_current))
+}
+
+# TRUE when this bootstrap call re-runs the missing-data step per resample.
+edi_bootstrap_reimputes = function(private) {
+	isTRUE(private$cached_values$bootstrap_reimpute_active) &&
+		!identical(private$des_obj_priv_int$missingness_method, "error") &&
+		edi_bootstrap_covariates_have_missingness(private)
+}
+
+# Re-imputing rebuilds the design's model matrix per resample. An inference whose own matrix
+# differs from the design's (a model_formula, or covariates dropped as perfect predictors)
+# cannot be rebuilt that way, so it refuses instead of ignoring the flag.
+edi_assert_bootstrap_reimpute_supported = function(private) {
+	des_priv = private$des_obj_priv_int
+	if (is.null(des_priv$X) || isTRUE(des_priv$model_matrix_stale)) des_priv$covariate_impute_if_necessary_and_then_create_model_matrix()
+	inf_X = private$X
+	des_X = des_priv$X
+	same = is.null(inf_X) || (identical(dim(inf_X), dim(des_X)) && identical(colnames(inf_X), colnames(des_X)) &&
+		identical(as.vector(inf_X), as.vector(des_X)))
+	if (!same) {
+		stop("reimpute_missing_vals_each_resample = TRUE needs the inference to use the design's own covariate ",
+			"matrix; this one differs (a model_formula, or covariates dropped as perfect predictors). ",
+			"Use reimpute_missing_vals_each_resample = FALSE.", call. = FALSE)
+	}
+	invisible(TRUE)
 }

@@ -111,7 +111,7 @@ make_kk_newcombe_legacy_generator = function() {
 	)
 }
 
-# v1.0.6-TODO-45 (2026-11-17): the design seed was 20260817L. KK14's match test
+# v1.0.6-TODO-10 (2026-11-17): the design seed was 20260817L. KK14's match test
 # now uses the published T^2 = 1/2 d'S^-1 d, so that seed's allocation changed
 # (4 pairs -> 6 of 20). On the new allocation the legacy score/gradient/LR CIs
 # are still the Wald fallback (score/gradient/LR p-values NA), but the

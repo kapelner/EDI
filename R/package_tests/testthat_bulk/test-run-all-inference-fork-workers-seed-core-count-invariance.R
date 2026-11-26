@@ -10,7 +10,7 @@
 # Where: R/EDI/R/inference_suite.R:1465 (kind: core_count_dependence).
 # On commit 6c326a75c09c this test failed with: Expected `p_par_a` to equal `p_seq`. Differences: 2/2
 # mismatches (average diff: 0.024) [1] 0.152 - 0.176 == -0.024 [2] 0.184 - 0.208 == -0.024
-# Fixed by v1.0.6-TODO-219: every task now runs from its own seed (drawn once from the caller's
+# Fixed by v1.0.6-TODO-160: every task now runs from its own seed (drawn once from the caller's
 # stream) with an empty design-level permutation cache, on both paths.
 
 test_that("run_all_inference rand p-values after set.seed() do not depend on num_cores", {

@@ -1,6 +1,6 @@
-# v1.0.6-TODO-137: the incidence g-computation risk-ratio jackknife-Wald p-value and CI
+# v1.0.6-TODO-91: the incidence g-computation risk-ratio jackknife-Wald p-value and CI
 # (plain InferenceIncidGCompRiskRatio and KK InferenceIncidKKGCompRiskRatio) built their own
-# log-scale SE, rejecting only <= 1 usable replicate. They skipped the v1.0.6-TODO-135
+# log-scale SE, rejecting only <= 1 usable replicate. They skipped the v1.0.6-TODO-89
 # minimum-units guard (3 blocks gave a finite p-value), silently dropped failed or
 # non-positive replicates, never flagged extreme replicates (KK, 6 pairs: CI 1e-13 to 1e14)
 # and returned NA with no warning. They now apply the compute_jackknife_summary() guards
@@ -45,7 +45,7 @@ gcomp_rr_jk_new = function(kind, estimand, units, seed){
 	inf
 }
 
-# v1.0.6-TODO-4 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now one subject
+# v1.0.6-TODO-1 (5bdb9dfb): the automatic jackknife unit on DesignFixedBlocking is now one subject
 # within its stratum, so the plain (blocking) cases ask for leave-one-block-out explicitly; the KK
 # cases keep the automatic unit (one matched pair).
 jk_unit = function(kind) if (kind == "plain") "block" else "auto"
@@ -81,7 +81,7 @@ test_that("plain and KK g-computation RR/RD with 6 deletion units and no failure
 		jack = inf$approximate_jackknife_distribution_beta_hat_T(unit = u)
 		expect_length(jack, 6L)
 		if (estimand == "RR") {
-			# The pre-v1.0.6-TODO-137 formula: log(est) +/- z * SE of the log replicates.
+			# The pre-v1.0.6-TODO-91 formula: log(est) +/- z * SE of the log replicates.
 			est = as.numeric(inf$compute_estimate())
 			lj = log(jack)
 			se = sqrt((5 / 6) * sum((lj - mean(lj))^2))

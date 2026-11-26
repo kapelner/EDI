@@ -334,29 +334,7 @@ EDI_SIMD
 template<typename WDerived>
 inline Eigen::MatrixXd weighted_crossprod(const Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>& X,
                                           const Eigen::MatrixBase<WDerived>& w) {
-    const int n = X.rows();
-    const int p = X.cols();
-    if (w.rows() != n) {
-        throw std::invalid_argument("weighted_crossprod: weight vector has incompatible dimensions");
-    }
-
-    RowMajorMatrixXd res = RowMajorMatrixXd::Zero(p, p);
-    for (int i = 0; i < n; ++i) {
-        double wi = w(i);
-        if (wi == 0.0) continue;
-        for (int j = 0; j < p; ++j) {
-            double xij = X(i, j);
-            double w_xij = wi * xij;
-#ifndef _MSC_VER
-EDI_SIMD
-#endif
-            for (int k = j; k < p; ++k) {
-                res(j, k) += w_xij * X(i, k);
-            }
-        }
-    }
-    res.triangularView<Eigen::Lower>() = res.transpose();
-    return res;
+    return weighted_crossprod<Eigen::Map<const RowMajorMatrixXd>, WDerived>(X, w);
 }
 
 // Exact/right-censored Weibull AFT negative log-likelihood.  This is shared
@@ -1352,7 +1330,7 @@ public:
     }
 };
 
-// v1.0.6-TODO-169 / v1.0.6-TODO-170 (2026-11-20; PATCHED, needs owner build): the shared scale-aware convergence rule.
+// v1.0.6-TODO-117 / v1.0.6-TODO-118 (2026-11-20; PATCHED, needs owner build): the shared scale-aware convergence rule.
 // The optimizers' gradient test |g| < tol is absolute, so it is not invariant to
 // the scale or location of the covariates: with a column like age x 1000 or
 // age + 1e5, rounding keeps |g| above tol at the optimum (a correct fit is
@@ -1472,7 +1450,7 @@ inline bool likelihood_newton_decrement_converged(F& fun,
     return nd.ok && newton_decrement_within_tol(nd.lambda2, f, tol);
 }
 
-// v1.0.6-TODO-169: finish an L-BFGS run that the gradient test rejected. While
+// v1.0.6-TODO-117: finish an L-BFGS run that the gradient test rejected. While
 // the Hessian is usable and the rule fails, take damped Newton steps (step
 // halving on the objective, within the iteration budget) and declare convergence
 // as soon as the rule or the gradient test holds. Newton is invariant to the
@@ -1578,7 +1556,7 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
         // fit isn't misclassified as unconverged just because the gradient
         // check alone is stricter than what LBFGS can practically achieve.
         //
-        // v1.0.6-TODO-169 (2026-11-20): "stopped before the cap" is no longer
+        // v1.0.6-TODO-117 (2026-11-20): "stopped before the cap" is no longer
         // convergence by itself. The relative-decrease stop (past = 1,
         // delta = tol) also fires far from the optimum on an ill-conditioned
         // problem (large-scale or offset covariates), and those fits were
@@ -1615,7 +1593,7 @@ inline LikelihoodFitResult optimize_likelihood_lbfgs(LikelihoodFunctor& fun,
         fit.hit_iteration_cap = false;
         fit.niter = maxit;
     }
-    // v1.0.6-TODO-169: an L-BFGS run that ends non-finite (LBFGSpp's line
+    // v1.0.6-TODO-117: an L-BFGS run that ends non-finite (LBFGSpp's line
     // search throwing, or iterating into NaN: fast_neg_bin_cpp's smart cold
     // start with age x 1000 or age + 1e5 ran all maxit iterations to NaN) used
     // to come back NaN. Try the damped-Newton finish from the start point
@@ -1766,7 +1744,7 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
             fit.gradient_norm = last_grad_norm;
             // TODO-123: also accept a step-size exit whose gradient is within
             // the Hessian-scaled tolerance (false non-convergence at the optimum).
-            // v1.0.6-TODO-170: or the scale-aware Newton-decrement rule (a fit
+            // v1.0.6-TODO-118: or the scale-aware Newton-decrement rule (a fit
             // at the optimum on large-scale covariates, where rounding keeps the
             // absolute gradient above both tolerances). Declaration only.
             fit.converged = (last_grad_norm < tol) ||
@@ -1788,7 +1766,7 @@ inline LikelihoodFitResult optimize_likelihood_newton(LikelihoodFunctor& fun,
     // TODO-123: a line-search failure (stalled) exactly at the optimum is
     // converged when the gradient passes the Hessian-scaled rule. params and
     // last_grad_norm refer to the same point on that exit (params not updated).
-    // v1.0.6-TODO-170: a stalled or capped exit at the optimum also passes on
+    // v1.0.6-TODO-118: a stalled or capped exit at the optimum also passes on
     // the scale-aware Newton-decrement rule (declaration only; params are the
     // returned point). It judges the point, not the exit: a FullPivLU
     // "singular" exit on badly scaled columns (age + 1e5) passes when the
@@ -1849,13 +1827,10 @@ inline LikelihoodFitResult optimize_fixed_likelihood_lbfgs(FullFunctor& fun,
     return fit;
 }
 
-template <typename FullFunctor>
-inline LikelihoodFitResult optimize_fixed_likelihood_newton(FullFunctor& fun,
-                                                            Eigen::VectorXd params,
-                                                            const FixedParamSpec& fixed_spec,
-                                                            int maxit,
-                                                            double tol,
-                                                            const Eigen::MatrixXd* warm_start_hessian = nullptr) {
+template <typename FullFunctor, typename FitFree>
+inline LikelihoodFitResult optimize_fixed_likelihood_with_curvature(
+    FullFunctor& fun, Eigen::VectorXd params, const FixedParamSpec& fixed_spec,
+    const Eigen::MatrixXd* warm_start_hessian, FitFree fit_free) {
     params = apply_fixed_values(params, fixed_spec);
     Eigen::VectorXd params_free = subset_vector(params, fixed_spec.free_idx);
     FixedParameterFunctor<FullFunctor> fixed_fun(fun, fixed_spec, params);
@@ -1869,9 +1844,22 @@ inline LikelihoodFitResult optimize_fixed_likelihood_newton(FullFunctor& fun,
         }
     }
 
-    LikelihoodFitResult fit = optimize_likelihood_newton(fixed_fun, params_free, maxit, tol, h_ptr);
+    LikelihoodFitResult fit = fit_free(fixed_fun, params_free, h_ptr);
     fit.params = fixed_fun.expand(fit.params);
     return fit;
+}
+
+template <typename FullFunctor>
+inline LikelihoodFitResult optimize_fixed_likelihood_newton(FullFunctor& fun,
+                                                            Eigen::VectorXd params,
+                                                            const FixedParamSpec& fixed_spec,
+                                                            int maxit,
+                                                            double tol,
+                                                            const Eigen::MatrixXd* warm_start_hessian = nullptr) {
+    return optimize_fixed_likelihood_with_curvature(fun, std::move(params), fixed_spec, warm_start_hessian,
+        [&](auto& fixed_fun, const Eigen::VectorXd& params_free, const Eigen::MatrixXd* h_ptr) {
+            return optimize_likelihood_newton(fixed_fun, params_free, maxit, tol, h_ptr);
+        });
 }
 
 template <typename FullFunctor>
@@ -1888,22 +1876,10 @@ inline LikelihoodFitResult optimize_fixed_likelihood(FullFunctor& fun,
     if (alg == "lbfgs") {
         return optimize_fixed_likelihood_lbfgs(fun, params, fixed_spec, maxit, tol, max_linesearch);
     }
-    params = apply_fixed_values(params, fixed_spec);
-    Eigen::VectorXd params_free = subset_vector(params, fixed_spec.free_idx);
-    FixedParameterFunctor<FullFunctor> fixed_fun(fun, fixed_spec, params);
-
-    Eigen::MatrixXd H_free;
-    const Eigen::MatrixXd* h_ptr = nullptr;
-    if (warm_start_hessian != nullptr) {
-        H_free = subset_matrix(*warm_start_hessian, fixed_spec.free_idx, fixed_spec.free_idx);
-        if (is_valid_warm_start_information(H_free, params_free.size())) {
-            h_ptr = &H_free;
-        }
-    }
-
-    LikelihoodFitResult fit = optimize_likelihood_newton_then_lbfgs(fixed_fun, params_free, maxit, tol, max_linesearch, h_ptr);
-    fit.params = fixed_fun.expand(fit.params);
-    return fit;
+    return optimize_fixed_likelihood_with_curvature(fun, std::move(params), fixed_spec, warm_start_hessian,
+        [&](auto& fixed_fun, const Eigen::VectorXd& params_free, const Eigen::MatrixXd* h_ptr) {
+            return optimize_likelihood_newton_then_lbfgs(fixed_fun, params_free, maxit, tol, max_linesearch, h_ptr);
+        });
 }
 
 template <typename LikelihoodFunctor>

@@ -659,7 +659,7 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 				lr_bartlett_exact = "lik_ratio_bartlett_exact",
 				lrb_exact = "lik_ratio_bartlett_exact",
 				bartlett_exact = "lik_ratio_bartlett_exact",
-				# v1.0.6-TODO-380: the design-conservative Bartlett option of the classes
+				# v1.0.6-TODO-225: the design-conservative Bartlett option of the classes
 				# that combine a model test with a design Wald test (see set_testing_type()).
 				lik_ratio_bartlett_approx_design_conservative = "lik_ratio_bartlett_approx_design_conservative",
 				stop("testing_type must be one of: wald, score, gradient, lik_ratio, lik_ratio_bartlett_approx, lik_ratio_bartlett_exact, lik_ratio_bartlett_approx_design_conservative", call. = FALSE)
@@ -679,3 +679,45 @@ InferenceAsympLik = R6::R6Class("InferenceAsympLik",
 		}
 	))
 )
+
+edi_likelihood_asymp_ci = function(private, alpha, wald,
+		unsupported = stop("Unsupported testing_type: ", private$testing_type),
+		lik_ratio = private$compute_lik_ratio_confidence_interval_impl(alpha),
+		score = private$compute_score_confidence_interval_impl(alpha),
+		gradient = private$compute_gradient_confidence_interval_impl(alpha)) {
+	switch(
+		private$testing_type,
+		wald = wald,
+		score = score,
+		gradient = gradient,
+		lik_ratio = lik_ratio,
+		lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_confidence_interval_impl(alpha),
+		lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_confidence_interval_impl(alpha),
+		unsupported
+	)
+}
+
+edi_likelihood_asymp_pval = function(private, delta, wald,
+		unsupported = stop("Unsupported testing_type: ", private$testing_type)) {
+	switch(
+		private$testing_type,
+		wald = wald,
+		score = private$compute_score_two_sided_pval_impl(delta),
+		gradient = private$compute_gradient_two_sided_pval_impl(delta),
+		lik_ratio = private$compute_lik_ratio_two_sided_pval_impl(delta),
+		lik_ratio_bartlett_approx = private$compute_lik_ratio_bartlett_approx_two_sided_pval_impl(delta),
+		lik_ratio_bartlett_exact = private$compute_lik_ratio_bartlett_exact_two_sided_pval_impl(delta),
+		unsupported
+	)
+}
+
+edi_stacked_likelihood_ci = function(private, alpha, fit, ...) {
+	if (should_run_asserts()) {
+		assertNumeric(alpha, len = 1, lower = .Machine$double.xmin,
+			upper = 1 - .Machine$double.eps, any.missing = FALSE)
+	}
+	edi_likelihood_asymp_ci(private, alpha, {
+		force(fit)
+		private$compute_z_or_t_ci_from_s_and_df(alpha)
+	}, ...)
+}

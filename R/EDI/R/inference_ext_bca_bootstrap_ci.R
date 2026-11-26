@@ -25,7 +25,7 @@ InferenceExtBcaBootstrapCI = list(
 	public = list(),
 	private = list(
 		# Shared BCa confidence-interval math (Efron 1987; Efron & Tibshirani 1993).
-		# `strata` (v1.0.6-TODO-231): the stratum of each element of `jack` when the jackknife is
+		# `strata` (v1.0.6-TODO-165): the stratum of each element of `jack` when the jackknife is
 		# the stratified one (see edi_jackknife_acceleration()), else NULL.
 		# `jack` must already be the finite jackknife replicate distribution (length >= 2);
 		# callers are responsible for sourcing it (plain vs. Bayesian jackknife) and for
@@ -85,7 +85,7 @@ InferenceExtBcaBootstrapCI = list(
 			if (any(!is.finite(adj_ci)) || any(adj_ci <= 2 * prob_eps) || any(adj_ci >= 1 - 2 * prob_eps)) {
 				return(on_failure(paste0(reason_prefix, "adjustment_on_boundary")))
 			}
-			# v1.0.6-TODO-75 / v1.0.6-TODO-114: when delta cannot be reached by any BCa interval the
+			# v1.0.6-TODO-37 / v1.0.6-TODO-68: when delta cannot be reached by any BCa interval the
 			# p-value is the smallest one this B can report, not NA. The BCa p-value is the alpha at
 			# which a BCa endpoint equals delta. The endpoint for tail level z is
 			#   z_end = z0 + (z0 + z) / (1 - a (z0 + z))   (in normal-score space of the bootstrap CDF),

@@ -3,7 +3,7 @@ library(EDI)
 
 # InferenceCountZeroInflatedPoisson: the family / description / estimand
 # descriptors, and the asymptotic p-value and interval dispatch when the model
-# SE is unavailable (NA with an edi_wald_unavailable_warning, v1.0.6-TODO-380;
+# SE is unavailable (NA with an edi_wald_unavailable_warning, v1.0.6-TODO-225;
 # it used to fall back to the bootstrap), plus the marginal-estimand
 # branch's use of the cached SE. Reference values are the Wald formulas.
 
@@ -55,7 +55,7 @@ test_that("with a finite SE the asymptotic outputs are the Wald formulas of the 
 })
 
 test_that("an unavailable SE gives NA and one edi_wald_unavailable_warning naming the class, never the bootstrap", {
-	# v1.0.6-TODO-380: this used to fall back to the bootstrap with a warning naming the model.
+	# v1.0.6-TODO-225: this used to fall back to the bootstrap with a warning naming the model.
 	f <- zi_fx()
 	freeze_without_se(f)
 	unlockBinding("compute_bootstrap_confidence_interval", f$inf)

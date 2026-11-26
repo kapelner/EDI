@@ -61,6 +61,7 @@ R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-delta-method.R,co
 R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-fit-point-and-se-unavailable-branches-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-beta-regr-marginal-se-covariate-rescaling-invariance.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-beta-regr-randomization-estimate-refit-no-covariates-and-fixed-phi-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-beta-regression-likelihood-spec-exact-field-lookup.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-beta-regression-with-var-kernel-betareg-vcov-information-fixed-coefficients-and-flags-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binary-match-structure-singular-covariance-mahalanobis-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1367,6 +1368,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-count-asymp-honors-testing-typ
 R/package_tests/testthat_bulk/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,correctness,1,measured_with_30_percent_headroom
+R/package_tests/testthat_bulk/test-zero-augmented-likelihood-spec-exact-field-lookup.R,correctness,120,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-failed-fit-diagnostics-builder-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-hurdle-likelihood-frames-and-safe-se-reference.R,correctness,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-jackknife-refusal-and-bca-type-guard-reference.R,correctness,1,measured_with_30_percent_headroom
@@ -1449,6 +1451,8 @@ R/EDI/tests/testthat/test-bootstrap-family-procedure-failure-keeps-wald-state.R,
 R/EDI/tests/testthat/test-bootstrap-m-local-rng.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-nonfinite-na-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bootstrap-pval-min-valid-fraction.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-bootstrap-reimpute-flag-accepted-by-every-class.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-bootstrap-reimpute-missing-covariates-flag.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-bootstrap-reused-worker-asymp-families.R,coverage,1.5,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-reused-worker-families.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-bootstrap-studentized-pval-missing-se-warns.R,coverage,30,bootstrap
@@ -1493,6 +1497,7 @@ R/EDI/tests/testthat/test-count-family-audit-excluded-bugs.R,coverage,1,measured
 R/EDI/tests/testthat/test-covariate-dropped-warning.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-cox-newton-descent-guard.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-cox-risk-set-cache-invalidation.R,coverage,30,bootstrap
+R/EDI/tests/testthat/test-coxph-diverged-coefficient-warns.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-coxph-hessian-symmetric-writes.R,coverage,1.6,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-coxph-robust-vcov.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-cross-platform-reproducibility-digests.R,coverage,30,bootstrap
@@ -1613,6 +1618,7 @@ R/EDI/tests/testthat/test-kk21-beta-std-lgamma.R,coverage,1,measured_with_30_per
 R/EDI/tests/testthat/test-kk21-negbin-fast-digamma.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-kk21-stepwise-degenerate-weights-fall-back-to-equal.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-kk21-weighted-crossprod.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-km-diff-every-na-call-explains-itself.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-km-diff-interval-censored-bootstrap-fallback.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-km-diff-na-warns-with-reason.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-km-median-canonical.R,coverage,1,measured_with_30_percent_headroom
@@ -1751,6 +1757,7 @@ R/EDI/tests/testthat/test-simulation-framework-capability-dispatch.R,coverage,1,
 R/EDI/tests/testthat/test-simulation-framework-extended.R,coverage,7.0,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-simulation-framework-parallel-cleanup.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-slow-wrapper-lock-contract.R,coverage,1,measured_with_30_percent_headroom
+R/EDI/tests/testthat/test-small-trial-linear-and-quantile-na-explained.R,coverage,30,bootstrap
 R/EDI/tests/testthat/test-smart-default-false.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-smart-start-helpers.R,coverage,1,measured_with_30_percent_headroom
 R/EDI/tests/testthat/test-smart-start-inference-policies.R,coverage,1,measured_with_30_percent_headroom
@@ -1870,6 +1877,7 @@ R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-delta-method.R,co
 R/package_tests/testthat_bulk/test-beta-regr-marginal-estimand-fit-point-and-se-unavailable-branches-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-regr-marginal-se-covariate-rescaling-invariance.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-regr-randomization-estimate-refit-no-covariates-and-fixed-phi-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-beta-regression-likelihood-spec-exact-field-lookup.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-regression-with-var-kernel-betareg-vcov-information-fixed-coefficients-and-flags-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-beta-weighted-constrained-likelihood-reference.R,coverage,1,measured_with_30_percent_headroom
 R/package_tests/testthat_bulk/test-binary-match-structure-singular-covariance-mahalanobis-guard-reference.R,coverage,240,bootstrap
@@ -3176,6 +3184,7 @@ R/package_tests/testthat_bulk/test-zero-augmented-count-asymp-honors-testing-typ
 R/package_tests/testthat_bulk/test-zero-augmented-count-treatment-unidentified-from-positive-rows.R,coverage,30,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-degeneracy-uncentered-covariate-intercept.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-fit-degeneracy-predicate-vcov-conditioning-and-boundary-intercept-reference.R,coverage,240,bootstrap
+R/package_tests/testthat_bulk/test-zero-augmented-likelihood-spec-exact-field-lookup.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-failed-fit-diagnostics-builder-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-hurdle-likelihood-frames-and-safe-se-reference.R,coverage,240,bootstrap
 R/package_tests/testthat_bulk/test-zero-augmented-poisson-jackknife-refusal-and-bca-type-guard-reference.R,coverage,240,bootstrap

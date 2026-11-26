@@ -26,7 +26,7 @@ robust_ssq_reference <- function(X, y, fit, j, method = "MM", c = 1.345,
   }
 
   m <- mean(psi_prime)
-  # Huber's small-sample correction, as in MASS:::summary.rlm (v1.0.6-TODO-50)
+  # Huber's small-sample correction, as in MASS:::summary.rlm (v1.0.6-TODO-15)
   kappa <- 1 + length(free_idx) * var(psi_prime) / (n * m^2)
   factor <- kappa^2 * (n / (n - length(free_idx))) * sum(psi^2) / (n * m^2)
   XtX <- crossprod(X[, free_idx, drop = FALSE])

@@ -1,4 +1,4 @@
-# v1.0.6-TODO-298 (ds-fixed-designs-44358267779-f6, ds-clusters-blocking-44358267779-f5,
+# v1.0.6-TODO-185 (ds-fixed-designs-44358267779-f6, ds-clusters-blocking-44358267779-f5,
 # ds-observational-44883784401-f1): every fixed design accepted the default n = NULL and then
 # add_all_subjects_to_experiment() stopped with "you must specify n upon initialization", although X_all
 # gives n; assigning before adding subjects failed with "replacement has length zero" / "argument is of

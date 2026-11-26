@@ -42,7 +42,7 @@ library(EDI)
 # EDI_REPRO_OVERWRITE_FIXTURE=true as well, or the write refuses.
 # EDI_REPRO_FIXTURE_PATH points the test at another fixture file.
 #
-# v1.0.6-TODO-45 (2026-11-17): both DesignSeqOneByOneKK14 rows (w_md5 and
+# v1.0.6-TODO-10 (2026-11-17): both DesignSeqOneByOneKK14 rows (w_md5 and
 # w_seq_md5) were regenerated this way. KK14's match test now uses the
 # published T^2 = 1/2 d'S^-1 d (it was twice as strict), so the seeded KK14
 # allocation forms more pairs and its digests changed. No other row changed;

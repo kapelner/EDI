@@ -1,11 +1,11 @@
-# v1.0.6-TODO-217 (1): a KK IVWC class's Bayesian-bootstrap replicate must be a weighted refit
+# v1.0.6-TODO-158 (1): a KK IVWC class's Bayesian-bootstrap replicate must be a weighted refit
 # of its own estimator. Classes without compute_weighted_estimate_ivwc() used to fall through
 # to the KK compound's generic fallback, a weighted raw mean difference of
 # KKstats$y_matched_diffs and the reservoir responses pooled with the observed w_star. For
 # InferenceSurvivalKKStratCoxPHIVWC (no y_matched_diffs) every replicate was 0 and the CI
 # [0, 0]; the other Cox / AFT / logit / OLS classes got replicates of a different, raw-scale
 # quantity. The fixed classes refit both halves under the weights and pool them by inverse
-# variance (v1.0.6-TODO-132 rule); the classes without a weighted refit opt out.
+# variance (v1.0.6-TODO-86 rule); the classes without a weighted refit opt out.
 
 kk_bb_design = function(response_type, seed = 1L, n = 80L){
 	set.seed(seed)
@@ -64,7 +64,7 @@ fixed_cases = list(
 	list(gen = "InferenceIncidKKCondLogitIVWC", rt = "incidence"),
 	list(gen = "InferenceAllKKMeanDiffIVWC", rt = "continuous"),
 	list(gen = "InferenceIncidKKNewcombeRiskDiff", rt = "incidence"),
-	# v1.0.6-TODO-235 (2): weighted quantreg::rq() refits of both halves.
+	# v1.0.6-TODO-169 (2): weighted quantreg::rq() refits of both halves.
 	list(gen = "InferenceContinKKQuantileRegrIVWC", rt = "continuous")
 )
 
@@ -125,7 +125,7 @@ refused = list(
 	InferenceContinKKRobustRegrIVWC = "continuous",
 	InferenceSurvivalGLMMWeibullFrailtyNormalIVWC = "survival",
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaOneLik = "survival",
-	# v1.0.6-TODO-235 (1): its own weighted hook refit a marginal-Weibull surrogate
+	# v1.0.6-TODO-169 (1): its own weighted hook refit a marginal-Weibull surrogate
 	# (no copula, no IVW pooling), not this estimator; removed, so it refuses too.
 	InferenceSurvivalGLMMWeibullFrailtyLoggammaIVWC = "survival"
 )

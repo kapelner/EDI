@@ -74,6 +74,6 @@ test_that("an unusable weighted refit returns NA and is reported nonestimable", 
 	p = inf$.__enclos_env__$private
 	expect_true(is.na(est_w))
 	expect_true(is.na(p$last_weighted_refit$beta_hat_T))
-	skip("v1.0.6-TODO-264: the weighted refit returns NA but never calls cache_nonestimable_estimate(), so weighted_refit_is_nonestimable() is FALSE")
+	skip("v1.0.7-TODO-118: the weighted refit returns NA but never calls cache_nonestimable_estimate(), so weighted_refit_is_nonestimable() is FALSE")
 	expect_true(p$weighted_refit_is_nonestimable())
 })

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail if an edi_kernels x86-64 extension uses instructions above the portable baseline.
 
-ds-python-kernels-44358267779-f1 (v1.0.6-TODO-284): a wheel built with -march=native on an AVX-512
+ds-python-kernels-44358267779-f1 (v1.0.6-TODO-205): a wheel built with -march=native on an AVX-512
 GitHub runner died with SIGILL on `import edi_kernels` on an AVX2-only runner. Released wheels are
 built portable (no -march; the compiler's x86-64 baseline), so their extension must contain no
 AVX-512 and, by default, no AVX/AVX2/FMA/BMI either. The PyPI 1.0.2 cp312 manylinux wheel has

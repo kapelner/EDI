@@ -1,6 +1,6 @@
-# v1.0.6-TODO-219 (coordinator note, from the v1.0.6-TODO-214 agent): the randomization-
+# v1.0.6-TODO-160 (coordinator note, from the v1.0.6-TODO-155 agent): the randomization-
 # bootstrap sequential Monte Carlo path did not apply min_fraction_usable_samples
-# (v1.0.6-TODO-12) with na.rm = TRUE. A batch prefix with too small a valid fraction is now
+# (v1.0.6-TODO-2) with na.rm = TRUE. A batch prefix with too small a valid fraction is now
 # "draw more" (not a stopping point), and the check runs on the full B draws exactly as on the
 # one-shot path: NA with reason rand_bootstrap_too_few_valid_replicates_fraction and one
 # edi_procedure_na_warning.

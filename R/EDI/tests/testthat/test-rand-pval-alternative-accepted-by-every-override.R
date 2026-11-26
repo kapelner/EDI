@@ -1,7 +1,7 @@
 library(testthat)
 library(EDI)
 
-# v1.0.6-TODO-328: InferenceRand$compute_rand_two_sided_pval() takes
+# v1.0.6-TODO-209: InferenceRand$compute_rand_two_sided_pval() takes
 # `alternative` ("two.sided" / "greater" / "less"), but the overrides in the
 # KK GEE mixin, InferenceIncidKKCondLogitOneLik, InferenceSurvivalWeibullRegr
 # and InferenceSurvivalDepCensTransformRegr did not, so

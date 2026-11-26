@@ -162,7 +162,7 @@ wheel.packages = ["src/edi_kernels"]
 # EDI_PORTABLE=1 default. This used to pin it OFF, so every plain
 # `pip wheel ./python` / `pip install .` / sdist install was -march=native,
 # and a wheel built on an AVX-512 machine died with SIGILL on import on an
-# AVX2-only one (ds-python-kernels-44358267779-f1, v1.0.6-TODO-284). For a
+# AVX2-only one (ds-python-kernels-44358267779-f1, v1.0.6-TODO-205). For a
 # host-tuned local build, opt in with
 # `--config-settings=cmake.define.EDI_PY_PORTABLE=OFF` or `EDI_PORTABLE=0`.
 #

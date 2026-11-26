@@ -83,9 +83,16 @@ test_that("a real run with compute_conf_intervals = FALSE keeps ci_a/ci_b/ci_met
 		classes = c("InferenceAllSimpleAverageDiff", "InferenceContinOLS"), methods = c("wald", "rand"), r = 19,
 		compute_conf_intervals = FALSE))
 	tbl <- res$results_table
+	expect_gt(nrow(tbl), 0L)
 	expect_true(all(c("ci_a", "ci_b", "ci_method") %in% names(tbl)))
 	expect_true(all(is.na(tbl$ci_a)))
 	expect_true(all(is.na(tbl$ci_b)))
-	skip("v1.0.6-TODO-261: with compute_conf_intervals = FALSE, run_all_inference_one_class() back-fills ci_method with the row's method sentinel ('wald', 'rand'), so ci_method is not NA as documented")
 	expect_true(all(is.na(tbl$ci_method)))
+	expect_setequal(tbl$pval_method, c("wald", "rand"))
+
+	capture.output(res <- InferenceSuite$new(des)$run_all_inference(screen = TRUE, plots = FALSE,
+		classes = "InferenceContinOLS", methods = "wald", compute_conf_intervals = TRUE))
+	tbl <- res$results_table
+	expect_identical(tbl$ci_method, "wald")
+	expect_true(all(is.finite(c(tbl$ci_a, tbl$ci_b))))
 })

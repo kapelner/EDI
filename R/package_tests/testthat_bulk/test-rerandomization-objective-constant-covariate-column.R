@@ -1,4 +1,4 @@
-# v1.0.6-TODO-276: compute_objective_vals_cpp divided each abs_sum_diff column by its SD with no
+# v1.0.6-TODO-175: compute_objective_vals_cpp divided each abs_sum_diff column by its SD with no
 # zero-variance guard, so a constant covariate column gave 0/0 = NaN for every draw. A constant
 # column reaches the kernel through a design_formula term such as I(x^0) (the default ~ . path drops
 # constant columns upstream). With every value NaN, the prop_acceptable path's order() kept the
@@ -64,7 +64,7 @@ test_that("prop_acceptable with a constant design_formula term filters like the 
 	expect_identical(ws_const, ws_plain)
 	X = as.matrix(Xdf)
 	scores = abs_sum_diff_reference(X, t(ws_const))
-	# Each kept draw is the best of its own group of 10 of the 100 pool draws (v1.0.6-TODO-294);
+	# Each kept draw is the best of its own group of 10 of the 100 pool draws (v1.0.6-TODO-181);
 	# unfiltered draws would score like a random allocation.
 	all_draws = EDI:::complete_randomization_forced_balanced_cpp(n, 100L, 5L)
 	group_best = apply(matrix(abs_sum_diff_reference(X, all_draws), nrow = 10L), 2L, min)

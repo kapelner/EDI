@@ -3,7 +3,7 @@ library(EDI)
 
 # InferenceContinKKRobustRegrOneLik private helpers: resolve_rlm_control(X) (maxit default 100 for any column count, acc
 # default by the OLS-start flag, user overrides win, integer/double coercion; the p-dependent maxit caps of 10-25 were
-# dropped in v1.0.6-TODO-50 because they stopped MASS::rlm before convergence) and is_rlm_nonconvergence_warning(w) (matches MASS::rlm's
+# dropped in v1.0.6-TODO-15 because they stopped MASS::rlm before convergence) and is_rlm_nonconvergence_warning(w) (matches MASS::rlm's
 # non-convergence warning texts only). Hand-listed default table as the reference.
 
 mk <- function() {
