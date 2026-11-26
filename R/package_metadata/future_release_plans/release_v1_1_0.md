@@ -2068,8 +2068,8 @@ ticked in their **owning plans**; this list is the release index.
     - Side finding, not fixed: the hurdle spec's `information(spec$full_fit)` partial-matches `fit$information` to
       `information_invertible` (the full-fit wrapper has no `information` element) and returns a 1 x 1 TRUE. Nothing
       in the current tests calls it on the full fit, but `[[` with `exact = TRUE` would be safer.
-  - Owner decision pending: [DECISION-v1.1.0-TODO-174](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-174) (make the robust
-    score / LR / gradient the default for HurdlePoisson (and ZIP), keep them opt-in, or rule `~1` inherent?).
+  - Decided 2026-11-26 (owner): (a) robust score / LR / gradient are HurdlePoisson's default; see [DECISION-v1.1.0-TODO-174](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-174). The 500 accepted campaign rows citing this TODO are pruned after the next campaign shows the `~1` cells pass.
+  - Owner decision pending: [DECISION-v1.1.0-TODO-174b](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-174b) (make robust ZIP's default too, reopening DECISION-v1.1.0-TODO-216?).
 
 
 - [ ] TODO-175 (added 2026-11-09, owner; opened for accepted calibration rows): **`InferenceIncidBinomialIdentityRiskDiff`: Binomial identity risk difference: Wald / LR oversized at prob_T = 0.2, n = 50.**

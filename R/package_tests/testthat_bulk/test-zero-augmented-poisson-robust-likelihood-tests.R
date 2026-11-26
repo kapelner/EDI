@@ -30,18 +30,27 @@ rlt_design = local({
 	}
 })
 
+# robust = TRUE / FALSE sets the variance explicitly; NULL keeps the class default.
 rlt_new = function(cn, formula = ~ 1, robust = FALSE) {
 	inf = suppressWarnings(get(cn, envir = asNamespace("EDI"))$new(rlt_design(), model_formula = formula, verbose = FALSE))
-	if (robust) inf$set_likelihood_test_variance("robust")
+	if (isTRUE(robust)) inf$set_likelihood_test_variance("robust")
+	if (isFALSE(robust)) inf$set_likelihood_test_variance("model")
 	inf
 }
 
-test_that("the default is model-based and only the Poisson zero-augmented classes accept robust", {
-	for (cn in c("InferenceCountHurdlePoisson", "InferenceCountZeroInflatedPoisson")) {
-		inf = rlt_new(cn)
-		expect_identical(inf$get_likelihood_test_variance(), "model", info = cn)
+test_that("HurdlePoisson defaults to robust, ZIP to model-based, and only those two accept robust", {
+	# Owner decision 2026-11-26 (DECISION-v1.1.0-TODO-174): robust is HurdlePoisson's default;
+	# ZIP's default is decided separately and stays model-based for now.
+	defaults = c(InferenceCountHurdlePoisson = "robust", InferenceCountZeroInflatedPoisson = "model")
+	for (cn in names(defaults)) {
+		inf = rlt_new(cn, robust = NULL)
+		expect_identical(inf$get_likelihood_test_variance(), defaults[[cn]], info = cn)
+		expect_identical(inf$set_likelihood_test_variance("model")$get_likelihood_test_variance(), "model", info = cn)
 		expect_identical(inf$set_likelihood_test_variance("robust")$get_likelihood_test_variance(), "robust", info = cn)
 	}
+	# The default p-value is the robust one for HurdlePoisson.
+	expect_identical(rlt_new("InferenceCountHurdlePoisson", robust = NULL)$compute_score_two_sided_pval(0),
+		rlt_new("InferenceCountHurdlePoisson", robust = TRUE)$compute_score_two_sided_pval(0))
 	for (cn in c("InferenceCountZeroInflatedNegBin", "InferenceCountHurdleNegBin", "InferenceCountPoisson")) {
 		inf = suppressWarnings(get(cn, envir = asNamespace("EDI"))$new(rlt_design(), verbose = FALSE))
 		expect_identical(inf$get_likelihood_test_variance(), "model", info = cn)

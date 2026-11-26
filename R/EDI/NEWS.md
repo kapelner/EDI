@@ -135,6 +135,23 @@
 
 ## Changes that alter results
 
+* `InferenceCountHurdlePoisson`'s score, likelihood-ratio and gradient tests and
+  their confidence intervals now use a robust (sandwich) variance by default
+  (Kent 1982; Boos 1992), evaluated at the null-restricted fit. When prognostic
+  covariates are left out of the formula (e.g. `~ 1`), the zero-truncated count
+  part is overdispersed and the model-based tests rejected a true null about
+  17% of the time at a nominal 5% level, at every n (calibration campaign
+  2026-11-15-e36c7710; the robust tests hold about 4-7%, with or without the
+  covariates). The new `set_likelihood_test_variance("model" | "robust")` /
+  `get_likelihood_test_variance()` on the asymptotic likelihood classes choose
+  the variance; `"model"` restores the old results. Only
+  `InferenceCountHurdlePoisson` and `InferenceCountZeroInflatedPoisson` offer
+  `"robust"`; `InferenceCountZeroInflatedPoisson` keeps `"model"` as its default
+  for now. Wald (already sandwich-based) and the Bartlett-corrected
+  likelihood-ratio test are unchanged. At n = 50 some robust likelihood-ratio and
+  gradient intervals cannot be inverted and fall back to Wald with an
+  `edi_lik_test_wald_fallback` warning (v1.1.0-TODO-174).
+
 ### Designs
 
 * `DesignSeqOneByOneKK14` now forms matches at the published rate. Its match
@@ -1519,6 +1536,16 @@
   when one is set (v1.0.6-TODO-156).
 
 ### Warnings instead of silent `NA` results
+
+* `InferenceSurvivalKMDiff` no longer returns a silent `NA`. Its warnings
+  used to fire once per object, so a second call returned the same `NA` with
+  no warning: the asymptotic interval and p-value and the randomization
+  p-value after the estimate when a median is not reached, and the Wald
+  p-value after the Wald interval when a Brookmeyer-Crowley bound is
+  unavailable. Every call that returns that `NA` now raises its
+  `edi_km_median_not_reached_warning` or `edi_wald_unavailable_warning`,
+  once per call. Values are unchanged. Found on 29 real survival trials by the
+  real-data crash corpus (v1.0.7-TODO-182).
 
 * `InferenceIncidExactFisher$compute_estimate()` now warns (class
   `edi_procedure_na_warning`) when it returns `NA` because an arm has no events

@@ -39,6 +39,7 @@ Last updated 2026-11-25.
 | [DECISION-v1.1.0-TODO-194a](#DECISION-v1.1.0-TODO-194a) | [v1.1.0-TODO-194](release_v1_1_0.md) | path-audit gate: complete cloud campaign or local regeneration, whichever first | 2026-11-13 |
 | [DECISION-v1.1.0-TODO-194b](#DECISION-v1.1.0-TODO-194b) | [v1.1.0-TODO-194](release_v1_1_0.md) | cloud comprehensive study runs 50 reps | 2026-11-13 |
 | [DECISION-v1.1.0-TODO-184](#DECISION-v1.1.0-TODO-184) | [v1.1.0-TODO-184](release_v1_1_0.md) | frailty `~1` score rows: inherent misspecification, rows stay | 2026-11-12 |
+| [DECISION-v1.1.0-TODO-174](#DECISION-v1.1.0-TODO-174) | [v1.1.0-TODO-174](release_v1_1_0.md) | (a) robust score / LR / gradient are HurdlePoisson's default; ZIP decided separately (DECISION-v1.1.0-TODO-174b) | 2026-11-26 |
 | [DECISION-v1.1.0-TODO-163](#DECISION-v1.1.0-TODO-163) | [v1.1.0-TODO-163](release_v1_1_0.md) | 1.0.5: keep grading KK StratCox `~.` against the harness truth; known limitation in NEWS | 2026-10-31 |
 | [DECISION-v1.1.0-TODO-158](#DECISION-v1.1.0-TODO-158) | [v1.1.0-TODO-158](release_v1_1_0.md) | observational classes get the `Fixed` prefix; old names deprecated for one release | 2026-10-25 |
 | [DECISION-v1.1.0-TODO-61](#DECISION-v1.1.0-TODO-61) | [v1.1.0-TODO-61](release_v1_1_0.md) | Cox ties: Efron default, Breslow available | 2026-10-19 |
@@ -594,6 +595,50 @@ Last updated 2026-11-25.
 - **Ruling:** (a) the 4 `~1` rows (n = 50 / 200) are inherent misspecification, not a defect; they stay, and their reason says so, 2026-11-12, owner
 - **Why:** No reason recorded beyond the investigation (BinaryMatch pairs on covariates that `~1` omits).
 - **Rejected:** (b) treating them as a defect.
+
+<a id="DECISION-v1.1.0-TODO-174"></a>
+### DECISION-v1.1.0-TODO-174: HurdlePoisson `~1`: make the robust score / LR / gradient the default, keep them opt-in, or rule it inherent?
+
+- **TODO:** [v1.1.0-TODO-174](release_v1_1_0.md): **`InferenceCountHurdlePoisson`: Hurdle Poisson: model-based
+  likelihood tests anti-conservative when covariates are omitted.**
+- **Question:** the robust (sandwich) score / LR / gradient tests exist as an opt-in; make them HurdlePoisson's
+  default, keep them opt-in, or rule `~1` inherent?
+- **Context:** with `~1` the omitted covariates overdisperse the zero-truncated Poisson count part, so the
+  model-based information is about half the sandwich one and score / LR / gradient have size about 0.17 at every n
+  (500 confirmed failing tests in campaign 2026-11-15-e36c7710). The sibling ZIP case was ruled inherent
+  ([DECISION-v1.1.0-TODO-216](COMPLETED_DECISIONS.md#DECISION-v1.1.0-TODO-216)) with robust variants left optional
+  for this TODO. They now exist as an opt-in, `set_likelihood_test_variance("robust")` on `InferenceAsympLik`,
+  supported by HurdlePoisson and ZIP only; the default stays `"model"`, so no result has changed.
+- **Evidence (2026-11-25, agent; full table in the TODO):** DesignFixedBernoulli, campaign DGP, 500-1000 reps per
+  cell. `~1`: model 0.152-0.176, robust 0.044-0.060 at n = 50, 200, 1000 and prob_T 0.5 / 0.2. `~.`: model
+  0.045-0.062, robust 0.048-0.060. The robust p-value matches an independent base-R computation to 1e-5. ZIP on its
+  own DGP: `~1` 0.150-0.168 -> 0.042-0.048, `~.` (n >= 200) 0.038-0.050. Robust CIs (test inversion) cover
+  0.93-0.98. Caveat: at n = 50 the robust LR / gradient statistics are bounded and their CIs fall back to Wald (with
+  a warning) in 30-39% of HurdlePoisson `~1` reps (11-14% `~.`; the robust score CI in 0.5-1.5%); none at n >= 200. Not
+  run: the balancing / matched designs (expect them conservative there, like the sandwich Wald), and HurdleNegBin /
+  ZINB (no score-contribution formula; they model the overdispersion anyway).
+- **Ruling:** (a) for HurdlePoisson: `"robust"` is its default (private field `likelihood_test_variance =
+  "robust"` in `inference_count_hurdle.R`, NEWS "Changes that alter results"), 2026-11-26, owner. ZIP is decided
+  separately: [DECISION-v1.1.0-TODO-174b](PENDING_DECISIONS.md#DECISION-v1.1.0-TODO-174b). The 500 accepted
+  campaign rows (reason `v1.1 TODO-174`) are pruned after the next campaign shows the `~1` cells pass.
+- **Why:** No reason recorded beyond the agent's recommendation the owner accepted: the model-based tests are wrong
+  whenever a prognostic covariate is omitted, the robust ones cost almost nothing when the model is right, and the
+  class's Wald test already uses the sandwich.
+- **Rejected:** (b) keep opt-in (results stay wrong by default under `~1`); (c) rule inherent and revert.
+- **Revisit if:** the next campaign shows the robust tests conservative or under-powered on the covariate-balancing
+  or matched designs, or the n = 50 Wald fallbacks of the robust LR / gradient intervals become a problem.
+- **Options that were on the table:**
+  - (a) Make `"robust"` the default for HurdlePoisson (and, separately, ZIP). The `~1` calibration cells pass and
+    their accepted rows (reason `v1.1 TODO-174`, and `v1.1.0-TODO-216` for ZIP) can be pruned after a re-run; every
+    score / LR / gradient p-value and CI of these classes changes (NEWS entry), slightly with `~.`, by a factor
+    about 2 in the statistic with `~1`; the tests lose a little power when the model is right (ratio near 1 at
+    n >= 200; at n = 50 `~.` the HC1 factor makes them a bit more conservative), each test costs one extra n x p
+    crossproduct, and at n = 50 many robust LR / gradient CIs would be Wald fallbacks (the score CI almost never). ZIP's default would reopen the DECISION-v1.1.0-TODO-216 ruling.
+  - (b) Keep `"model"` the default and document the opt-in (done in the class roxygen). Results unchanged; the
+    accepted rows stay with a reason saying robust variants are available and the model-based failure is inherent
+    misspecification. The calibration harness could also run the robust variants as extra procedures.
+  - (c) Rule it inherent and remove the opt-in (revert the code). Not recommended: it works and is cheap.
+- **Raised:** 2026-11-25, by the v1.1.0-TODO-174 agent; ruled 2026-11-26.
 
 <a id="DECISION-v1.1.0-TODO-163"></a>
 ### DECISION-v1.1.0-TODO-163: KK StratCox `~.` small-sample attenuation in v1.0.5: keep grading against the harness truth, or exclude the arm?

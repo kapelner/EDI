@@ -52,9 +52,12 @@
 #' more data. \code{set_likelihood_test_variance("robust")} recalibrates the
 #' three tests and their intervals by the sandwich variance at the
 #' null-restricted fit (Kent 1982; Boos 1992), which held them at about 4-7\%
-#' on that design with \code{~ 1} and with the covariates (v1.1.0-TODO-174;
-#' the default stays model-based; at n = 50 some robust likelihood-ratio and
-#' gradient intervals fall back to Wald). The Wald test, which uses a sandwich covariance, is also
+#' on that design with \code{~ 1} and with the covariates. These robust tests
+#' are this class's default (v1.1.0-TODO-174, owner decision 2026-11-26); at
+#' n = 50 some robust likelihood-ratio and gradient intervals fall back to
+#' Wald, so prefer the score interval there.
+#' \code{set_likelihood_test_variance("model")} restores the model-based
+#' tests. The Wald test, which uses a sandwich covariance, is also
 #' calibrated in this setting. Otherwise adjust for the prognostic covariates,
 #' or use
 #' \code{\link[EDI:InferenceCountHurdleNegBin]{InferenceCountHurdleNegBin}},
@@ -288,6 +291,10 @@ InferenceCountHurdlePoisson = define_inference_class(
 		}
 	),
 	private = list(
+		# Robust (sandwich) score / LR / gradient tests by default: the model-based ones
+		# reject a true null about 17% of the time at 5% when prognostic covariates are left
+		# out (v1.1.0-TODO-174, DECISION-v1.1.0-TODO-174, owner 2026-11-26).
+		likelihood_test_variance = "robust",
 		za_family = function() glmmTMB::truncated_poisson(link = "log"),
 		za_description = function() "Hurdle Poisson",
 		get_supported_estimands_impl = function(){
