@@ -1,58 +1,9 @@
 {
- "ci-self-check-m03e51a70": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-dead-code.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-dead-code.yml`: latest successful run took 134 min against an 8-week median of 82 min (1.6x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358245826).",
-  "unit": "runtime:.github/workflows/audit-dead-code.yml"
- },
- "ci-self-check-m17a2fb9e": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/calibration-study.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/calibration-study.yml`: latest successful run took 384 min against an 8-week median of 114 min (3.4x; 49 earlier runs; https://github.com/kapelner/EDI/actions/runs/44677605078).",
-  "unit": "runtime:.github/workflows/calibration-study.yml"
- },
- "ci-self-check-m45af0b31": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-ci-self-check.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-ci-self-check.yml`: latest successful run took 59 min against an 8-week median of 35 min (1.7x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358224033).",
-  "unit": "runtime:.github/workflows/audit-ci-self-check.yml"
- },
- "ci-self-check-m4736ea4b": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-results-freshness.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-results-freshness.yml`: latest successful run took 113 min against an 8-week median of 56 min (2.0x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358341342).",
-  "unit": "runtime:.github/workflows/audit-results-freshness.yml"
- },
- "ci-self-check-m6bcbb195": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-dependency-license.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-dependency-license.yml`: latest successful run took 77 min against an 8-week median of 41 min (1.9x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358253079).",
-  "unit": "runtime:.github/workflows/audit-dependency-license.yml"
- },
- "ci-self-check-m7f0b680b": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-allowlist-hygiene.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-allowlist-hygiene.yml`: latest successful run took 50 min against an 8-week median of 29 min (1.8x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358218249).",
-  "unit": "runtime:.github/workflows/audit-allowlist-hygiene.yml"
- },
- "ci-self-check-md410b94c": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-generated-drift.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-generated-drift.yml`: latest successful run took 91 min against an 8-week median of 47 min (1.9x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358277307).",
-  "unit": "runtime:.github/workflows/audit-generated-drift.yml"
- },
- "ci-self-check-med42e85a": {
-  "first_seen": "2026-11-20T15:21:26+00:00",
-  "key": "slow-run:`.github/workflows/audit-python-vulns.yml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
-  "last_seen": "2026-11-20T15:21:26+00:00",
-  "text": "`.github/workflows/audit-python-vulns.yml`: latest successful run took 103 min against an 8-week median of 54 min (1.9x; 3 earlier runs; https://github.com/kapelner/EDI/actions/runs/44358313949).",
-  "unit": "runtime:.github/workflows/audit-python-vulns.yml"
+ "ci-self-check-m62034c18": {
+  "first_seen": "2026-11-27T16:33:40+00:00",
+  "key": "slow-run:`.github/workflows/pkgdown.yaml`: latest successful run took # min against an #-week median of # min (#x; # earlier runs; https://github.com/kapelner/EDI/actions/runs/#).",
+  "last_seen": "2026-11-27T16:33:40+00:00",
+  "text": "`.github/workflows/pkgdown.yaml`: latest successful run took 48 min against an 8-week median of 30 min (1.6x; 59 earlier runs; https://github.com/kapelner/EDI/actions/runs/45494251344).",
+  "unit": "runtime:.github/workflows/pkgdown.yaml"
  }
 }
