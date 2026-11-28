@@ -1,12 +1,21 @@
 {
  "areas": {
   "clusters-blocking": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
+  },
+  "continuous": {
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
+   "last_outcome": "ok",
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
    "runs": 1
   },
   "count": {
@@ -19,31 +28,31 @@
    "runs": 1
   },
   "custom-statistic": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   },
   "factorial": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   },
   "fixed-designs": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   },
   "incidence": {
    "last_attempt_at": "2026-11-21T09:12:47+00:00",
@@ -64,13 +73,13 @@
    "runs": 1
   },
   "missing-data": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   },
   "observational": {
    "last_attempt_at": "2026-11-21T09:12:47+00:00",
@@ -118,13 +127,13 @@
    "runs": 1
   },
   "sequential-designs": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   },
   "simulation-framework": {
    "last_attempt_at": "2026-11-21T09:12:47+00:00",
@@ -136,13 +145,13 @@
    "runs": 1
   },
   "survival-censoring": {
-   "last_attempt_at": "2026-11-18T19:20:07+00:00",
-   "last_attempt_id": "44358267779",
+   "last_attempt_at": "2026-11-28T09:51:53+00:00",
+   "last_attempt_id": "46127655814",
    "last_outcome": "ok",
-   "last_run_at": "2026-11-18T19:20:07+00:00",
-   "last_run_id": "44358267779",
-   "last_run_sha": "4ce2b7126d362cb26e7c04870c7f64879cb7ac46",
-   "runs": 1
+   "last_run_at": "2026-11-28T09:51:53+00:00",
+   "last_run_id": "46127655814",
+   "last_run_sha": "4adb1f1d01e6615d0fd75fab44bb0a7c947f9094",
+   "runs": 2
   }
  }
 }
